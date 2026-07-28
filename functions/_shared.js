@@ -132,6 +132,7 @@ export function normalizeSlug(input) {
 const RESERVED = new Set([
   'admin', 'api', 'www', 'app', 'static', 'assets', 'download', 'downloads',
   's', 'm', 'login', 'logout', 'register', 'new', 'help', 'about', 'dashboard',
+  'manage', 'root', 'system', 'support', 'billing',
 ]);
 
 export const slugAvailable = (slug) =>

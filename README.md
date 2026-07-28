@@ -27,10 +27,11 @@
 public/                 נכסים סטטיים
   index.html            דף הבית + הרשמה
   admin.html            ממשק הגבאים
+  manage.html           דשבורד מנהל המערכת
   display.html          תבנית הצג (מוגשת דרך /s/<slug>)
   js/api.js             לקוח הפלטפורמה (החליף את js/github.js)
-  js/{display,admin,site}.js
-  css/{board,site}.css
+  js/{display,admin,site,manage}.js
+  css/{board,site,manage}.css
 
 functions/              קוד שרץ בקצה
   _shared.js            סשנים, סיסמאות, זיהוי דייר, ברירות מחדל
@@ -40,6 +41,8 @@ functions/              קוד שרץ בקצה
   api/data/             קריאה/כתיבה של מקטעי הגדרות (מאומת)
   api/public/[slug].js  המנה שהצג צורך (ציבורי, נשמר ב-cache 60 שניות)
   api/media/            העלאה, רשימה, מחיקה
+  api/admin/            דשבורד מנהל: כניסה, סקירה, השהיה/מחיקה
+  _admin.js             סשן מנהל — נפרד לגמרי מסשן הגבאים
   m/[id].js             הגשת קובץ מדיה (cache שנה)
   s/[slug].js           הגשת הצג של בית כנסת
   download/[file].js    מתקין מותאם לפי שם הקובץ
@@ -53,6 +56,24 @@ schema.sql               סכימת D1
 `resolveSlug()` ב-`functions/_shared.js` בודק **קודם תת-דומיין ואז נתיב**.
 היום עובד הנתיב `/s/<slug>`. ביום שיחובר דומיין משלכם, `beit-yaakov.example.com`
 יעבוד מיד — בלי שינוי קוד.
+
+## דשבורד מנהל המערכת
+
+`/manage.html` — מוגן בסיסמה נפרדת שיושבת כסוד ב-Pages (`PLATFORM_PASSWORD`),
+לא במסד. סשן קצר יותר (4 שעות), עוגייה נפרדת (`sb_admin`), והגבלת קצב של
+5 ניסיונות ל-IP ברבע שעה. סשן של גבאי **לא** מקנה שום גישה לשם.
+
+מה יש שם: מוני בתי כנסת/גבאים/מדיה, מדי ניצול מול המכסה החינמית, טבלת בתי כנסת
+עם השהיה ומחיקה, גרף הרשמות ל-30 יום, ויומן פעולות מלא.
+
+מחיקה דורשת הקלדת ה-slug כאישור, מוחקת גם את הבייטים מ-KV, ומשאירה את רשומות
+היומן בכוונה — עקבות מחיקה שווים יותר מניקיון.
+
+החלפת הסיסמה:
+
+```bash
+wrangler pages secret put PLATFORM_PASSWORD --project-name shul-board
+```
 
 ## המתקין ל-Windows
 
@@ -118,6 +139,5 @@ wrangler pages deploy --project-name shul-board --branch main --commit-dirty=tru
 ## מה עוד אפשר להוסיף
 
 - דומיין משלכם → תת-דומיין אמיתי לכל בית כנסת (הקוד כבר תומך)
-- מסך ניהול-על: רשימת כל בתי הכנסת, השהיה, מכסות
 - שחזור סיסמה דרך הטלפון שנרשם
 - הצגת PDF/תמונות בסבב על הצג (הטבלה `media` ומקטע `media-playlist` כבר קיימים)

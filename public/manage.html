@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ניהול מערכת — ShulBoard</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%99%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/manage.css">
+</head>
+<body class="site-body mg-body">
+
+<!-- כניסה -->
+<div id="mg-login" class="mg-login-wrap">
+  <div class="form-card">
+    <a href="/" class="brand-link">ShulBoard</a>
+    <h2>ניהול מערכת</h2>
+    <p class="desc">אזור מנהל הפלטפורמה. לגבאים — <a href="/admin.html">כניסת גבאים</a>.</p>
+    <div class="field">
+      <label for="mg-pass">סיסמת מנהל</label>
+      <input type="password" id="mg-pass" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" id="mg-login-btn" style="width:100%;margin-top:6px;">כניסה</button>
+    <div class="msg" id="mg-msg"></div>
+  </div>
+</div>
+
+<!-- דשבורד -->
+<div id="mg-app" hidden>
+  <div class="mg-top">
+    <div class="site-wrap mg-top-inner">
+      <div>
+        <span class="site-logo">ShulBoard</span>
+        <span class="mg-badge">ניהול מערכת</span>
+      </div>
+      <div class="mg-top-actions">
+        <span class="mg-refreshed" id="mg-refreshed"></span>
+        <button class="btn btn-ghost btn-sm" id="mg-refresh">רענון</button>
+        <button class="btn btn-ghost btn-sm" id="mg-logout">יציאה</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="site-wrap">
+    <div class="mg-tiles" id="mg-tiles"></div>
+
+    <section class="mg-panel">
+      <div class="mg-panel-head">
+        <h2>בתי כנסת</h2>
+        <input type="search" id="mg-search" placeholder="חיפוש לפי שם או כתובת…">
+      </div>
+      <div class="mg-table-wrap">
+        <table class="mg-table" id="mg-shuls">
+          <thead>
+            <tr>
+              <th>בית כנסת</th><th>כתובת</th><th>סטטוס</th><th>גבאים</th>
+              <th>מדיה</th><th>נרשם</th><th>פעילות אחרונה</th><th>פעולות</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="desc" id="mg-empty" hidden>עדיין לא נרשמו בתי כנסת.</p>
+    </section>
+
+    <section class="mg-panel">
+      <h2>הרשמות ב־30 הימים האחרונים</h2>
+      <div class="mg-spark" id="mg-spark"></div>
+    </section>
+
+    <section class="mg-panel">
+      <h2>יומן פעולות</h2>
+      <div class="mg-table-wrap">
+        <table class="mg-table" id="mg-audit">
+          <thead><tr><th>מתי</th><th>בית כנסת</th><th>מי</th><th>פעולה</th><th>פרטים</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      הנתונים יושבים ב-D1 ו-KV של Cloudflare · הדף הזה חסום למנועי חיפוש
+    </footer>
+  </div>
+</div>
+
+<div class="mg-toast" id="mg-toast"></div>
+
+<script src="/js/manage.js"></script>
+</body>
+</html>

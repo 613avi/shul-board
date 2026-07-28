@@ -1,0 +1,137 @@
+/* דשבורד מנהל המערכת. יושב על site.css. */
+
+.mg-body { min-height: 100vh; }
+
+/* חייב לגבור על display מפורש — אחרת תכונת hidden לא מסתירה כלום */
+.mg-body [hidden] { display: none !important; }
+
+.mg-login-wrap { display: grid; place-items: center; min-height: 100vh; padding: 20px; }
+
+.mg-top {
+  border-bottom: 1px solid var(--sb-line);
+  background: rgba(13, 16, 23, .85);
+  backdrop-filter: blur(10px);
+  position: sticky; top: 0; z-index: 10;
+}
+.mg-top-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 22px; gap: 12px; flex-wrap: wrap;
+}
+.mg-badge {
+  font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  background: rgba(212, 175, 55, .15); border: 1px solid rgba(212, 175, 55, .35);
+  color: var(--sb-gold-soft); margin-inline-start: 10px; vertical-align: middle;
+}
+.mg-top-actions { display: flex; align-items: center; gap: 8px; }
+.mg-refreshed { font-size: 12px; color: var(--sb-dim); }
+
+/* ---------- אריחי מספרים ---------- */
+.mg-tiles {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px; margin: 26px 0;
+}
+.mg-tile {
+  background: var(--sb-panel); border: 1px solid var(--sb-line);
+  border-radius: 14px; padding: 16px 18px;
+}
+.mg-tile .k {
+  font-size: 12.5px; color: var(--sb-dim); font-weight: 600;
+  letter-spacing: .3px; margin-bottom: 6px;
+}
+.mg-tile .v {
+  font-size: 27px; font-weight: 800; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.mg-tile .sub { font-size: 12px; color: var(--sb-dim); margin-top: 4px; }
+.mg-tile.gold .v { color: var(--sb-gold-soft); }
+
+/* מד מילוי למכסות */
+.mg-meter {
+  height: 5px; border-radius: 99px; background: #0a0d14;
+  overflow: hidden; margin-top: 8px;
+}
+.mg-meter > i { display: block; height: 100%; background: var(--sb-green); border-radius: 99px; }
+.mg-meter.warn > i { background: var(--sb-gold); }
+.mg-meter.hot > i { background: var(--sb-red); }
+
+/* ---------- פאנלים וטבלאות ---------- */
+.mg-panel {
+  background: var(--sb-panel); border: 1px solid var(--sb-line);
+  border-radius: 16px; padding: 20px; margin-bottom: 20px;
+}
+.mg-panel h2 { margin: 0 0 14px; font-size: 19px; }
+.mg-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.mg-panel-head h2 { margin: 0; }
+.mg-panel-head input[type=search] {
+  padding: 8px 12px; font: inherit; font-size: 14px; color: var(--sb-fg);
+  background: #0a0d14; border: 1px solid var(--sb-line); border-radius: 9px;
+  min-width: 220px;
+}
+.mg-panel-head input:focus { outline: 0; border-color: var(--sb-gold); }
+
+.mg-table-wrap { overflow-x: auto; }
+.mg-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 720px; }
+.mg-table th, .mg-table td {
+  text-align: right; padding: 10px 12px; border-bottom: 1px solid var(--sb-line);
+  white-space: nowrap;
+}
+.mg-table th { font-size: 12.5px; color: var(--sb-dim); font-weight: 600; }
+.mg-table tbody tr:hover { background: rgba(255, 255, 255, .025); }
+.mg-table tbody tr:last-child td { border-bottom: 0; }
+.mg-table td.wrap { white-space: normal; max-width: 320px; }
+.mg-table .mono {
+  font-family: ui-monospace, Menlo, monospace; font-size: 12.5px;
+  direction: ltr; display: inline-block;
+}
+.mg-table a { color: var(--sb-gold-soft); text-decoration: none; }
+.mg-table a:hover { text-decoration: underline; }
+.mg-name { font-weight: 600; }
+
+.mg-pill {
+  font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 7px;
+}
+.mg-pill.active { background: rgba(52, 211, 153, .13); color: var(--sb-green); }
+.mg-pill.suspended { background: rgba(248, 113, 113, .13); color: var(--sb-red); }
+
+.mg-actions { display: flex; gap: 6px; }
+.mg-actions .btn { padding: 4px 10px; font-size: 12.5px; }
+.mg-body .btn-danger { color: var(--sb-red) !important; border-color: rgba(248,113,113,.35) !important; }
+
+/* ---------- גרף עמודות פשוט ---------- */
+/* grid ולא flex — 30 עמודות שנחלקות שווה בשווה, בלי גלילה אופקית */
+.mg-spark {
+  display: grid; grid-template-columns: repeat(30, 1fr);
+  align-items: end; gap: 3px; height: 90px; padding-top: 8px;
+}
+.mg-spark .bar {
+  border-radius: 3px 3px 0 0;
+  background: #1e2636; position: relative; transition: .15s;
+}
+.mg-spark .bar[data-n]:not([data-n="0"]) { background: var(--sb-gold); }
+.mg-spark .bar:hover { filter: brightness(1.3); }
+.mg-spark .bar::after {
+  content: attr(title); position: absolute; bottom: 100%; right: 50%;
+  transform: translateX(50%); white-space: nowrap; font-size: 11px;
+  background: #000; color: #fff; padding: 3px 7px; border-radius: 6px;
+  opacity: 0; pointer-events: none; transition: .15s; margin-bottom: 4px;
+}
+.mg-spark .bar:hover::after { opacity: 1; }
+
+/* ---------- הודעה צפה ---------- */
+.mg-toast {
+  position: fixed; inset-inline-start: 50%; transform: translateX(-50%) translateY(120%);
+  bottom: 24px; background: #10151f; border: 1px solid var(--sb-line);
+  color: var(--sb-fg); padding: 11px 20px; border-radius: 11px;
+  font-size: 14px; transition: transform .22s; z-index: 100; max-width: 90vw;
+}
+.mg-toast.show { transform: translateX(-50%) translateY(0); }
+.mg-toast.ok { border-color: rgba(52, 211, 153, .45); }
+.mg-toast.bad { border-color: rgba(248, 113, 113, .45); }
+
+@media (max-width: 640px) {
+  .mg-tile .v { font-size: 23px; }
+  .mg-panel { padding: 15px; }
+}
