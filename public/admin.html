@@ -274,7 +274,13 @@
 
                 <h3>תצוגה מקדימה</h3>
                 <div class="field">
-                    <iframe id="design-preview" src="index.html" style="width: 100%; height: 500px; border: 1px solid #d0d4dd; border-radius: 6px;"></iframe>
+                    <!-- הכתובת נקבעת ב-renderIdentity לפי בית הכנסת המחובר.
+                         ה-iframe מרונדר בגודל מסך מלא ומוקטן בטרנספורם, כדי שרואים
+                         את כל הלוח ולא רק את החלק העליון שלו. -->
+                    <div class="preview-frame">
+                        <iframe id="design-preview" src="about:blank" title="תצוגה מקדימה של הצג"></iframe>
+                    </div>
+                    <div class="desc">כך ייראה הצג. שינויי עיצוב מוצגים כאן מיד, אבל מתפרסמים רק אחרי "שמירה ופרסום".</div>
                 </div>
             </div>
         </div>

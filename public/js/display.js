@@ -123,6 +123,7 @@
   }
 
   let _version = null;
+  let _previewMode = false;   // נדלק כשהצג רץ בתוך ה-iframe של הניהול
 
   async function fetchBundle() {
     const slug = currentSlug();
@@ -671,6 +672,8 @@
   // בדיקת עדכונים: משווים את חותמת הגרסה של המנה הציבורית.
   // כשגבאי שומר שינוי, ה-version עולה והצג מרענן את עצמו תוך דקות.
   async function checkForUpdates() {
+    // בתוך התצוגה המקדימה של הניהול: ריענון היה מוחק שינויי עיצוב שטרם נשמרו
+    if (_previewMode) return;
     try {
       const bundle = await fetchBundle();
       if (_version == null) { _version = bundle.version; return; }
@@ -694,6 +697,8 @@
     // Listen for design preview updates from admin page
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'PREVIEW_DESIGN') {
+        if (event.origin !== location.origin) return;
+        _previewMode = true;
         if (!state.config) state.config = {};
         if (!state.config.design) state.config.design = {};
         if (event.data.theme) state.config.design.theme = event.data.theme;

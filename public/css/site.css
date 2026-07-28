@@ -147,6 +147,19 @@
 .admin-topbar .btn-ghost:hover { background: rgba(255, 255, 255, .1); }
 .admin-topbar a.btn { display: inline-flex; align-items: center; }
 
+/* תצוגה מקדימה: הצג מרונדר ב-1920×1080 ומוקטן, כדי שרואים אותו שלם
+   ובפרופורציות האמיתיות שלו במקום חתוך למעלה. */
+.preview-frame {
+  position: relative; width: 100%; aspect-ratio: 16 / 9;
+  overflow: hidden; border: 1px solid #d0d4dd; border-radius: 8px;
+  background: #0e1320;
+}
+.preview-frame iframe {
+  position: absolute; top: 0; right: 0;
+  width: 1920px; height: 1080px; border: 0;
+  transform-origin: top right;
+}
+
 .plain-list { list-style: none; padding: 0; margin: 0; }
 .plain-list li { padding: 6px 0; border-bottom: 1px solid var(--sb-line); }
 .plain-list li:last-child { border-bottom: 0; }

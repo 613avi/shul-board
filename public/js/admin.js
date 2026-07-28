@@ -176,6 +176,15 @@
     if (exe) exe.href = me.urls.installer;
     const bat = qs('#link-bat');
     if (bat) bat.href = `/download/ShulBoard-${me.shul.slug}.bat`;
+
+    // התצוגה המקדימה טוענת את הצג האמיתי של בית הכנסת המחובר.
+    // נטען פעם אחת בלבד — טעינה חוזרת הייתה מאפסת שינויי עיצוב שטרם נשמרו.
+    const pv = qs('#design-preview');
+    if (pv && pv.dataset.loadedFor !== me.shul.slug) {
+      pv.dataset.loadedFor = me.shul.slug;
+      pv.src = me.urls.display;
+      scalePreview();
+    }
     const list = qs('#gabbaim-list');
     if (list) {
       list.innerHTML = '';
@@ -209,8 +218,10 @@
         qsa('.tab-content').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
         qs(`.tab-content[data-tab="${btn.dataset.tab}"]`).classList.add('active');
+        if (btn.dataset.tab === 'design') scalePreview();
       });
     });
+    window.addEventListener('resize', scalePreview);
   }
 
   // ---------- General ----------
@@ -1080,6 +1091,18 @@
     renderAnnouncements();
     renderSpecial();
     updateZmCsvCount();
+  }
+
+  // מכווץ את ה-iframe (1920×1080) לרוחב שהמכל בפועל מאפשר.
+  // נקרא בטעינה, בשינוי גודל חלון ובמעבר ללשונית העיצוב — הרוחב הוא 0
+  // כל עוד הלשונית מוסתרת, ואז אין מה לחשב.
+  function scalePreview() {
+    const pv = qs('#design-preview');
+    const box = pv && pv.parentElement;
+    if (!box) return;
+    const w = box.clientWidth;
+    if (!w) return;
+    pv.style.transform = `scale(${w / 1920})`;
   }
 
   // ---------- מדיה ----------
