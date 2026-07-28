@@ -1,0 +1,708 @@
+// Smart Zmanim - display logic
+// Loads data/*.json, renders a kiosk-style synagogue board (always all-rooms).
+
+(() => {
+  const { HDate, GeoLocation, Zmanim, HebrewCalendar, flags, Locale, gematriya } = window.hebcal;
+  const FLAG_PARSHA = (flags && flags.PARSHA_HASHAVUA) || 1024;
+  const FLAG_CHAG = (flags && flags.CHAG) || 1;
+
+  const hebMonth = (hdate) => {
+    try { return Locale.gettext(hdate.getMonthName(), 'he'); }
+    catch { return hdate.getMonthName(); }
+  };
+  const hebDay = (n) => {
+    try { return gematriya(Number(n) || 0); }
+    catch { return String(n); }
+  };
+  const makeGeo = () => {
+    const { latitude, longitude, timezone } = state.config.location;
+    return new GeoLocation(
+      state.config.synagogueName || 'site',
+      Number(latitude), Number(longitude),
+      0,
+      timezone || 'Asia/Jerusalem'
+    );
+  };
+
+  const HEB_DOW = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+
+  const state = {
+    config: null,
+    rooms: [],
+    memorial: [],
+    announcements: [],
+    specialEvents: [],
+    zmanimCalendar: {}, // { "YYYY-MM-DD": { key: "HH:MM" } }
+  };
+
+  // ---------- helpers ----------
+  const qs = (sel) => document.querySelector(sel);
+  const fmtTime = (d) => {
+    if (!d || !(d instanceof Date) || isNaN(d)) return '';
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+  const parseTime = (s) => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(s || '').trim());
+    if (!m) return NaN;
+    return Number(m[1]) * 60 + Number(m[2]);
+  };
+  const addMinutes = (date, mins) => new Date(date.getTime() + mins * 60000);
+  const asArr = (v) => Array.isArray(v) ? v.filter(x => x !== '' && x != null) : (v ? [v] : []);
+
+  // Effective Hebrew date: after sunset at current location we're already on the next Hebrew day.
+  function getEffectiveHDate() {
+    const now = new Date();
+    let hd = new HDate(now);
+    if (state.config && state.config.location) {
+      try {
+        const sunset = new Zmanim(makeGeo(), now).sunset();
+        if (sunset && now >= sunset) hd = hd.next();
+      } catch {}
+    }
+    return hd;
+  }
+
+  function normalizeRoom(room) {
+    const wk = room.weekday || {};
+    const sh = room.shabbat || {};
+    room.weekday = {
+      shacharit: [...asArr(wk.shacharit), ...asArr(wk.shacharit2)].map(String),
+      mincha:    asArr(wk.mincha).map(String),
+      arvit:     asArr(wk.arvit).map(String),
+    };
+    room.shabbat = {
+      kabbalat:            asArr(sh.kabbalat).map(String),
+      minchaErevOffsets:   asArr(sh.minchaErevOffsets ?? sh.minchaErevOffset).map(Number).filter(n => !isNaN(n)),
+      shacharit:           asArr(sh.shacharit).map(String),
+      mincha:              asArr(sh.mincha).map(String),
+      arvitMotzashOffsets: asArr(sh.arvitMotzashOffsets ?? sh.arvitMotzashOffset).map(Number).filter(n => !isNaN(n)),
+    };
+    return room;
+  }
+
+  // Normalize special-times to event-grouped format.
+  function migrateSpecialTimes(arr) {
+    if (!Array.isArray(arr)) return [];
+    if (arr.length === 0) return [];
+    if (arr[0] && (Array.isArray(arr[0].times) || arr[0].name != null || arr[0].dateType)) {
+      // Already events format — ensure shape
+      return arr.map(ev => ({
+        id: ev.id || String(Math.random()).slice(2),
+        name: ev.name || '',
+        dateType: ev.dateType === 'hebrew' ? 'hebrew' : 'gregorian',
+        date: ev.date || '',
+        hebrewDay: ev.hebrewDay || 0,
+        hebrewMonth: ev.hebrewMonth || '',
+        times: Array.isArray(ev.times) ? ev.times : [],
+      }));
+    }
+    // Flat rows (legacy): group by date
+    const groups = new Map();
+    for (const r of arr) {
+      const key = r.date || '';
+      if (!groups.has(key)) groups.set(key, {
+        id: String(Math.random()).slice(2),
+        name: '',
+        dateType: 'gregorian',
+        date: key,
+        hebrewDay: 0,
+        hebrewMonth: '',
+        times: [],
+      });
+      groups.get(key).times.push({ roomId: r.roomId || '', label: r.label || '', time: r.time || '' });
+    }
+    return [...groups.values()];
+  }
+
+  // מזהה בית הכנסת מוזרק על ידי ה-Function שמגיש את הדף (functions/s/[slug].js).
+  // נפילה לאחור: חילוץ מהנתיב, כדי שגם פתיחה ישירה תעבוד.
+  function currentSlug() {
+    if (window.SHUL && window.SHUL.slug) return window.SHUL.slug;
+    const m = location.pathname.match(/^\/s\/([^/]+)/);
+    return m ? m[1] : '';
+  }
+
+  let _version = null;
+
+  async function fetchBundle() {
+    const slug = currentSlug();
+    if (!slug) throw new Error('לא זוהה בית כנסת');
+    const res = await fetch(`/api/public/${encodeURIComponent(slug)}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`bundle: ${res.status}`);
+    const body = await res.json();
+    if (!body.ok) throw new Error(body.error || 'שגיאה בטעינה');
+    return body;
+  }
+
+  async function loadData() {
+    const bundle = await fetchBundle();
+    _version = bundle.version;
+    const d = bundle.data || {};
+    const config = d['config'] || null;
+    const rooms = d['rooms'] || { rooms: [] };
+    const memorial = d['memorial'] || { entries: [] };
+    const announcements = d['announcements'] || { entries: [] };
+    const specialTimes = d['special-times'] || { entries: [] };
+    const zmanimCal = d['zmanim-calendar'] || { entries: {} };
+    if (!config) throw new Error('config missing');
+    if (!config.synagogueName && bundle.name) config.synagogueName = bundle.name;
+    state.config = config;
+    state.config.zmanimOverrides = state.config.zmanimOverrides || {};
+    state.rooms = (rooms.rooms || []).map(normalizeRoom);
+    state.memorial = memorial.entries || [];
+    state.announcements = announcements.entries || [];
+    state.specialEvents = migrateSpecialTimes(specialTimes.entries || []);
+    state.zmanimCalendar = (zmanimCal && zmanimCal.entries && typeof zmanimCal.entries === 'object') ? zmanimCal.entries : {};
+  }
+
+  // ---------- header / omer / parasha ----------
+  function findOmerText(hdate) {
+    try {
+      const evs = HebrewCalendar.calendar({ start: hdate, end: hdate, omer: true, locale: 'he', il: true });
+      const omerEv = evs.find(e => e.constructor && e.constructor.name === 'OmerEvent')
+                  || evs.find(e => typeof e.getTodayIs === 'function');
+      if (!omerEv) return '';
+      if (typeof omerEv.getTodayIs === 'function') {
+        const text = omerEv.getTodayIs('he');
+        const sefira = typeof omerEv.sefira === 'function' ? omerEv.sefira('he') : '';
+        return sefira ? `${text} · ${sefira}` : text;
+      }
+      return omerEv.render('he');
+    } catch { return ''; }
+  }
+
+  function findParashaText(hdate, now) {
+    try {
+      const events = HebrewCalendar.calendar({ start: hdate, end: hdate, sedrot: true, il: true, locale: 'he' });
+      const parashaEv = events.find(e => e.getFlags && (e.getFlags() & FLAG_PARSHA));
+      if (parashaEv) return parashaEv.render('he');
+      const daysToShabbat = (6 - now.getDay() + 7) % 7 || 7;
+      const shabbat = new HDate(new Date(now.getTime() + daysToShabbat * 86400000));
+      const wkEvents = HebrewCalendar.calendar({ start: shabbat, end: shabbat, sedrot: true, il: true, locale: 'he' });
+      const pEv = wkEvents.find(e => e.getFlags && (e.getFlags() & FLAG_PARSHA));
+      return pEv ? pEv.render('he') : '';
+    } catch { return ''; }
+  }
+
+  function renderHeader() {
+    qs('#synagogue-name').textContent = state.config.synagogueName || '';
+    const now = new Date();
+    const hdate = getEffectiveHDate();
+    qs('#hebrew-date').textContent = hdate.renderGematriya();
+    const dow = HEB_DOW[now.getDay()];
+    qs('#gregorian-date').textContent = `יום ${dow}, ${now.toLocaleDateString('he-IL', {day:'numeric', month:'long', year:'numeric'})}`;
+
+    const parashaText = findParashaText(hdate, now);
+    qs('#parasha').textContent = parashaText;
+    qs('.parasha-sep').style.display = parashaText ? '' : 'none';
+
+    const omerText = findOmerText(hdate);
+    const omerEl = qs('#omer-line');
+    if (omerEl) {
+      omerEl.textContent = omerText;
+      omerEl.style.display = omerText ? '' : 'none';
+    }
+
+    renderMentions(hdate);
+  }
+
+  // ---------- tefilla mentions (winter/summer, rain request, ya'aleh v'yavo, al hanisim) ----------
+  function computeTefillaMentions(hdate) {
+    const m = hdate.getMonth(); // 1=Nisan .. 7=Tishrei .. 13=Adar II
+    const d = hdate.getDate();
+    const out = [];
+
+    // משיב הרוח ומוריד הגשם (Shemini Atzeret musaf through Pesach day-1 musaf)
+    // Simplified by calendar day:
+    // Winter: 22 Tishrei → 14 Nisan inclusive. Else "מוריד הטל".
+    const isWinter =
+      (m === 7 && d >= 22) ||
+      (m >= 8 && m <= 13) ||
+      (m === 1 && d <= 14);
+    out.push(isWinter ? 'משיב הרוח ומוריד הגשם' : 'מוריד הטל');
+
+    // ותן טל ומטר (Israel): 7 Cheshvan → 14 Nisan; else ותן ברכה
+    const rainRequest =
+      (m === 8 && d >= 7) ||
+      (m >= 9 && m <= 13) ||
+      (m === 1 && d <= 14);
+    out.push(rainRequest ? 'ותן טל ומטר לברכה' : 'ותן ברכה');
+
+    // יעלה ויבוא (Rosh Chodesh or Chol Hamoed in Israel)
+    let yaaleh = false;
+    if (d === 1) yaaleh = true;
+    else if (d === 30) {
+      try {
+        const daysInMonth = HDate.daysInMonth(m, hdate.getFullYear());
+        if (daysInMonth === 30) yaaleh = true; // the 30th is Rosh Chodesh eve day
+      } catch {}
+    }
+    // Chol hamoed (Israel): Nisan 16-20, Tishrei 16-21
+    if (m === 1 && d >= 16 && d <= 20) yaaleh = true;
+    if (m === 7 && d >= 16 && d <= 21) yaaleh = true;
+    if (yaaleh) out.push('יעלה ויבוא');
+
+    // על הניסים — Chanukah (25 Kislev through 2-3 Tevet) and Purim (14-15 Adar last-Adar)
+    let alHanisim = false;
+    if (m === 9 && d >= 25) alHanisim = true;             // Kislev 25-30
+    if (m === 10 && d <= 3) alHanisim = true;              // Tevet 1-3
+    const lastAdar = (() => {
+      try { return HDate.isLeapYear(hdate.getFullYear()) ? 13 : 12; }
+      catch { return 12; }
+    })();
+    if (m === lastAdar && (d === 14 || d === 15)) alHanisim = true; // Purim + Shushan Purim
+    if (alHanisim) out.push('על הניסים');
+
+    return out;
+  }
+
+  function renderMentions(hdate) {
+    const bar = qs('#mentions-bar');
+    if (!bar) return;
+    try {
+      const items = computeTefillaMentions(hdate);
+      if (!items.length) { bar.style.display = 'none'; return; }
+      bar.innerHTML = items.map(t => `<span class="mention">${t}</span>`).join('');
+      bar.style.display = '';
+    } catch (e) {
+      bar.style.display = 'none';
+    }
+  }
+
+  function renderClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    qs('#current-time').textContent = `${h}:${m}`;
+    qs('#current-seconds').textContent = s;
+  }
+
+  // ---------- zmanim ----------
+  const ZMANIM_DEFS = [
+    { key: 'alotHaShachar',    label: 'עלות השחר',                   fn: z => z.alotHaShachar() },
+    { key: 'misheyakir',       label: 'משיכיר',                      fn: z => z.misheyakir() },
+    { key: 'sunrise',          label: 'הנץ החמה',                     fn: z => z.sunrise() },
+    { key: 'sofZmanShmaMGA',   label: 'סוף זמן ק״ש (מג״א)',           fn: z => z.sofZmanShmaMGA() },
+    { key: 'sofZmanShma',      label: 'סוף זמן ק״ש (גר״א)',           fn: z => z.sofZmanShma() },
+    { key: 'sofZmanTfillaMGA', label: 'סוף זמן תפילה (מג״א)',         fn: z => z.sofZmanTfillaMGA() },
+    { key: 'sofZmanTfilla',    label: 'סוף זמן תפילה (גר״א)',         fn: z => z.sofZmanTfilla() },
+    { key: 'chatzot',          label: 'חצות היום',                    fn: z => z.chatzot() },
+    { key: 'minchaGedola',     label: 'מנחה גדולה',                   fn: z => z.minchaGedola() },
+    { key: 'minchaKetana',     label: 'מנחה קטנה',                    fn: z => z.minchaKetana() },
+    { key: 'plagHaMincha',     label: 'פלג המנחה',                    fn: z => z.plagHaMincha() },
+    { key: 'sunset',           label: 'שקיעת החמה',                   fn: z => z.sunset() },
+    { key: 'tzeit',            label: 'צאת הכוכבים',                  fn: z => z.tzeit() },
+  ];
+
+  function computeZmanim() {
+    const z = new Zmanim(makeGeo(), new Date());
+    const globalOv = state.config.zmanimOverrides || {};
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const perDateOv = (state.zmanimCalendar && state.zmanimCalendar[todayStr]) || {};
+    const out = {};
+    const isTime = (v) => typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v.trim());
+    const padTime = (v) => {
+      const [hh, mm] = v.trim().split(':');
+      return `${hh.padStart(2,'0')}:${mm.padStart(2,'0')}`;
+    };
+    for (const def of ZMANIM_DEFS) {
+      let time = '', isOverride = false;
+      // priority: per-date → global → computed
+      if (isTime(perDateOv[def.key])) {
+        time = padTime(perDateOv[def.key]);
+        isOverride = true;
+      } else if (isTime(globalOv[def.key])) {
+        time = padTime(globalOv[def.key]);
+        isOverride = true;
+      } else {
+        try {
+          const d = def.fn(z);
+          time = fmtTime(d instanceof Date ? d : new Date(d));
+        } catch {}
+      }
+      out[def.key] = { time, isOverride };
+    }
+    return out;
+  }
+
+  function renderZmanim() {
+    const tbody = qs('#zmanim-table tbody');
+    tbody.innerHTML = '';
+    const displayed = state.config.displayedZmanim || {};
+    const computed = computeZmanim();
+    for (const def of ZMANIM_DEFS) {
+      if (!displayed[def.key]) continue;
+      const r = computed[def.key];
+      if (!r.time) continue;
+      const tr = document.createElement('tr');
+      const mark = r.isOverride ? '<span class="ov" title="ערך מותאם אישית">*</span>' : '';
+      tr.innerHTML = `<td>${def.label}${mark}</td><td>${r.time}</td>`;
+      tbody.appendChild(tr);
+    }
+    updateAutoScroll(qs('.zmanim-card'));
+  }
+
+  // ---------- seamless loop scroll ----------
+  // Clones the content once; animates translateY 0 -> -50% (one full content height)
+  // infinitely, so as the original scrolls off the top the clone enters from the bottom.
+  function updateAutoScroll(cardEl) {
+    if (!cardEl) return;
+    const viewport = cardEl.querySelector('.scroll-viewport');
+    const inner = viewport && viewport.querySelector('.scroll-inner');
+    if (!viewport || !inner) return;
+
+    // Reset
+    inner.classList.remove('scrolling');
+    inner.style.animationDuration = '';
+    inner.removeAttribute('data-cloned');
+    inner.querySelectorAll(':scope > [data-clone="1"]').forEach(c => c.remove());
+
+    requestAnimationFrame(() => {
+      const vh = viewport.clientHeight;
+      const ch = inner.scrollHeight;
+      if (ch <= vh + 2) return;
+
+      // Clone current children into a single wrapper and append
+      const wrap = document.createElement(inner.tagName === 'UL' ? 'li' : 'div');
+      wrap.setAttribute('data-clone', '1');
+      if (inner.tagName === 'UL') {
+        // For a UL, the clone wrapper should be an LI whose children are clones of the original LIs.
+        // Simpler: put the clones straight under the UL as additional LIs.
+        const orig = Array.from(inner.children);
+        for (const c of orig) {
+          const clone = c.cloneNode(true);
+          clone.setAttribute('data-clone', '1');
+          inner.appendChild(clone);
+        }
+      } else {
+        for (const child of Array.from(inner.children)) {
+          wrap.appendChild(child.cloneNode(true));
+        }
+        inner.appendChild(wrap);
+      }
+      inner.setAttribute('data-cloned', '1');
+
+      // Speed: ~40px per second (slow, readable)
+      const duration = Math.max(ch / 28, 20);
+      inner.style.animationDuration = `${duration}s`;
+      inner.classList.add('scrolling');
+    });
+  }
+
+  // ---------- tefillot (always all-rooms) ----------
+  function computeShabbatContext() {
+    const geo = makeGeo();
+    const now = new Date();
+    const dow = now.getDay();
+    let friday = new Date(now);
+    if (dow === 6) friday.setDate(now.getDate() - 1);
+    else if (dow === 5) { /* today */ }
+    else {
+      const daysToFri = (5 - dow + 7) % 7;
+      friday.setDate(now.getDate() + daysToFri);
+    }
+    friday.setHours(12, 0, 0, 0);
+    const saturday = new Date(friday); saturday.setDate(friday.getDate() + 1);
+    const zFri = new Zmanim(geo, friday);
+    const zSat = new Zmanim(geo, saturday);
+    const candleMinutes = Number(state.config.location.candleLightingMinutes) || 18;
+    const candle = addMinutes(zFri.sunset(), -candleMinutes);
+    const havdalah = zSat.tzeit(8.5);
+    return { candle, havdalah };
+  }
+
+  function buildWeekdayRows(room) {
+    const rows = [];
+    for (const t of room.weekday.shacharit) rows.push({ group: 'שחרית', time: t });
+    for (const t of room.weekday.mincha)    rows.push({ group: 'מנחה',   time: t });
+    for (const t of room.weekday.arvit)     rows.push({ group: 'ערבית',  time: t });
+    return rows;
+  }
+  function buildShabbatRows(room, ctx) {
+    const rows = [];
+    for (const t of room.shabbat.kabbalat) rows.push({ group: 'קבלת שבת', time: t });
+    for (const off of room.shabbat.minchaErevOffsets) rows.push({ group: 'מנחה ערב שבת', time: fmtTime(addMinutes(ctx.candle, off)) });
+    for (const t of room.shabbat.shacharit) rows.push({ group: 'שחרית שבת', time: t });
+    for (const t of room.shabbat.mincha)    rows.push({ group: 'מנחה שבת',  time: t });
+    for (const off of room.shabbat.arvitMotzashOffsets) rows.push({ group: 'ערבית מוצ״ש', time: fmtTime(addMinutes(ctx.havdalah, off)) });
+    return rows;
+  }
+
+  function eventAppliesToday(ev, hdateToday, gregTodayStr) {
+    if (ev.dateType === 'hebrew') {
+      if (!ev.hebrewDay || !ev.hebrewMonth) return false;
+      const monthHe = hebMonth(hdateToday);
+      const monthEn = hdateToday.getMonthName();
+      const em = String(ev.hebrewMonth).trim();
+      const byName = em === monthHe.trim() || em.toLowerCase() === monthEn.toLowerCase();
+      const byIndex = Number(em) === hdateToday.getMonth();
+      return (byName || byIndex) && Number(ev.hebrewDay) === hdateToday.getDate();
+    }
+    return ev.date === gregTodayStr;
+  }
+
+  function applySpecialEventsToRoom(rows, room) {
+    const hdate = getEffectiveHDate();
+    const gregToday = new Date().toISOString().slice(0, 10);
+    for (const ev of state.specialEvents) {
+      if (!eventAppliesToday(ev, hdate, gregToday)) continue;
+      for (const t of (ev.times || [])) {
+        if (!t.label || !t.time) continue;
+        if (t.roomId && t.roomId !== '*' && t.roomId !== room.id) continue;
+        const matches = rows.filter(r => r.group === t.label);
+        if (matches.length) {
+          rows.forEach(r => { if (r.group === t.label) r.time = t.time; });
+        } else {
+          rows.push({ group: t.label, time: t.time, eventName: ev.name });
+        }
+      }
+    }
+    return rows;
+  }
+
+  const PRAYER_ORDER = [
+    'קבלת שבת',
+    'שחרית', 'שחרית שבת',
+    'מנחה ערב שבת', 'מנחה', 'מנחה שבת',
+    'ערבית', 'ערבית מוצ״ש',
+  ];
+  const prayerOrderIdx = (name) => {
+    const i = PRAYER_ORDER.indexOf(name);
+    return i < 0 ? 99 : i;
+  };
+
+  function currentEventName() {
+    const hdate = getEffectiveHDate();
+    const gregToday = new Date().toISOString().slice(0, 10);
+    const match = state.specialEvents.find(ev => eventAppliesToday(ev, hdate, gregToday) && ev.name);
+    return match ? match.name : '';
+  }
+
+  function renderTefillot() {
+    const container = qs('#tefillot-rooms');
+    container.innerHTML = '';
+    if (!state.rooms.length) {
+      container.innerHTML = '<div class="empty-state">לא הוגדרו חדרי תפילה</div>';
+      return;
+    }
+
+    const now = new Date();
+    const dow = now.getDay();
+    const isShabbat = dow === 6;
+    const isErevShabbat = dow === 5;
+    const shabbatCtx = (isShabbat || isErevShabbat) ? computeShabbatContext() : null;
+
+    let title = isShabbat || isErevShabbat ? 'זמני תפילות שבת' : 'זמני תפילות';
+    const eventName = currentEventName();
+    if (eventName) title = `זמני תפילות — ${eventName}`;
+    qs('#tefillot-title').textContent = title;
+
+    // Shared shabbat row at top
+    if (shabbatCtx) {
+      const shared = document.createElement('div');
+      shared.className = 'shabbat-shared';
+      shared.innerHTML = `
+        <div><span>הדלקת נרות</span><b>${fmtTime(shabbatCtx.candle)}</b></div>
+        <div><span>צאת השבת</span><b>${fmtTime(shabbatCtx.havdalah)}</b></div>
+      `;
+      container.appendChild(shared);
+    }
+
+    // Gather minyans by prayer group from every room
+    const byGroup = new Map();
+    for (const room of state.rooms) {
+      const raw = (isShabbat || isErevShabbat) ? buildShabbatRows(room, shabbatCtx) : buildWeekdayRows(room);
+      applySpecialEventsToRoom(raw, room);
+      for (const r of raw) {
+        const list = byGroup.get(r.group) || [];
+        list.push({ ...r, roomName: room.name });
+        byGroup.set(r.group, list);
+      }
+    }
+
+    const groups = [...byGroup.entries()].sort((a, b) => prayerOrderIdx(a[0]) - prayerOrderIdx(b[0]));
+    const showRoomCol = state.rooms.length > 1;
+    for (const [group, minyans] of groups) {
+      minyans.sort((a, b) => parseTime(a.time) - parseTime(b.time));
+      const block = document.createElement('div');
+      block.className = 'prayer-block';
+      const rowsHtml = minyans.map(m =>
+        `<tr><td class="ptime">${m.time || '—'}</td>${showRoomCol ? `<td class="proom">${m.roomName}</td>` : ''}</tr>`
+      ).join('');
+      block.innerHTML = `<h3>${group}</h3><table><tbody>${rowsHtml}</tbody></table>`;
+      container.appendChild(block);
+    }
+
+    updateAutoScroll(qs('.tefillot-card'));
+  }
+
+  // ---------- memorial ----------
+  function hebrewDateMatches(entry, hdate) {
+    if (!entry.hebrewMonth || !entry.hebrewDay) return false;
+    const monthHe = hebMonth(hdate);
+    const monthEn = hdate.getMonthName();
+    const day = hdate.getDate();
+    const em = String(entry.hebrewMonth).trim();
+    const byName = em === monthHe.trim() || em.toLowerCase() === monthEn.toLowerCase();
+    const byIndex = Number(em) === hdate.getMonth();
+    return (byName || byIndex) && Number(entry.hebrewDay) === day;
+  }
+
+  function renderMemorial() {
+    const list = qs('#memorial-list');
+    const card = qs('#memorial-card');
+    list.innerHTML = '';
+    if (!state.memorial.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    const today = getEffectiveHDate();
+    const items = [...state.memorial].map(e => ({ ...e, _today: hebrewDateMatches(e, today) }));
+    items.sort((a, b) => {
+      if (a._today && !b._today) return -1;
+      if (!a._today && b._today) return 1;
+      return (a.name || '').localeCompare(b.name || '', 'he');
+    });
+    for (const entry of items.slice(0, 60)) {
+      const li = document.createElement('li');
+      const dateStr = entry.hebrewDay && entry.hebrewMonth
+        ? `${hebDay(entry.hebrewDay)} ${entry.hebrewMonth}`
+        : '';
+      li.innerHTML = `
+        <span class="mem-name${entry._today ? ' mem-today' : ''}">${entry.name || ''}</span>
+        <span class="mem-date">${dateStr}</span>
+      `;
+      list.appendChild(li);
+    }
+    updateAutoScroll(qs('.memorial-card'));
+  }
+
+  function renderAnnouncements() {
+    const container = qs('#announcements-container');
+    const ticker = qs('#announcements-ticker');
+    const today = new Date().toISOString().slice(0, 10);
+    const active = state.announcements.filter(a => {
+      const startOk = !a.startDate || a.startDate <= today;
+      const endOk = !a.endDate || a.endDate >= today;
+      return startOk && endOk && a.text;
+    });
+    if (!active.length) { container.style.display = 'none'; return; }
+    container.style.display = 'block';
+    ticker.textContent = active.map(a => a.text).join('   •   ');
+  }
+
+  function renderUpcoming() {
+    try {
+      const now = new Date();
+      const hdate = getEffectiveHDate();
+      const end = new HDate(new Date(now.getTime() + 14 * 86400000));
+      const events = HebrewCalendar.calendar({
+        start: hdate, end, il: true, locale: 'he',
+        candlelighting: false, sedrot: false, omer: false,
+      });
+      const upcoming = events.find(e => (e.getFlags() & FLAG_CHAG));
+      qs('#upcoming-event').textContent = upcoming ? upcoming.render('he') : '';
+    } catch { /* ignore */ }
+  }
+
+  function applyDesign() {
+    if (!state.config || !state.config.design) return;
+    const d = state.config.design;
+    const theme = d.theme || 'dark';
+    const layout = d.layout || '3col';
+    const style = d.style || 'classic';
+    const bgImage = (typeof d.backgroundImage === 'string' ? d.backgroundImage : '').trim();
+    const overlay = typeof d.backgroundOverlay === 'number' ? d.backgroundOverlay : 0.45;
+
+    document.body.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+    const root = qs('#display-root');
+    if (root) {
+      root.setAttribute('data-layout', layout);
+      root.setAttribute('data-style', style);
+    }
+
+    if (bgImage) {
+      const safeUrl = bgImage.replace(/["'\\)]/g, '');
+      document.body.style.setProperty('--custom-bg-url', `url("${safeUrl}")`);
+      document.body.style.setProperty('--bg-overlay', String(Math.min(0.9, Math.max(0, overlay))));
+      document.body.setAttribute('data-custom-bg', '1');
+    } else {
+      document.body.removeAttribute('data-custom-bg');
+      document.body.style.removeProperty('--custom-bg-url');
+      document.body.style.removeProperty('--bg-overlay');
+    }
+  }
+
+  async function refreshAll() {
+    try {
+      await loadData();
+      applyDesign();
+      renderHeader();
+      renderZmanim();
+      renderTefillot();
+      renderMemorial();
+      renderAnnouncements();
+      renderUpcoming();
+    } catch (e) {
+      console.error('refresh failed', e);
+    }
+  }
+
+  function lightRefresh() {
+    try {
+      renderHeader();
+      renderZmanim();
+      renderTefillot();
+      renderMemorial();
+    } catch (e) { console.error('lightRefresh failed', e); }
+  }
+
+  // ---------- auto-reload on new commit ----------
+  function detectOwnerRepo() {
+    const host = location.hostname;
+    const match = host.match(/^([^.]+)\.github\.io$/);
+    if (match) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      if (parts[0]) return `${match[1]}/${parts[0]}`;
+    }
+    return '';
+  }
+
+  // בדיקת עדכונים: משווים את חותמת הגרסה של המנה הציבורית.
+  // כשגבאי שומר שינוי, ה-version עולה והצג מרענן את עצמו תוך דקות.
+  async function checkForUpdates() {
+    try {
+      const bundle = await fetchBundle();
+      if (_version == null) { _version = bundle.version; return; }
+      if (bundle.version !== _version) {
+        _version = bundle.version;
+        await refreshAll();
+      }
+    } catch { /* הצג ממשיך להציג את מה שכבר טעון */ }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    await refreshAll();
+    renderClock();
+    setInterval(renderClock, 1000);
+    setInterval(lightRefresh, 60 * 1000);
+    setInterval(refreshAll, 5 * 60 * 1000);
+    // בדיקת שינויים כל 3 דקות. השעון והזמנים מחושבים מקומית,
+    // כך שגם הקצב הזה שומר את הפלטפורמה בתוך המכסה החינמית.
+    setInterval(checkForUpdates, 3 * 60 * 1000);
+
+    // Listen for design preview updates from admin page
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'PREVIEW_DESIGN') {
+        if (!state.config) state.config = {};
+        if (!state.config.design) state.config.design = {};
+        if (event.data.theme) state.config.design.theme = event.data.theme;
+        if (event.data.style) state.config.design.style = event.data.style;
+        if (event.data.layout) state.config.design.layout = event.data.layout;
+        if (typeof event.data.backgroundImage === 'string') state.config.design.backgroundImage = event.data.backgroundImage;
+        if (typeof event.data.backgroundOverlay === 'number') state.config.design.backgroundOverlay = event.data.backgroundOverlay;
+        applyDesign();
+      }
+    });
+  });
+})();

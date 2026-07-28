@@ -1,0 +1,172 @@
+/* שכבת הפלטפורמה: דף הבית, ההרשמה, ותוספות לממשק הניהול.
+   css/board.css נשאר אחראי על הצג עצמו. */
+
+:root {
+  --sb-bg: #0d1017;
+  --sb-panel: #151a24;
+  --sb-line: #252c3a;
+  --sb-fg: #e9edf5;
+  --sb-dim: #8d97ab;
+  --sb-gold: #d4af37;
+  --sb-gold-soft: #e8c860;
+  --sb-green: #34d399;
+  --sb-red: #f87171;
+}
+
+/* ---------- דף הבית ---------- */
+.site-body {
+  margin: 0;
+  background: var(--sb-bg);
+  color: var(--sb-fg);
+  font-family: 'Assistant', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.7;
+}
+.site-body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(900px 480px at 78% -8%, rgba(212, 175, 55, .13), transparent 62%),
+    radial-gradient(700px 460px at 12% 6%, rgba(96, 165, 250, .08), transparent 60%);
+}
+.site-wrap { position: relative; max-width: 1080px; margin: 0 auto; padding: 0 22px; }
+
+/* board.css נכתב לממשק בהיר — כאן הרקע כהה, אז מכווננים את הכפתורים והקישורים. */
+.site-body a { text-decoration: none; }
+.site-body a.btn, .site-body button.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  text-decoration: none; border-radius: 10px; font-weight: 600;
+}
+.site-body .btn { background: #1b2231; color: var(--sb-fg); border: 1px solid var(--sb-line); }
+.site-body .btn:hover { background: #232c3d; }
+.site-body .btn-primary {
+  background: linear-gradient(135deg, var(--sb-gold), #b8941f);
+  color: #14181f; border: 0; font-weight: 700;
+}
+.site-body .btn-primary:hover { filter: brightness(1.1); background: linear-gradient(135deg, var(--sb-gold), #b8941f); }
+.site-body .btn-ghost { background: transparent; color: var(--sb-fg); border: 1px solid var(--sb-line); }
+.site-body .btn-ghost:hover { background: rgba(255, 255, 255, .05); }
+.site-body .site-footer a { color: var(--sb-gold-soft); }
+.site-body .site-footer a:hover { text-decoration: underline; }
+
+.site-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 0; gap: 16px; flex-wrap: wrap;
+}
+.site-logo {
+  font-family: 'Frank Ruhl Libre', serif; font-weight: 900;
+  font-size: 26px; color: var(--sb-gold); text-decoration: none;
+}
+.site-nav .links { display: flex; gap: 10px; }
+
+.hero { padding: 60px 0 20px; text-align: center; }
+.hero h1 {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: clamp(32px, 6vw, 60px); font-weight: 900;
+  line-height: 1.15; margin: 0 0 18px; letter-spacing: -.5px;
+}
+.hero h1 .gold {
+  background: linear-gradient(100deg, var(--sb-gold), var(--sb-gold-soft) 50%, #fff0c2);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero p.lead {
+  font-size: clamp(16px, 2.2vw, 21px); color: var(--sb-dim);
+  max-width: 640px; margin: 0 auto 28px; font-weight: 400;
+}
+.hero .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+.features {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 18px; padding: 56px 0;
+}
+.feature {
+  background: var(--sb-panel); border: 1px solid var(--sb-line);
+  border-radius: 16px; padding: 22px; transition: .2s;
+}
+.feature:hover { border-color: rgba(212, 175, 55, .4); transform: translateY(-2px); }
+.feature h3 { margin: 0 0 8px; font-size: 18px; display: flex; align-items: center; gap: 9px; }
+.feature .ico {
+  width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center;
+  background: rgba(212, 175, 55, .14); border: 1px solid rgba(212, 175, 55, .28); font-size: 16px;
+}
+.feature p { margin: 0; color: var(--sb-dim); font-size: 14.5px; }
+
+.site-footer {
+  padding: 46px 0; text-align: center; color: var(--sb-dim);
+  font-size: 14px; border-top: 1px solid var(--sb-line); margin-top: 40px;
+}
+
+/* ---------- כרטיסי טופס ---------- */
+.form-card {
+  background: var(--sb-panel); border: 1px solid var(--sb-line);
+  border-radius: 18px; padding: 26px; max-width: 520px; margin: 0 auto 40px;
+}
+.form-card h2 { margin: 0 0 6px; font-size: 22px; }
+.form-card > p.desc { margin: 0 0 20px; color: var(--sb-dim); font-size: 14.5px; }
+.form-card .field { margin-bottom: 15px; }
+.form-card label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 5px; }
+.form-card input {
+  width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 15px;
+  font-family: inherit; color: var(--sb-fg);
+  background: #0a0d14; border: 1px solid var(--sb-line); border-radius: 10px;
+}
+.form-card input:focus { outline: 0; border-color: var(--sb-gold); }
+.form-card .desc { color: var(--sb-dim); font-size: 12.5px; margin-top: 4px; }
+
+.slug-preview {
+  font-family: ui-monospace, Menlo, monospace; direction: ltr; text-align: left;
+  background: #0a0d14; border: 1px dashed var(--sb-line); border-radius: 9px;
+  padding: 9px 11px; font-size: 13px; color: var(--sb-dim); margin-top: 6px;
+}
+.slug-preview b { color: var(--sb-gold-soft); font-weight: 600; }
+.slug-state { font-size: 12.5px; margin-top: 5px; min-height: 18px; }
+.slug-state.ok { color: var(--sb-green); }
+.slug-state.bad { color: var(--sb-red); }
+
+.msg { margin-top: 12px; font-size: 14px; min-height: 20px; }
+.msg.ok { color: var(--sb-green); }
+.msg.bad { color: var(--sb-red); }
+
+.success-box {
+  background: rgba(52, 211, 153, .08); border: 1px solid rgba(52, 211, 153, .3);
+  border-radius: 14px; padding: 20px; margin-top: 18px;
+}
+.success-box a { color: var(--sb-gold-soft); word-break: break-all; }
+
+/* ---------- תוספות לממשק הניהול ---------- */
+.brand-link {
+  display: block; text-align: center; margin-bottom: 10px;
+  font-family: 'Frank Ruhl Libre', serif; font-weight: 900;
+  font-size: 22px; color: var(--sb-gold); text-decoration: none;
+}
+.hdr-sub { font-size: 13px; font-weight: 400; opacity: .7; margin-inline-start: 8px; }
+
+/* הסרגל העליון כהה, אבל board.css צובע btn-ghost בטקסט כהה — כאן זה נעלם. */
+.admin-topbar .btn-ghost {
+  color: #fff; border-color: rgba(255, 255, 255, .3); text-decoration: none;
+}
+.admin-topbar .btn-ghost:hover { background: rgba(255, 255, 255, .1); }
+.admin-topbar a.btn { display: inline-flex; align-items: center; }
+
+.plain-list { list-style: none; padding: 0; margin: 0; }
+.plain-list li { padding: 6px 0; border-bottom: 1px solid var(--sb-line); }
+.plain-list li:last-child { border-bottom: 0; }
+
+#media-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;
+}
+.media-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  border: 1px solid var(--sb-line); border-radius: 12px; padding: 11px;
+}
+.media-thumb {
+  width: 74px; height: 74px; object-fit: cover; border-radius: 9px;
+  background: #0a0d14; flex-shrink: 0;
+}
+.media-thumb-doc {
+  display: grid; place-items: center; font-weight: 700;
+  color: var(--sb-dim); border: 1px dashed var(--sb-line);
+}
+.media-meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.media-meta strong { word-break: break-word; font-size: 14px; }
+.media-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+.btn-danger { color: var(--sb-red) !important; }

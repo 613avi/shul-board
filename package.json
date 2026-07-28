@@ -1,0 +1,13 @@
+{
+  "name": "shul-board",
+  "private": true,
+  "version": "1.0.0",
+  "description": "פלטפורמה רב-קהילתית לצגי בתי כנסת על Cloudflare Pages",
+  "scripts": {
+    "dev": "wrangler pages dev --port 8790",
+    "deploy": "wrangler pages deploy --project-name shul-board --branch main --commit-dirty=true",
+    "schema:local": "wrangler d1 execute shul-board --local --file=schema.sql",
+    "schema:remote": "wrangler d1 execute shul-board --remote --file=schema.sql"
+  },
+  "devDependencies": { "wrangler": "^4.0.0" }
+}

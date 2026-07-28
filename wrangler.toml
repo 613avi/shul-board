@@ -1,0 +1,17 @@
+name = "shul-board"
+pages_build_output_dir = "public"
+compatibility_date = "2025-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "shul-board"
+database_id = "5377db8f-d686-4aac-be69-54a31e918a6f"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "e1172fc79d7c40fe94619c3d43a7ad7f"
+
+[[kv_namespaces]]
+binding = "MEDIA"
+id = "05ee29fe2e80494cb421b2f2d798e21a"
+

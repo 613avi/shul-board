@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>לוח זמנים חכם</title>
+    <link rel="stylesheet" href="/css/board.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap" rel="stylesheet">
+    <!--SHUL_BOOTSTRAP-->
+</head>
+<body class="display-body">
+    <div id="display-root">
+        <header class="display-header header-2col">
+            <div class="brand">
+                <h1 id="synagogue-name">&nbsp;</h1>
+                <div class="sub">
+                    <span id="hebrew-date"></span>
+                    <span class="sep">•</span>
+                    <span id="gregorian-date"></span>
+                    <span class="sep parasha-sep">•</span>
+                    <span id="parasha"></span>
+                </div>
+                <div class="sub omer" id="omer-line" style="display:none;"></div>
+            </div>
+            <div class="clock">
+                <div id="current-time">00:00</div>
+                <div id="current-seconds">00</div>
+            </div>
+        </header>
+
+        <main class="display-main">
+            <section class="card zmanim-card">
+                <h2>זמני היום</h2>
+                <div class="scroll-viewport">
+                    <div class="scroll-inner">
+                        <table id="zmanim-table"><tbody></tbody></table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card tefillot-card">
+                <h2 id="tefillot-title">זמני תפילות</h2>
+                <div class="scroll-viewport">
+                    <div class="scroll-inner" id="tefillot-rooms"></div>
+                </div>
+            </section>
+
+            <section class="card memorial-card" id="memorial-card">
+                <h2>לעילוי נשמת</h2>
+                <div class="scroll-viewport">
+                    <ul id="memorial-list" class="scroll-inner"></ul>
+                </div>
+            </section>
+        </main>
+
+        <div class="mentions-bar" id="mentions-bar" style="display:none;"></div>
+
+        <div class="announcements-container" id="announcements-container">
+            <div id="announcements-ticker"></div>
+        </div>
+
+        <footer class="display-footer">
+            <span id="upcoming-event"></span>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@hebcal/core@5.10.1/dist/bundle.min.js"></script>
+    <script src="/js/display.js"></script>
+</body>
+</html>

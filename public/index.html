@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShulBoard — צג חכם לבית הכנסת</title>
+<meta name="description" content="צג זמנים לבית הכנסת: הרשמה בדקה, ניהול מרחוק על ידי הגבאים, והתקנה בלחיצה על מחשב המסך.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%8D%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body class="site-body">
+<div class="site-wrap">
+
+  <nav class="site-nav">
+    <a href="/" class="site-logo">ShulBoard</a>
+    <div class="links">
+      <a class="btn btn-ghost btn-sm" href="/admin.html">כניסת גבאים</a>
+      <a class="btn btn-primary btn-sm" href="#register">הרשמת בית כנסת</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <h1>צג הזמנים של בית הכנסת,<br><span class="gold">מנוהל מכל טלפון</span></h1>
+    <p class="lead">
+      זמני היום, זמני התפילות, הנצחות, הודעות ומודעות — על מסך אחד בבית הכנסת.
+      הגבאים מעדכנים מרחוק, הצג מתעדכן לבד, ואין צורך במחשב בבית או בידע טכני.
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#register">פתיחת בית כנסת — חינם</a>
+      <a class="btn btn-ghost" href="/admin.html">יש לי כבר חשבון</a>
+    </div>
+  </header>
+
+  <section class="features">
+    <div class="feature">
+      <h3><span class="ico">🕐</span> זמנים מדויקים</h3>
+      <p>עלות, הנץ, סו״ז ק״ש, שקיעה וצאת הכוכבים — מחושבים לפי המיקום המדויק של בית הכנסת, כולל הדלקת נרות ומוצ״ש.</p>
+    </div>
+    <div class="feature">
+      <h3><span class="ico">👥</span> כמה גבאים</h3>
+      <p>סיסמה אחת לבית הכנסת. כל גבאי נכנס בשמו, וכל שינוי נרשם — רואים מי עדכן מה ומתי.</p>
+    </div>
+    <div class="feature">
+      <h3><span class="ico">🖼️</span> מודעות ותמונות</h3>
+      <p>העלאת מודעת אבל, שלט ברכה או לוגו ישירות מהטלפון. מופיע על הצג תוך דקות.</p>
+    </div>
+    <div class="feature">
+      <h3><span class="ico">💾</span> התקנה בלחיצה</h3>
+      <p>קובץ התקנה מותאם לבית הכנסת שלכם: פותח את הצג במסך מלא ומפעיל אותו אוטומטית בכל הדלקה של המחשב.</p>
+    </div>
+    <div class="feature">
+      <h3><span class="ico">🕯️</span> הנצחות ויארצייט</h3>
+      <p>לוח הנצחות עם זיהוי אוטומטי של יארצייט לפי התאריך העברי. אפשר להעלות רשימה שלמה בקובץ CSV.</p>
+    </div>
+    <div class="feature">
+      <h3><span class="ico">🏛️</span> כמה חדרים</h3>
+      <p>היכל מרכזי, בית מדרש, מניין נוסף — לכל אחד זמנים משלו, על אותו צג.</p>
+    </div>
+  </section>
+
+  <section id="register">
+    <div class="form-card">
+      <h2>הרשמת בית כנסת</h2>
+      <p class="desc">דקה אחת, בלי מייל ובלי אימות. הצג עולה מיד.</p>
+
+      <div class="field">
+        <label for="r-name">שם בית הכנסת</label>
+        <input type="text" id="r-name" placeholder="לדוגמה: בית הכנסת המרכזי">
+      </div>
+
+      <div class="field">
+        <label for="r-slug">כתובת באנגלית</label>
+        <input type="text" id="r-slug" placeholder="beit-yaakov" dir="ltr" autocomplete="off">
+        <div class="slug-preview">הצג יהיה בכתובת: <b id="r-preview">…</b></div>
+        <div class="slug-state" id="r-slug-state"></div>
+      </div>
+
+      <div class="field">
+        <label for="r-gabbai">שמכם</label>
+        <input type="text" id="r-gabbai" placeholder="לדוגמה: משה כהן">
+        <div class="desc">תירשמו כגבאי הראשון. אפשר להוסיף עוד גבאים אחר כך.</div>
+      </div>
+
+      <div class="field">
+        <label for="r-password">סיסמה לבית הכנסת</label>
+        <input type="password" id="r-password" placeholder="לפחות 6 תווים">
+        <div class="desc">משותפת לכל הגבאים. מסרו אותה רק למי שמורשה לעדכן.</div>
+      </div>
+
+      <div class="field">
+        <label for="r-contact">טלפון ליצירת קשר (רשות)</label>
+        <input type="text" id="r-contact" placeholder="לשחזור במקרה ששכחתם את הסיסמה">
+      </div>
+
+      <button class="btn btn-primary" id="r-submit" style="width:100%;margin-top:6px;">פתיחת בית הכנסת</button>
+      <div class="msg" id="r-msg"></div>
+      <div id="r-success"></div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    ShulBoard · רץ על Cloudflare · מבוסס על
+    <a href="https://github.com/613avi/smart-zmanim" target="_blank" rel="noopener">smart-zmanim</a>
+  </footer>
+
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/site.js"></script>
+</body>
+</html>
