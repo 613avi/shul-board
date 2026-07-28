@@ -62,19 +62,23 @@
     return hd;
   }
 
+  // רשומת זמן היא מחרוזת פשוטה או אובייקט (זמן יחסי / מוגבל לימים).
+  // חשוב לא להמיר למחרוזת — זה היה מוחק את ההגדרות המורכבות.
+  const keepEntry = (v) => (v && typeof v === 'object') ? v : String(v);
+
   function normalizeRoom(room) {
     const wk = room.weekday || {};
     const sh = room.shabbat || {};
     room.weekday = {
-      shacharit: [...asArr(wk.shacharit), ...asArr(wk.shacharit2)].map(String),
-      mincha:    asArr(wk.mincha).map(String),
-      arvit:     asArr(wk.arvit).map(String),
+      shacharit: [...asArr(wk.shacharit), ...asArr(wk.shacharit2)].map(keepEntry),
+      mincha:    asArr(wk.mincha).map(keepEntry),
+      arvit:     asArr(wk.arvit).map(keepEntry),
     };
     room.shabbat = {
-      kabbalat:            asArr(sh.kabbalat).map(String),
+      kabbalat:            asArr(sh.kabbalat).map(keepEntry),
       minchaErevOffsets:   asArr(sh.minchaErevOffsets ?? sh.minchaErevOffset).map(Number).filter(n => !isNaN(n)),
-      shacharit:           asArr(sh.shacharit).map(String),
-      mincha:              asArr(sh.mincha).map(String),
+      shacharit:           asArr(sh.shacharit).map(keepEntry),
+      mincha:              asArr(sh.mincha).map(keepEntry),
       arvitMotzashOffsets: asArr(sh.arvitMotzashOffsets ?? sh.arvitMotzashOffset).map(Number).filter(n => !isNaN(n)),
     };
     return room;
@@ -145,6 +149,8 @@
     const announcements = d['announcements'] || { entries: [] };
     const specialTimes = d['special-times'] || { entries: [] };
     const zmanimCal = d['zmanim-calendar'] || { entries: {} };
+    state.screens = d['screens'] || null;
+    state.mediaPlaylist = d['media-playlist'] || { seconds: 12, entries: [] };
     if (!config) throw new Error('config missing');
     if (!config.synagogueName && bundle.name) config.synagogueName = bundle.name;
     state.config = config;
@@ -413,19 +419,76 @@
     return { candle, havdalah };
   }
 
+  // ---------- פתרון זמן תפילה ----------
+  // רשומה יכולה להיות מחרוזת "06:30" (כמו קודם), או אובייקט:
+  //   { type:'fixed',    time:'06:30',                    days:[0,1,2,3,4] }
+  //   { type:'relative', base:'sunset', offset:-20, round:5, days:[...] }
+  // days ריק או חסר = כל הימים. 0=ראשון … 6=שבת.
+
+  let _zmCache = null, _zmCacheKey = '';
+
+  function zmanimToday() {
+    const key = new Date().toISOString().slice(0, 10);
+    if (!_zmCache || _zmCacheKey !== key) {
+      try { _zmCache = computeZmanim(); _zmCacheKey = key; } catch { return {}; }
+    }
+    return _zmCache;
+  }
+
+  function parseHM(str) {
+    const m = String(str || '').match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const d = new Date();
+    d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+    return d;
+  }
+
+  function roundToNearest(date, minutes) {
+    if (!minutes || minutes < 1) return date;
+    const ms = minutes * 60000;
+    return new Date(Math.round(date.getTime() / ms) * ms);
+  }
+
+  function resolveTimeEntry(entry, dow) {
+    if (entry == null) return null;
+    if (typeof entry === 'string') return entry.trim() ? { time: entry.trim() } : null;
+    if (typeof entry !== 'object') return null;
+
+    if (Array.isArray(entry.days) && entry.days.length && !entry.days.includes(dow)) return null;
+
+    if (entry.type === 'relative') {
+      const base = zmanimToday()[entry.base]?.time;
+      const d = parseHM(base);
+      if (!d) return null;
+      const shifted = roundToNearest(addMinutes(d, Number(entry.offset) || 0), Number(entry.round) || 0);
+      return { time: fmtTime(shifted), relative: true };
+    }
+    return entry.time ? { time: String(entry.time).trim() } : null;
+  }
+
+  function pushEntries(rows, list, group, dow) {
+    for (const entry of (list || [])) {
+      const r = resolveTimeEntry(entry, dow);
+      if (r) rows.push({ group, time: r.time, relative: r.relative });
+    }
+  }
+
   function buildWeekdayRows(room) {
     const rows = [];
-    for (const t of room.weekday.shacharit) rows.push({ group: 'שחרית', time: t });
-    for (const t of room.weekday.mincha)    rows.push({ group: 'מנחה',   time: t });
-    for (const t of room.weekday.arvit)     rows.push({ group: 'ערבית',  time: t });
+    const dow = new Date().getDay();
+    pushEntries(rows, room.weekday.shacharit, 'שחרית', dow);
+    pushEntries(rows, room.weekday.mincha,    'מנחה',   dow);
+    pushEntries(rows, room.weekday.arvit,     'ערבית',  dow);
     return rows;
   }
+
   function buildShabbatRows(room, ctx) {
     const rows = [];
-    for (const t of room.shabbat.kabbalat) rows.push({ group: 'קבלת שבת', time: t });
+    const dow = new Date().getDay();
+    pushEntries(rows, room.shabbat.kabbalat, 'קבלת שבת', dow);
     for (const off of room.shabbat.minchaErevOffsets) rows.push({ group: 'מנחה ערב שבת', time: fmtTime(addMinutes(ctx.candle, off)) });
-    for (const t of room.shabbat.shacharit) rows.push({ group: 'שחרית שבת', time: t });
-    for (const t of room.shabbat.mincha)    rows.push({ group: 'מנחה שבת',  time: t });
+    pushEntries(rows, room.shabbat.shacharit, 'שחרית שבת', dow);
+    pushEntries(rows, room.shabbat.mincha,    'מנחה שבת',  dow);
     for (const off of room.shabbat.arvitMotzashOffsets) rows.push({ group: 'ערבית מוצ״ש', time: fmtTime(addMinutes(ctx.havdalah, off)) });
     return rows;
   }
@@ -634,10 +697,191 @@
     }
   }
 
+  // ================= מסכים מתחלפים =================
+  // כל קובייה עוטפת אלמנט קיים בדף, כך שכל פונקציות הרינדור ממשיכות
+  // למצוא את היעדים שלהן לפי id — רק המיקום משתנה.
+
+  const GRID = { cols: 24, rows: 18 };
+
+  const BLOCK_SELECTOR = {
+    header: '.display-header',
+    zmanim: '.zmanim-card',
+    tefillot: '.tefillot-card',
+    memorial: '.memorial-card',
+    mentions: '.mentions-bar',
+    announcements: '.announcements-container',
+    upcoming: '.display-footer',
+  };
+
+  let _stage = null;
+  let _homes = null;        // איפה כל אלמנט ישב במקור, כדי שאפשר יהיה לחזור
+  let _screenTimer = null;
+  let _mediaTimer = null;
+  let _screenIndex = 0;
+
+  function rememberHomes() {
+    if (_homes) return;
+    _homes = new Map();
+    for (const [type, sel] of Object.entries(BLOCK_SELECTOR)) {
+      const el = qs(sel);
+      if (el) _homes.set(type, { el, parent: el.parentNode, next: el.nextSibling });
+    }
+  }
+
+  function restoreClassic() {
+    if (_homes) {
+      for (const { el, parent, next } of _homes.values()) {
+        el.style.cssText = '';
+        el.hidden = false;
+        parent.insertBefore(el, next);
+      }
+    }
+    if (_stage) { _stage.remove(); _stage = null; }
+    clearInterval(_screenTimer); _screenTimer = null;
+    clearInterval(_mediaTimer); _mediaTimer = null;
+    document.body.removeAttribute('data-screens');
+  }
+
+  function screensConfig() {
+    const s = state.screens;
+    if (!s || !s.enabled) return null;
+    const list = Array.isArray(s.screens) ? s.screens.filter(x => x && Array.isArray(x.blocks)) : [];
+    return list.length ? { ...s, screens: list } : null;
+  }
+
+  function applyScreens() {
+    const cfg = screensConfig();
+    if (!cfg) { restoreClassic(); return; }
+
+    rememberHomes();
+    document.body.setAttribute('data-screens', '1');
+
+    if (!_stage) {
+      _stage = document.createElement('div');
+      _stage.id = 'screen-stage';
+      qs('#display-root').appendChild(_stage);
+    }
+    _stage.style.setProperty('--aspect', (cfg.aspect || '16:9').replace(':', ' / '));
+
+    if (_screenIndex >= cfg.screens.length) _screenIndex = 0;
+    paintScreen(cfg, _screenIndex);
+
+    clearInterval(_screenTimer);
+    if (cfg.screens.length > 1) {
+      const tick = () => {
+        const c = screensConfig();
+        if (!c) return;
+        _screenIndex = (_screenIndex + 1) % c.screens.length;
+        paintScreen(c, _screenIndex);
+        scheduleNext(c);
+      };
+      const scheduleNext = (c) => {
+        clearTimeout(_screenTimer);
+        const secs = Math.max(3, Number(c.screens[_screenIndex]?.seconds) || 20);
+        _screenTimer = setTimeout(tick, secs * 1000);
+      };
+      scheduleNext(cfg);
+    }
+  }
+
+  function paintScreen(cfg, index) {
+    const screen = cfg.screens[index];
+    if (!screen) return;
+
+    // הכל מוסתר, ומה שנמצא במסך הנוכחי יוחזר לתצוגה
+    for (const { el } of _homes.values()) el.hidden = true;
+    _stage.innerHTML = '';
+
+    for (const block of screen.blocks) {
+      const wrap = document.createElement('div');
+      wrap.className = 'screen-block';
+      wrap.dataset.type = block.type;
+      wrap.style.left   = `${(block.x / GRID.cols) * 100}%`;
+      wrap.style.top    = `${(block.y / GRID.rows) * 100}%`;
+      wrap.style.width  = `${(block.w / GRID.cols) * 100}%`;
+      wrap.style.height = `${(block.h / GRID.rows) * 100}%`;
+
+      if (typeof block.opacity === 'number') wrap.style.opacity = String(block.opacity);
+      if (block.floating) { wrap.style.zIndex = '5'; wrap.style.pointerEvents = 'none'; }
+
+      if (block.type === 'media') {
+        wrap.appendChild(buildMediaWindow());
+      } else if (block.type === 'logo') {
+        const url = (state.config?.design?.logo?.url || '').trim();
+        if (!url) continue;
+        const img = document.createElement('img');
+        img.className = 'logo-img';
+        img.src = url;
+        img.alt = 'לוגו';
+        wrap.appendChild(img);
+      } else {
+        const home = _homes.get(block.type);
+        if (!home) continue;
+        home.el.hidden = false;
+        home.el.style.cssText = 'width:100%;height:100%;margin:0;';
+        wrap.appendChild(home.el);
+      }
+      _stage.appendChild(wrap);
+    }
+
+    startMediaRotation();
+  }
+
+  // ---------- חלון המודעות ----------
+  function buildMediaWindow() {
+    const box = document.createElement('div');
+    box.className = 'media-window';
+    box.id = 'media-window';
+    return box;
+  }
+
+  function mediaItems() {
+    const p = state.mediaPlaylist || {};
+    return Array.isArray(p.entries) ? p.entries.filter(e => e && e.url) : [];
+  }
+
+  let _mediaIndex = 0;
+
+  function renderMediaItem() {
+    const box = qs('#media-window');
+    if (!box) return;
+    const items = mediaItems();
+    if (!items.length) {
+      box.innerHTML = '<div class="media-empty">לא הועלו מודעות</div>';
+      return;
+    }
+    if (_mediaIndex >= items.length) _mediaIndex = 0;
+    const item = items[_mediaIndex];
+    const fit = (state.mediaPlaylist?.fit === 'cover') ? 'cover' : 'contain';
+
+    if (item.kind === 'pdf') {
+      // Chrome מרנדר PDF מוטמע; הפרמטרים מסתירים את סרגלי הכלים בקיוסק
+      box.innerHTML =
+        `<iframe class="media-pdf" src="${item.url}#toolbar=0&navpanes=0&scrollbar=0&view=Fit" title="מודעה"></iframe>`;
+    } else {
+      box.innerHTML =
+        `<img class="media-img" style="object-fit:${fit}" src="${item.url}" alt="מודעה">`;
+    }
+  }
+
+  function startMediaRotation() {
+    clearInterval(_mediaTimer);
+    if (!qs('#media-window')) return;
+    renderMediaItem();
+    const items = mediaItems();
+    if (items.length < 2) return;
+    const secs = Math.max(3, Number(state.mediaPlaylist?.seconds) || 12);
+    _mediaTimer = setInterval(() => {
+      _mediaIndex = (_mediaIndex + 1) % mediaItems().length;
+      renderMediaItem();
+    }, secs * 1000);
+  }
+
   async function refreshAll() {
     try {
       await loadData();
       applyDesign();
+      applyScreens();
       renderHeader();
       renderZmanim();
       renderTefillot();
@@ -707,6 +951,16 @@
         if (typeof event.data.backgroundImage === 'string') state.config.design.backgroundImage = event.data.backgroundImage;
         if (typeof event.data.backgroundOverlay === 'number') state.config.design.backgroundOverlay = event.data.backgroundOverlay;
         applyDesign();
+      }
+
+      // תצוגה מקדימה חיה של עורך המסכים
+      if (event.data && event.data.type === 'PREVIEW_SCREENS') {
+        if (event.origin !== location.origin) return;
+        _previewMode = true;
+        if (event.data.screens) state.screens = event.data.screens;
+        if (event.data.mediaPlaylist) state.mediaPlaylist = event.data.mediaPlaylist;
+        if (typeof event.data.screenIndex === 'number') _screenIndex = event.data.screenIndex;
+        applyScreens();
       }
     });
   });

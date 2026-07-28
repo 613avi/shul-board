@@ -1,0 +1,185 @@
+/* מסכים מתחלפים + חלון מודעות.
+   נטען אחרי board.css ומשנה את הפריסה רק כשמצב המסכים פעיל. */
+
+/* ---------- הבמה ---------- */
+body[data-screens] #display-root {
+  display: block;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* הבמה שומרת על יחס המסך שנבחר וממורכזת במסך בפועל.
+   כך פריסה שנבנתה ל-16:9 נראית נכון גם על מסך בפרופורציה אחרת. */
+#screen-stage {
+  position: relative;
+  aspect-ratio: var(--aspect, 16 / 9);
+  width: 100%;
+  max-width: 100%;
+  max-height: 100vh;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.screen-block {
+  position: absolute;
+  overflow: hidden;
+  padding: 0.4vmin;
+  box-sizing: border-box;
+  animation: block-in .35s ease both;
+}
+@keyframes block-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* האלמנטים המקוריים ממלאים את הקובייה במקום את הפריסה הקלאסית */
+.screen-block > * {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+.screen-block .card { display: flex; flex-direction: column; }
+.screen-block .scroll-viewport { flex: 1; min-height: 0; }
+
+/* ---------- חלון המודעות ---------- */
+.media-window {
+  width: 100%; height: 100%;
+  display: grid; place-items: center;
+  background: rgba(0, 0, 0, .22);
+  border-radius: 1vmin;
+  overflow: hidden;
+}
+.media-window .media-img,
+.media-window .media-pdf {
+  width: 100%; height: 100%;
+  display: block; border: 0;
+}
+.media-window .media-pdf { background: #fff; }
+.media-empty {
+  color: rgba(255, 255, 255, .45);
+  font-size: 1.6vmin;
+  text-align: center; padding: 1rem;
+}
+
+/* ---------- לוגו ---------- */
+.logo-img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* ---------- עורך המסכים בממשק הניהול ---------- */
+.sc-editor { display: grid; gap: 14px; }
+
+.sc-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.sc-bar select, .sc-bar input[type=number], .sc-bar input[type=text] {
+  padding: 6px 10px; font: inherit; font-size: 14px;
+  border: 1px solid #d0d4dd; border-radius: 8px; background: #fff;
+}
+.sc-bar label { font-size: 13px; font-weight: 600; }
+
+.sc-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.sc-tabs .sc-tab {
+  padding: 6px 12px; border: 1px solid #d0d4dd; border-radius: 8px;
+  background: #fff; cursor: pointer; font: inherit; font-size: 13.5px;
+}
+.sc-tabs .sc-tab.active { background: #0e1320; color: #fff; border-color: #0e1320; }
+
+/* לוח העריכה — אותו יחס מסך כמו הצג האמיתי */
+.sc-canvas-wrap {
+  position: relative; width: 100%;
+  aspect-ratio: var(--sc-aspect, 16 / 9);
+  background: #0e1320;
+  border: 1px solid #d0d4dd; border-radius: 8px;
+  overflow: hidden;
+  touch-action: none;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,.07) 1px, transparent 1px);
+  background-size: calc(100% / 24) calc(100% / 18);
+}
+
+.sc-block {
+  position: absolute;
+  background: rgba(212, 175, 55, .18);
+  border: 1.5px solid var(--sb-gold, #d4af37);
+  border-radius: 6px;
+  color: #fff; font-size: 13px; font-weight: 600;
+  display: grid; place-items: center; text-align: center;
+  cursor: grab; user-select: none;
+  overflow: hidden;
+}
+.sc-block.selected {
+  background: rgba(96, 165, 250, .25);
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, .35);
+  z-index: 3;
+}
+.sc-block.dragging { cursor: grabbing; opacity: .85; z-index: 4; }
+.sc-block .sc-label { pointer-events: none; padding: 2px; line-height: 1.25; }
+.sc-block .sc-size {
+  pointer-events: none; font-size: 10.5px; font-weight: 400;
+  opacity: .7; display: block;
+}
+
+/* ידית שינוי גודל — בפינה השמאלית-תחתונה, נוח בממשק RTL */
+.sc-handle {
+  position: absolute; inset-inline-start: 0; bottom: 0;
+  width: 16px; height: 16px;
+  background: #60a5fa; border-radius: 4px 0 6px 0;
+  cursor: nwse-resize;
+}
+.sc-block:not(.selected) .sc-handle { opacity: .35; }
+
+.sc-palette { display: flex; gap: 6px; flex-wrap: wrap; }
+.sc-palette button {
+  padding: 5px 11px; font: inherit; font-size: 13px;
+  border: 1px dashed #b9bfcc; border-radius: 8px;
+  background: #fff; cursor: pointer;
+}
+.sc-palette button:hover { border-color: var(--sb-gold, #d4af37); }
+.sc-palette button[disabled] { opacity: .4; cursor: not-allowed; }
+
+.sc-hint { font-size: 12.5px; color: #6b7280; }
+
+.sc-props-box {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  border: 1px solid #e6e9f0; border-radius: 8px; padding: 12px; background: #fafbfd;
+  min-height: 46px;
+}
+.sc-prop { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.sc-prop input[type=number] { width: 66px; padding: 5px 7px; font: inherit; font-size: 13px;
+  border: 1px solid #d0d4dd; border-radius: 6px; }
+.sc-prop input[type=range] { width: 110px; }
+
+.mp-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid #e6e9f0;
+}
+.mp-row span { flex: 1; }
+.mp-row:last-child { border-bottom: 0; }
+
+/* ---------- עורך זמן תפילה ---------- */
+.tm-entry {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 6px; border: 1px solid #e6e9f0; border-radius: 8px;
+  margin-bottom: 6px; background: #fafbfd;
+}
+.tm-entry select, .tm-entry input {
+  padding: 5px 8px; font: inherit; font-size: 13px;
+  border: 1px solid #d0d4dd; border-radius: 6px;
+}
+.tm-entry input[type=time] { width: 108px; }
+.tm-entry input[type=number] { width: 72px; }
+.tm-days { display: flex; gap: 3px; flex-wrap: wrap; }
+.tm-days label {
+  font-size: 12px; padding: 3px 7px; border: 1px solid #d0d4dd;
+  border-radius: 999px; cursor: pointer; user-select: none; background: #fff;
+}
+.tm-days label.on { background: #0e1320; color: #fff; border-color: #0e1320; }
+.tm-days input { display: none; }
+.tm-result { font-size: 12px; color: #6b7280; }

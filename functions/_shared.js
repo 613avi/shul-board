@@ -3,8 +3,12 @@
 
 export const SECTIONS = [
   'config', 'rooms', 'memorial', 'announcements',
-  'special-times', 'zmanim-calendar', 'media-playlist',
+  'special-times', 'zmanim-calendar', 'media-playlist', 'screens',
 ];
+
+// רשת הפריסה של עורך המסכים. כל הקואורדינטות של הקוביות הן בתאים,
+// כך שהפריסה נשארת נכונה בכל רזולוציה ובכל יחס מסך.
+export const GRID = { cols: 24, rows: 18 };
 
 export const json = (data, init = {}) =>
   Response.json(data, {
@@ -205,5 +209,28 @@ export const DEFAULTS = {
   announcements: { entries: [] },
   'special-times': { entries: [] },
   'zmanim-calendar': { entries: {} },
-  'media-playlist': { entries: [] },
+
+  // חלון המודעות: קבצים שהועלו ומוצגים בסבב בתוך קובייה מסוג media
+  'media-playlist': { seconds: 12, fit: 'contain', entries: [] },
+
+  // מסכים מתחלפים. enabled=false משאיר את הפריסה הקלאסית,
+  // כך שבתי כנסת קיימים לא משתנים בלי שביקשו.
+  screens: {
+    enabled: false,
+    aspect: '16:9',
+    screens: [{
+      id: 'main',
+      name: 'מסך ראשי',
+      seconds: 20,
+      blocks: [
+        { id: 'b-header',  type: 'header',        x: 0,  y: 0,  w: 24, h: 3 },
+        { id: 'b-zmanim',  type: 'zmanim',        x: 16, y: 3,  w: 8,  h: 11 },
+        { id: 'b-tef',     type: 'tefillot',      x: 8,  y: 3,  w: 8,  h: 11 },
+        { id: 'b-mem',     type: 'memorial',      x: 0,  y: 3,  w: 8,  h: 11 },
+        { id: 'b-ment',    type: 'mentions',      x: 0,  y: 14, w: 24, h: 1 },
+        { id: 'b-ann',     type: 'announcements', x: 0,  y: 15, w: 24, h: 2 },
+        { id: 'b-up',      type: 'upcoming',      x: 0,  y: 17, w: 24, h: 1 },
+      ],
+    }],
+  },
 };

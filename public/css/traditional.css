@@ -1,0 +1,190 @@
+/* סגנון מסורתי מפואר — עיטורי פינה, כתר מעל כל כותרת,
+   מסגרת מגולפת סביב הלוח, ושעות בתוך "גלולות".
+   נטען אחרי board.css ומופעל רק ב-data-style="traditional".
+   כל העיטורים הם SVG מוטמע — אפס בקשות רשת. */
+
+:root {
+  --tr-ink: #6b4f2a;        /* חום־זית לכותרות */
+  --tr-ink-soft: #8a6d42;
+  --tr-line: rgba(140, 105, 60, .45);
+  --tr-panel: rgba(255, 250, 243, .72);
+  --tr-panel-edge: rgba(160, 120, 70, .38);
+  --tr-gold: #b08d4f;
+}
+
+/* ---------- מסגרת חיצונית מגולפת ---------- */
+#display-root[data-style="traditional"] {
+  --frame: 1.4vmin;
+  padding: calc(var(--frame) * 1.6);
+  box-sizing: border-box;
+  position: relative;
+}
+#display-root[data-style="traditional"]::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--frame) * 0.6);
+  border: var(--frame) solid transparent;
+  border-radius: 1.2vmin;
+  pointer-events: none;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.55), rgba(150,110,65,.28)) border-box;
+  -webkit-mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  box-shadow:
+    inset 0 0 0 .22vmin rgba(255,255,255,.5),
+    inset 0 0 2.4vmin rgba(120, 85, 45, .22),
+    0 0 1.6vmin rgba(120, 85, 45, .18);
+}
+
+/* ---------- פאנלים ---------- */
+#display-root[data-style="traditional"] .card {
+  background: var(--tr-panel);
+  border: .22vmin solid var(--tr-panel-edge);
+  border-radius: 1.4vmin;
+  box-shadow:
+    inset 0 0 0 .18vmin rgba(255, 255, 255, .65),
+    0 .3vmin 1.2vmin rgba(120, 85, 45, .14);
+  position: relative;
+  overflow: visible;
+}
+
+/* עיטורי פינה — ארבעתם כרקעים על הכרטיס, בלי לתפוס פסאודו-אלמנטים */
+#display-root[data-style="traditional"] .card {
+  --corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M3 37V15C3 8 8 3 15 3h22' fill='none' stroke='%23b08d4f' stroke-width='2.2' stroke-linecap='round'/%3E%3Cpath d='M9 31c6-2 10-6 12-12 2 6 6 10 12 12' fill='none' stroke='%23b08d4f' stroke-width='1.5' stroke-linecap='round' opacity='.7'/%3E%3Ccircle cx='21' cy='19' r='1.7' fill='%23b08d4f'/%3E%3C/svg%3E");
+  background-image: var(--corner), var(--corner), var(--corner), var(--corner);
+  background-repeat: no-repeat;
+  background-size: 3vmin 3vmin;
+  background-position:
+    left .5vmin top .5vmin,
+    right .5vmin top .5vmin,
+    left .5vmin bottom .5vmin,
+    right .5vmin bottom .5vmin;
+}
+/* ---------- כותרות עם כתר ---------- */
+#display-root[data-style="traditional"] .card h2 {
+  font-family: 'Frank Ruhl Libre', 'David', serif;
+  color: var(--tr-ink);
+  text-align: center;
+  letter-spacing: .02em;
+  border: 0;
+  padding-top: 2.6vmin;
+  margin-bottom: .6vmin;
+  position: relative;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .7);
+}
+/* הכתר הקטן שמעל הכותרת */
+#display-root[data-style="traditional"] .card h2::before {
+  content: '';
+  position: absolute;
+  top: .2vmin; left: 50%;
+  transform: translateX(-50%);
+  width: 7vmin; height: 2.2vmin;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 34'%3E%3Cg fill='none' stroke='%23b08d4f' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M6 26c14 0 20-8 26-14 3-3 6-4 9-4'/%3E%3Cpath d='M114 26c-14 0-20-8-26-14-3-3-6-4-9-4'/%3E%3Cpath d='M46 26c5-6 9-9 14-9s9 3 14 9'/%3E%3C/g%3E%3Ccircle cx='60' cy='11' r='3.4' fill='%23b08d4f'/%3E%3Ccircle cx='38' cy='26' r='2.2' fill='%23b08d4f'/%3E%3Ccircle cx='82' cy='26' r='2.2' fill='%23b08d4f'/%3E%3C/svg%3E");
+}
+/* קו מפריד עדין מתחת לכותרת */
+#display-root[data-style="traditional"] .card h2::after {
+  content: '';
+  position: absolute;
+  bottom: -.4vmin; left: 12%; right: 12%;
+  height: .16vmin;
+  background: linear-gradient(90deg, transparent, var(--tr-line), transparent);
+}
+
+/* ---------- כותרת ראשית ושעון ---------- */
+#display-root[data-style="traditional"] .display-header .brand h1,
+#display-root[data-style="traditional"] .clock {
+  font-family: 'Frank Ruhl Libre', 'David', serif;
+  color: var(--tr-ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .65);
+}
+#display-root[data-style="traditional"] .display-header .sub {
+  color: var(--tr-ink-soft);
+  font-family: 'Frank Ruhl Libre', 'David', serif;
+}
+
+/* ---------- שעות בתוך גלולות ---------- */
+#display-root[data-style="traditional"] #zmanim-table td:last-child {
+  width: 1%;
+  white-space: nowrap;
+  background: rgba(255, 252, 246, .92);
+  border: .16vmin solid var(--tr-panel-edge);
+  border-radius: .9vmin;
+  padding: .1vmin 1vmin;
+  color: var(--tr-ink);
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 0 0 .12vmin rgba(255, 255, 255, .8);
+}
+#display-root[data-style="traditional"] #zmanim-table td,
+#display-root[data-style="traditional"] .tefilla-row,
+#display-root[data-style="traditional"] #memorial-list li {
+  color: var(--tr-ink-soft);
+  border-color: var(--tr-line);
+}
+#display-root[data-style="traditional"] #zmanim-table tr:nth-child(even) td {
+  background: transparent;
+}
+
+/* ---------- פס ההודעות התחתון ---------- */
+#display-root[data-style="traditional"] .announcements-container,
+#display-root[data-style="traditional"] .mentions-bar {
+  background: rgba(255, 250, 243, .78);
+  border: .16vmin solid var(--tr-panel-edge);
+  border-radius: .9vmin;
+  color: var(--tr-ink);
+  font-family: 'Frank Ruhl Libre', 'David', serif;
+}
+#display-root[data-style="traditional"] .display-footer {
+  color: var(--tr-ink-soft);
+  font-family: 'Frank Ruhl Libre', 'David', serif;
+}
+
+/* ---------- וריאנט כהה: זהב על עץ כהה ---------- */
+body[data-theme="wood"] #display-root[data-style="traditional"],
+body[data-theme="dark"] #display-root[data-style="traditional"],
+body[data-theme="blue"] #display-root[data-style="traditional"] {
+  --tr-ink: #e6c87a;
+  --tr-ink-soft: #cbb083;
+  --tr-line: rgba(214, 178, 105, .4);
+  --tr-panel: rgba(28, 22, 14, .5);
+  --tr-panel-edge: rgba(214, 178, 105, .34);
+}
+body[data-theme="wood"] #display-root[data-style="traditional"] .card h2,
+body[data-theme="dark"] #display-root[data-style="traditional"] .card h2,
+body[data-theme="blue"] #display-root[data-style="traditional"] .card h2 {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .55);
+}
+body[data-theme="wood"] #display-root[data-style="traditional"] #zmanim-table td:last-child,
+body[data-theme="dark"] #display-root[data-style="traditional"] #zmanim-table td:last-child,
+body[data-theme="blue"] #display-root[data-style="traditional"] #zmanim-table td:last-child {
+  background: rgba(0, 0, 0, .28);
+  box-shadow: inset 0 0 0 .12vmin rgba(214, 178, 105, .25);
+}
+
+/* ---------- זמני תפילה בגוונים של הסגנון ---------- */
+#display-root[data-style="traditional"] .tefillot-card .room-block h3,
+#display-root[data-style="traditional"] .tefillot-card .prayer-block h3 {
+  color: var(--tr-ink);
+  text-align: center;
+}
+/* בכרטיס התפילות אין גלולה: כשיש חדר יחיד התא נמתח לכל הרוחב
+   והמסגרת נראתה כפס. צבע וטיפוגרפיה מספיקים כאן. */
+#display-root[data-style="traditional"] .tefillot-card .prayer-block td.ptime {
+  color: var(--tr-ink);
+  font-family: 'Frank Ruhl Libre', 'David', serif;
+  font-size: 1.08em;
+}
+#display-root[data-style="traditional"] .tefillot-card .prayer-block td.proom {
+  color: var(--tr-ink-soft);
+}
+#display-root[data-style="traditional"] .tefillot-card .shabbat-shared {
+  background: rgba(176, 141, 79, .1);
+  border-radius: .9vmin;
+  color: var(--tr-ink-soft);
+}
+

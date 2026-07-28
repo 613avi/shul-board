@@ -21,19 +21,23 @@
 
   // ---- data normalization ----
   const asArr = (v) => Array.isArray(v) ? v.filter(x => x !== '' && x != null) : (v ? [v] : []);
+  // רשומת זמן היא מחרוזת פשוטה או אובייקט (זמן יחסי / מוגבל לימים).
+  // חשוב לא להמיר למחרוזת — זה היה מוחק את ההגדרות המורכבות.
+  const keepEntry = (v) => (v && typeof v === 'object') ? v : String(v);
+
   function normalizeRoom(room) {
     const wk = room.weekday || {};
     const sh = room.shabbat || {};
     room.weekday = {
-      shacharit: [...asArr(wk.shacharit), ...asArr(wk.shacharit2)].map(String),
-      mincha:    asArr(wk.mincha).map(String),
-      arvit:     asArr(wk.arvit).map(String),
+      shacharit: [...asArr(wk.shacharit), ...asArr(wk.shacharit2)].map(keepEntry),
+      mincha:    asArr(wk.mincha).map(keepEntry),
+      arvit:     asArr(wk.arvit).map(keepEntry),
     };
     room.shabbat = {
-      kabbalat:            asArr(sh.kabbalat).map(String),
+      kabbalat:            asArr(sh.kabbalat).map(keepEntry),
       minchaErevOffsets:   asArr(sh.minchaErevOffsets ?? sh.minchaErevOffset).map(Number).filter(n => !isNaN(n)),
-      shacharit:           asArr(sh.shacharit).map(String),
-      mincha:              asArr(sh.mincha).map(String),
+      shacharit:           asArr(sh.shacharit).map(keepEntry),
+      mincha:              asArr(sh.mincha).map(keepEntry),
       arvitMotzashOffsets: asArr(sh.arvitMotzashOffsets ?? sh.arvitMotzashOffset).map(Number).filter(n => !isNaN(n)),
     };
     return room;
@@ -50,6 +54,8 @@
       announcements: { entries: [] },
       specialTimes: { entries: [] },
       zmanimCalendar: { entries: {} },
+      mediaPlaylist: { seconds: 12, fit: 'contain', entries: [] },
+      screens: null,
     },
     dirty: false,
   };
@@ -104,7 +110,14 @@
     state.data.announcements = d['announcements'] || { entries: [] };
     state.data.specialTimes = d['special-times'] || { entries: [] };
     state.data.zmanimCalendar = d['zmanim-calendar'] || { entries: {} };
+    state.data.mediaPlaylist = d['media-playlist'] || { seconds: 12, fit: 'contain', entries: [] };
+    state.data.screens = d['screens'] || null;
     state.meta = res.meta || {};
+    if (!Array.isArray(state.data.mediaPlaylist.entries)) state.data.mediaPlaylist.entries = [];
+    if (!state.data.screens || !Array.isArray(state.data.screens.screens) || !state.data.screens.screens.length) {
+      state.data.screens = defaultScreens();
+    }
+    if (!state.data.config.design.logo) state.data.config.design.logo = { url: '' };
     // normalize
     if (!state.data.config.location) state.data.config.location = { ...DEFAULT_CONFIG.location };
     if (!state.data.config.displayedZmanim) state.data.config.displayedZmanim = { ...DEFAULT_CONFIG.displayedZmanim };
@@ -219,6 +232,7 @@
         btn.classList.add('active');
         qs(`.tab-content[data-tab="${btn.dataset.tab}"]`).classList.add('active');
         if (btn.dataset.tab === 'design') scalePreview();
+        if (btn.dataset.tab === 'screens') renderScreens();
       });
     });
     window.addEventListener('resize', scalePreview);
@@ -433,6 +447,94 @@
   }
 
   // ---------- Rooms ----------
+  // ---------- עורך רשומת זמן תפילה ----------
+  // רשומה היא מחרוזת "06:30" (שעה קבועה) או אובייקט:
+  //   { type:'relative', base:'sunset', offset:-20, round:5, days:[0,1,2] }
+
+  const ZMAN_BASES = [
+    ['alotHaShachar', 'עלות השחר'], ['misheyakir', 'משיכיר'], ['sunrise', 'הנץ החמה'],
+    ['sofZmanShmaMGA', 'סו״ז ק״ש (מג״א)'], ['sofZmanShma', 'סו״ז ק״ש (גר״א)'],
+    ['sofZmanTfillaMGA', 'סו״ז תפילה (מג״א)'], ['sofZmanTfilla', 'סו״ז תפילה (גר״א)'],
+    ['chatzot', 'חצות היום'], ['minchaGedola', 'מנחה גדולה'], ['minchaKetana', 'מנחה קטנה'],
+    ['plagHaMincha', 'פלג המנחה'], ['sunset', 'שקיעה'], ['tzeit', 'צאת הכוכבים'],
+  ];
+
+  const DOW_LABELS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+
+  const asEntry = (v) => (v && typeof v === 'object') ? v : { type: 'fixed', time: String(v || '') };
+
+  function timeEntryRow(arr, idx, redraw) {
+    const entry = asEntry(arr[idx]);
+    const isRel = entry.type === 'relative';
+    const row = el('div', { class: 'tm-entry' });
+
+    const kind = el('select', {});
+    kind.appendChild(el('option', { value: 'fixed' }, 'שעה קבועה'));
+    kind.appendChild(el('option', { value: 'relative' }, 'לפי זמן ביום'));
+    kind.value = isRel ? 'relative' : 'fixed';
+    kind.addEventListener('change', () => {
+      arr[idx] = kind.value === 'relative'
+        ? { type: 'relative', base: 'sunset', offset: -20, round: 0, days: entry.days || [] }
+        : { type: 'fixed', time: entry.time || '', days: entry.days || [] };
+      markDirty(); redraw();
+    });
+    row.appendChild(kind);
+
+    if (isRel) {
+      const base = el('select', {});
+      for (const [k, label] of ZMAN_BASES) base.appendChild(el('option', { value: k }, label));
+      base.value = entry.base || 'sunset';
+      base.addEventListener('change', () => { entry.base = base.value; arr[idx] = entry; markDirty(); });
+      row.appendChild(base);
+
+      const off = el('input', { type: 'number', step: '1' });
+      off.value = String(entry.offset ?? 0);
+      off.addEventListener('input', () => { entry.offset = parseInt(off.value, 10) || 0; arr[idx] = entry; markDirty(); });
+      row.appendChild(off);
+      row.appendChild(el('span', { class: 'tm-result' }, 'דקות (שלילי = לפני)'));
+
+      const round = el('select', {});
+      [[0, 'בלי עיגול'], [5, 'לעגל ל־5 דק׳'], [10, 'לעגל ל־10 דק׳'], [15, 'לעגל ל־15 דק׳']]
+        .forEach(([v, label]) => round.appendChild(el('option', { value: String(v) }, label)));
+      round.value = String(entry.round || 0);
+      round.addEventListener('change', () => { entry.round = parseInt(round.value, 10) || 0; arr[idx] = entry; markDirty(); });
+      row.appendChild(round);
+    } else {
+      const t = el('input', { type: 'time' });
+      t.value = entry.time || '';
+      t.addEventListener('input', () => { entry.time = t.value; arr[idx] = entry; markDirty(); });
+      row.appendChild(t);
+    }
+
+    // ימים פעילים — ריק = כל הימים
+    const days = el('div', { class: 'tm-days' });
+    days.appendChild(el('span', { class: 'tm-result' }, 'ימים:'));
+    const active = Array.isArray(entry.days) ? entry.days : [];
+    DOW_LABELS.forEach((label, d) => {
+      const cb = el('input', { type: 'checkbox' });
+      cb.checked = active.length === 0 || active.includes(d);
+      const lab = el('label', { class: cb.checked ? 'on' : '' }, cb, label);
+      cb.addEventListener('change', () => {
+        let list = Array.isArray(entry.days) && entry.days.length
+          ? [...entry.days] : [0, 1, 2, 3, 4, 5, 6];
+        list = cb.checked ? [...new Set([...list, d])] : list.filter(x => x !== d);
+        entry.days = list.length === 7 ? [] : list.sort();
+        arr[idx] = entry;
+        lab.classList.toggle('on', cb.checked);
+        markDirty();
+      });
+      days.appendChild(lab);
+    });
+    row.appendChild(days);
+
+    row.appendChild(el('button', {
+      class: 'btn btn-ghost btn-sm', type: 'button',
+      onclick: () => { arr.splice(idx, 1); markDirty(); redraw(); },
+    }, '×'));
+
+    return row;
+  }
+
   function renderRooms() {
     const list = qs('#rooms-list');
     list.innerHTML = '';
@@ -477,21 +579,22 @@
       const draw = () => {
         rows.innerHTML = '';
         arr.forEach((val, idx) => {
-          const inp = document.createElement('input');
-          inp.type = opts.numeric ? 'number' : 'text';
-          inp.placeholder = opts.placeholder || 'HH:MM';
-          inp.value = val ?? '';
-          inp.addEventListener('input', (e) => {
-            arr[idx] = opts.numeric ? Number(e.target.value) : e.target.value;
-            markDirty();
-          });
-          const rm = el('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => {
-            arr.splice(idx, 1); markDirty(); draw();
-          }}, '×');
-          rows.appendChild(el('div', { class: 'minyan-row' }, inp, rm));
+          if (opts.numeric) {
+            const inp = document.createElement('input');
+            inp.type = 'number';
+            inp.placeholder = opts.placeholder || '';
+            inp.value = val ?? '';
+            inp.addEventListener('input', (e) => { arr[idx] = Number(e.target.value); markDirty(); });
+            const rm = el('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => {
+              arr.splice(idx, 1); markDirty(); draw();
+            }}, '×');
+            rows.appendChild(el('div', { class: 'minyan-row' }, inp, rm));
+          } else {
+            rows.appendChild(timeEntryRow(arr, idx, draw));
+          }
         });
         const add = el('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => {
-          arr.push(opts.numeric ? 0 : '');
+          arr.push(opts.numeric ? 0 : { type: 'fixed', time: '', days: [] });
           markDirty(); draw();
         }}, '+ מניין');
         rows.appendChild(add);
@@ -897,6 +1000,8 @@
       ['announcements', state.data.announcements],
       ['special-times', state.data.specialTimes],
       ['zmanim-calendar', state.data.zmanimCalendar],
+      ['media-playlist', state.data.mediaPlaylist],
+      ['screens', state.data.screens],
     ];
 
     try {
@@ -1091,6 +1196,8 @@
     renderAnnouncements();
     renderSpecial();
     updateZmCsvCount();
+    if (qs('#sc-editor')) renderScreens();
+    renderPlaylist();
   }
 
   // מכווץ את ה-iframe (1920×1080) לרוחב שהמכל בפועל מאפשר.
@@ -1102,7 +1209,314 @@
     if (!box) return;
     const w = box.clientWidth;
     if (!w) return;
-    pv.style.transform = `scale(${w / 1920})`;
+    // ה-iframe מרונדר ברוחב וירטואלי קבוע, והגובה נגזר מהיחס שנבחר,
+    // כך שהצג נראה בדיוק כמו על המסך האמיתי.
+    const ratio = ASPECT_RATIO[qs('#pv-aspect')?.value || '16:9'] || 16 / 9;
+    const vw = 1920;
+    const vh = Math.round(vw / ratio);
+    pv.style.width = vw + 'px';
+    pv.style.height = vh + 'px';
+    pv.style.transform = `scale(${w / vw})`;
+  }
+
+  // התצוגה המקדימה מציגה את היחס האמיתי של המסך בבית הכנסת
+  const ASPECT_RATIO = { '16:9': 16/9, '16:10': 16/10, '4:3': 4/3, '21:9': 21/9, '9:16': 9/16, '3:4': 3/4 };
+
+  function setupPreviewAspect() {
+    const sel = qs('#pv-aspect');
+    if (!sel) return;
+    sel.addEventListener('change', () => {
+      const box = qs('#design-preview')?.parentElement;
+      if (box) box.style.aspectRatio = sel.value.replace(':', ' / ');
+      scalePreview();
+    });
+  }
+
+  // ================= עורך המסכים =================
+
+  const GRID = { cols: 24, rows: 18 };
+
+  const BLOCK_TYPES = {
+    header:        'כותרת ושעון',
+    zmanim:        'זמני היום',
+    tefillot:      'זמני תפילות',
+    memorial:      'לעילוי נשמת',
+    mentions:      'הזכרות בתפילה',
+    announcements: 'הודעות רצות',
+    upcoming:      'אירוע קרוב',
+    media:         'חלון מודעות',
+    logo:          'לוגו',
+  };
+
+  // סוגים שאפשר להוסיף רק פעם אחת למסך — הם עוטפים אלמנט יחיד בדף
+  const SINGLE_USE = new Set(Object.keys(BLOCK_TYPES).filter(t => t !== 'logo' && t !== 'media'));
+
+  const ASPECTS = ['16:9', '16:10', '4:3', '21:9', '9:16', '3:4'];
+
+  function defaultScreens() {
+    return {
+      enabled: false,
+      aspect: '16:9',
+      screens: [{
+        id: 'main', name: 'מסך ראשי', seconds: 20,
+        blocks: [
+          { id: 'b-header', type: 'header',        x: 0,  y: 0,  w: 24, h: 3 },
+          { id: 'b-zmanim', type: 'zmanim',        x: 16, y: 3,  w: 8,  h: 11 },
+          { id: 'b-tef',    type: 'tefillot',      x: 8,  y: 3,  w: 8,  h: 11 },
+          { id: 'b-mem',    type: 'memorial',      x: 0,  y: 3,  w: 8,  h: 11 },
+          { id: 'b-ment',   type: 'mentions',      x: 0,  y: 14, w: 24, h: 1 },
+          { id: 'b-ann',    type: 'announcements', x: 0,  y: 15, w: 24, h: 2 },
+          { id: 'b-up',     type: 'upcoming',      x: 0,  y: 17, w: 24, h: 1 },
+        ],
+      }],
+    };
+  }
+
+  let scActive = 0;      // המסך שנערך כרגע
+  let scSelected = null; // מזהה הקובייה הנבחרת
+
+  const scData = () => state.data.screens;
+  const scScreen = () => scData().screens[scActive];
+
+  function renderScreens() {
+    const wrap = qs('#sc-editor');
+    if (!wrap) return;
+    const data = scData();
+
+    qs('#sc-enabled').checked = !!data.enabled;
+    qs('#sc-aspect').value = data.aspect || '16:9';
+    qs('#sc-canvas-wrap').style.setProperty('--sc-aspect', (data.aspect || '16:9').replace(':', ' / '));
+
+    // לשוניות המסכים
+    const tabs = qs('#sc-tabs');
+    tabs.innerHTML = '';
+    data.screens.forEach((s, i) => {
+      tabs.appendChild(el('button', {
+        class: `sc-tab${i === scActive ? ' active' : ''}`,
+        onclick: () => { scActive = i; scSelected = null; renderScreens(); },
+      }, s.name || `מסך ${i + 1}`));
+    });
+    tabs.appendChild(el('button', {
+      class: 'sc-tab', title: 'הוספת מסך',
+      onclick: addScreen,
+    }, '+ מסך'));
+
+    const screen = scScreen();
+    qs('#sc-name').value = screen.name || '';
+    qs('#sc-seconds').value = screen.seconds || 20;
+    qs('#sc-del').disabled = data.screens.length <= 1;
+
+    renderPalette();
+    renderCanvas();
+    renderBlockProps();
+    pushScreensPreview();
+  }
+
+  function renderPalette() {
+    const pal = qs('#sc-palette');
+    const used = new Set(scScreen().blocks.map(b => b.type));
+    pal.innerHTML = '';
+    for (const [type, label] of Object.entries(BLOCK_TYPES)) {
+      pal.appendChild(el('button', {
+        disabled: SINGLE_USE.has(type) && used.has(type) ? 'disabled' : null,
+        onclick: () => addBlock(type),
+      }, `+ ${label}`));
+    }
+  }
+
+  function renderCanvas() {
+    const canvas = qs('#sc-canvas');
+    canvas.innerHTML = '';
+    for (const b of scScreen().blocks) {
+      const div = el('div', {
+        class: `sc-block${b.id === scSelected ? ' selected' : ''}`,
+        'data-id': b.id,
+      });
+      div.style.left   = `${(b.x / GRID.cols) * 100}%`;
+      div.style.top    = `${(b.y / GRID.rows) * 100}%`;
+      div.style.width  = `${(b.w / GRID.cols) * 100}%`;
+      div.style.height = `${(b.h / GRID.rows) * 100}%`;
+      if (typeof b.opacity === 'number') div.style.opacity = String(Math.max(0.15, b.opacity));
+      div.appendChild(el('span', { class: 'sc-label' },
+        BLOCK_TYPES[b.type] || b.type,
+        el('span', { class: 'sc-size', dir: 'ltr' }, `${b.w}×${b.h}`)));
+      div.appendChild(el('div', { class: 'sc-handle' }));
+      canvas.appendChild(div);
+    }
+    bindDrag();
+  }
+
+  // גרירה ושינוי גודל בעכבר ובמגע. הצמדה לרשת 24×18.
+  function bindDrag() {
+    const canvas = qs('#sc-canvas');
+
+    canvas.querySelectorAll('.sc-block').forEach(div => {
+      div.addEventListener('pointerdown', (ev) => {
+        const id = div.dataset.id;
+        const block = scScreen().blocks.find(b => b.id === id);
+        if (!block) return;
+
+        scSelected = id;
+        renderBlockProps();
+        canvas.querySelectorAll('.sc-block').forEach(d => d.classList.toggle('selected', d === div));
+
+        const resizing = ev.target.classList.contains('sc-handle');
+        const rect = canvas.getBoundingClientRect();
+        const cellW = rect.width / GRID.cols;
+        const cellH = rect.height / GRID.rows;
+        const start = { px: ev.clientX, py: ev.clientY, x: block.x, y: block.y, w: block.w, h: block.h };
+
+        div.classList.add('dragging');
+        div.setPointerCapture(ev.pointerId);
+        ev.preventDefault();
+
+        const onMove = (e) => {
+          const dx = Math.round((e.clientX - start.px) / cellW);
+          const dy = Math.round((e.clientY - start.py) / cellH);
+          if (resizing) {
+            // הידית בצד ימין-שמאל של RTL: גרירה שמאלה מגדילה
+            block.w = Math.min(GRID.cols - block.x, Math.max(1, start.w - dx));
+            block.h = Math.min(GRID.rows - block.y, Math.max(1, start.h + dy));
+          } else {
+            block.x = Math.min(GRID.cols - block.w, Math.max(0, start.x + dx));
+            block.y = Math.min(GRID.rows - block.h, Math.max(0, start.y + dy));
+          }
+          div.style.left   = `${(block.x / GRID.cols) * 100}%`;
+          div.style.top    = `${(block.y / GRID.rows) * 100}%`;
+          div.style.width  = `${(block.w / GRID.cols) * 100}%`;
+          div.style.height = `${(block.h / GRID.rows) * 100}%`;
+          const size = div.querySelector('.sc-size');
+          if (size) size.textContent = `${block.w}×${block.h}`;   // dir=ltr נקבע ברינדור
+        };
+
+        const onUp = () => {
+          div.classList.remove('dragging');
+          div.removeEventListener('pointermove', onMove);
+          div.removeEventListener('pointerup', onUp);
+          markDirty();
+          renderBlockProps();
+          pushScreensPreview();
+        };
+
+        div.addEventListener('pointermove', onMove);
+        div.addEventListener('pointerup', onUp);
+      });
+    });
+  }
+
+  function renderBlockProps() {
+    const box = qs('#sc-props');
+    const block = scScreen().blocks.find(b => b.id === scSelected);
+    if (!block) {
+      box.innerHTML = '<div class="sc-hint">בחרו קובייה בלוח כדי לערוך אותה. גוררים כדי להזיז, ומושכים את הריבוע הכחול כדי לשנות גודל.</div>';
+      return;
+    }
+    box.innerHTML = '';
+    box.appendChild(el('strong', {}, BLOCK_TYPES[block.type] || block.type));
+
+    const num = (label, key, min, max) => {
+      const inp = el('input', { type: 'number', min: String(min), max: String(max), value: String(block[key]) });
+      inp.addEventListener('input', () => {
+        const v = Math.max(min, Math.min(max, parseInt(inp.value, 10) || min));
+        block[key] = v;
+        markDirty(); renderCanvas(); pushScreensPreview();
+      });
+      return el('label', { class: 'sc-prop' }, label, inp);
+    };
+    box.appendChild(num('מימין', 'x', 0, GRID.cols - 1));
+    box.appendChild(num('מלמעלה', 'y', 0, GRID.rows - 1));
+    box.appendChild(num('רוחב', 'w', 1, GRID.cols));
+    box.appendChild(num('גובה', 'h', 1, GRID.rows));
+
+    const op = el('input', {
+      type: 'range', min: '20', max: '100', step: '5',
+      value: String(Math.round((block.opacity ?? 1) * 100)),
+    });
+    op.addEventListener('input', () => {
+      block.opacity = parseInt(op.value, 10) / 100;
+      markDirty(); renderCanvas(); pushScreensPreview();
+    });
+    box.appendChild(el('label', { class: 'sc-prop' }, 'שקיפות', op));
+
+    const float = el('input', { type: 'checkbox' });
+    float.checked = !!block.floating;
+    float.addEventListener('change', () => {
+      block.floating = float.checked;
+      markDirty(); pushScreensPreview();
+    });
+    box.appendChild(el('label', { class: 'sc-prop' }, 'צף מעל השאר', float));
+
+    box.appendChild(el('button', {
+      class: 'btn btn-ghost btn-sm btn-danger',
+      onclick: () => {
+        const s = scScreen();
+        s.blocks = s.blocks.filter(b => b.id !== block.id);
+        scSelected = null;
+        markDirty(); renderScreens();
+      },
+    }, 'הסרת הקובייה'));
+  }
+
+  function addBlock(type) {
+    const s = scScreen();
+    const id = `b-${type}-${Math.random().toString(36).slice(2, 7)}`;
+    s.blocks.push({ id, type, x: 6, y: 6, w: 8, h: 5 });
+    scSelected = id;
+    markDirty(); renderScreens();
+  }
+
+  function addScreen() {
+    const data = scData();
+    data.screens.push({
+      id: `s-${Math.random().toString(36).slice(2, 7)}`,
+      name: `מסך ${data.screens.length + 1}`,
+      seconds: 20,
+      blocks: [{ id: `b-h-${Math.random().toString(36).slice(2,6)}`, type: 'header', x: 0, y: 0, w: 24, h: 3 }],
+    });
+    scActive = data.screens.length - 1;
+    scSelected = null;
+    markDirty(); renderScreens();
+  }
+
+  // דוחף את מצב העריכה לתצוגה המקדימה בלי לשמור
+  function pushScreensPreview() {
+    const iframe = qs('#design-preview');
+    if (!iframe || !iframe.contentWindow) return;
+    iframe.contentWindow.postMessage({
+      type: 'PREVIEW_SCREENS',
+      screens: state.data.screens,
+      mediaPlaylist: state.data.mediaPlaylist,
+      screenIndex: scActive,
+    }, location.origin);
+  }
+
+  function setupScreens() {
+    if (!qs('#sc-editor')) return;
+
+    qs('#sc-enabled').addEventListener('change', (e) => {
+      scData().enabled = e.target.checked;
+      markDirty(); pushScreensPreview();
+    });
+    qs('#sc-aspect').addEventListener('change', (e) => {
+      scData().aspect = e.target.value;
+      markDirty(); renderScreens();
+    });
+    qs('#sc-name').addEventListener('input', (e) => {
+      scScreen().name = e.target.value;
+      markDirty();
+    });
+    qs('#sc-seconds').addEventListener('input', (e) => {
+      scScreen().seconds = Math.max(3, parseInt(e.target.value, 10) || 20);
+      markDirty();
+    });
+    qs('#sc-del').addEventListener('click', () => {
+      const data = scData();
+      if (data.screens.length <= 1) return;
+      if (!confirm(`למחוק את "${scScreen().name}"?`)) return;
+      data.screens.splice(scActive, 1);
+      scActive = 0; scSelected = null;
+      markDirty(); renderScreens();
+    });
   }
 
   // ---------- מדיה ----------
@@ -1126,6 +1540,7 @@
     wrap.innerHTML = '';
     if (!state.media.length) {
       wrap.appendChild(el('p', { class: 'desc' }, 'עדיין לא הועלו קבצים.'));
+      renderLogoPicker();
       return;
     }
 
@@ -1134,7 +1549,8 @@
         ? el('img', { src: item.url, alt: item.filename, class: 'media-thumb' })
         : el('div', { class: 'media-thumb media-thumb-doc' }, 'PDF');
 
-      const inPlaylist = (state.data.config.design?.backgroundImage || '') === item.url;
+      const isBg = (state.data.config.design?.backgroundImage || '') === item.url;
+      const inMp = inPlaylist(item.url);
 
       wrap.appendChild(el('div', { class: 'media-item' },
         preview,
@@ -1144,18 +1560,22 @@
             `${fmtSize(item.size)} · ${new Date(item.created_at).toLocaleDateString('he-IL')} · ${item.created_by || ''}`),
           el('div', { class: 'media-actions' },
             el('a', { class: 'btn btn-ghost btn-sm', href: item.url, target: '_blank' }, 'פתיחה'),
+            el('button', {
+              class: 'btn btn-ghost btn-sm',
+              onclick: () => togglePlaylist(item),
+            }, inMp ? 'הסרה מחלון המודעות' : 'הוספה לחלון המודעות'),
             item.kind === 'image'
               ? el('button', {
                   class: 'btn btn-ghost btn-sm',
                   onclick: () => {
                     state.data.config.design = state.data.config.design || {};
-                    state.data.config.design.backgroundImage = inPlaylist ? '' : item.url;
+                    state.data.config.design.backgroundImage = isBg ? '' : item.url;
                     markDirty();
                     renderGeneral();
                     renderMedia();
-                    status(inPlaylist ? 'הוסר רקע הצג' : 'הוגדר כרקע הצג — לחצו "שמירה ופרסום"', 'success');
+                    status(isBg ? 'הוסר רקע הצג' : 'הוגדר כרקע הצג — לחצו "שמירה ופרסום"', 'success');
                   },
-                }, inPlaylist ? 'הסרה מרקע הצג' : 'הגדרה כרקע הצג')
+                }, isBg ? 'הסרה מרקע הצג' : 'הגדרה כרקע הצג')
               : null,
             el('button', {
               class: 'btn btn-ghost btn-sm btn-danger',
@@ -1171,6 +1591,85 @@
           ),
         ),
       ));
+    }
+  }
+
+  // ---------- חלון המודעות + לוגו ----------
+  const inPlaylist = (url) =>
+    (state.data.mediaPlaylist.entries || []).some(e => e.url === url);
+
+  function togglePlaylist(item) {
+    const list = state.data.mediaPlaylist.entries;
+    const i = list.findIndex(e => e.url === item.url);
+    if (i >= 0) list.splice(i, 1);
+    else list.push({ url: item.url, kind: item.kind, name: item.filename });
+    markDirty();
+    renderPlaylist();
+    renderMedia();
+  }
+
+  function renderPlaylist() {
+    const box = qs('#mp-list');
+    if (!box) return;
+    const mp = state.data.mediaPlaylist;
+    const secs = qs('#mp-seconds'), fit = qs('#mp-fit');
+    if (secs) secs.value = mp.seconds || 12;
+    if (fit) fit.value = mp.fit || 'contain';
+
+    box.innerHTML = '';
+    if (!mp.entries.length) {
+      box.appendChild(el('div', { class: 'sc-hint' },
+        'עדיין לא נבחרו מודעות. סמנו קבצים ברשימה שלמטה.'));
+      return;
+    }
+    mp.entries.forEach((e, i) => {
+      box.appendChild(el('div', { class: 'mp-row' },
+        el('span', {}, `${i + 1}. ${e.name || e.url} ${e.kind === 'pdf' ? '(PDF)' : ''}`),
+        el('button', {
+          class: 'btn btn-ghost btn-sm',
+          onclick: () => {
+            if (i === 0) return;
+            const [x] = mp.entries.splice(i, 1);
+            mp.entries.splice(i - 1, 0, x);
+            markDirty(); renderPlaylist();
+          },
+        }, '↑'),
+        el('button', {
+          class: 'btn btn-ghost btn-sm btn-danger',
+          onclick: () => { mp.entries.splice(i, 1); markDirty(); renderPlaylist(); renderMedia(); },
+        }, 'הסרה'),
+      ));
+    });
+  }
+
+  function setupPlaylist() {
+    const secs = qs('#mp-seconds'), fit = qs('#mp-fit');
+    if (secs) secs.addEventListener('input', () => {
+      state.data.mediaPlaylist.seconds = Math.max(3, parseInt(secs.value, 10) || 12);
+      markDirty();
+    });
+    if (fit) fit.addEventListener('change', () => {
+      state.data.mediaPlaylist.fit = fit.value;
+      markDirty();
+    });
+  }
+
+  function renderLogoPicker() {
+    const sel = qs('#d-logo');
+    if (!sel) return;
+    const current = state.data.config.design?.logo?.url || '';
+    sel.innerHTML = '';
+    sel.appendChild(el('option', { value: '' }, '— ללא לוגו —'));
+    state.media.filter(m => m.kind === 'image').forEach(m => {
+      sel.appendChild(el('option', { value: m.url }, m.filename));
+    });
+    sel.value = current;
+    if (!sel.dataset.bound) {
+      sel.dataset.bound = '1';
+      sel.addEventListener('change', () => {
+        state.data.config.design.logo = { url: sel.value };
+        markDirty();
+      });
     }
   }
 
@@ -1251,6 +1750,9 @@
     bindGeneral();
     setupTabs();
     setupCSV();
+    setupScreens();
+    setupPlaylist();
+    setupPreviewAspect();
 
     window.addEventListener('beforeunload', (e) => {
       if (state.dirty) { e.preventDefault(); e.returnValue = ''; }

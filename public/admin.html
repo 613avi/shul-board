@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ניהול הצג — ShulBoard</title>
     <link rel="stylesheet" href="/css/board.css">
+    <link rel="stylesheet" href="/css/traditional.css">
     <link rel="stylesheet" href="/css/site.css">
+    <link rel="stylesheet" href="/css/screens.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet">
@@ -59,6 +61,7 @@
             <button data-tab="announcements">הודעות</button>
             <button data-tab="special">זמנים מיוחדים</button>
             <button data-tab="design">עיצוב</button>
+            <button data-tab="screens">מסכים ופריסה</button>
             <button data-tab="media">קבצים ומדיה</button>
             <button data-tab="installer">התקנה על המסך</button>
             <button data-tab="settings">חשבון</button>
@@ -255,6 +258,7 @@
                 <div class="field">
                     <label for="d-style">סגנון אלמנטים</label>
                     <select id="d-style">
+                        <option value="traditional">מסורתי מפואר (עיטורים וכתרים)</option>
                         <option value="classic">קלאסי (ברירת מחדל)</option>
                         <option value="modern">מודרני (עגול ורך)</option>
                         <option value="minimalist">מינימליסטי (ללא רקע)</option>
@@ -272,7 +276,29 @@
                     </select>
                 </div>
 
+                <h3>לוגו בית המדרש</h3>
+                <div class="field">
+                    <div class="desc">
+                        העלו תמונה בלשונית "קבצים ומדיה", ואז בחרו אותה כאן.
+                        המיקום, הגודל, השקיפות והמצב הצף נקבעים בלשונית "מסכים ופריסה"
+                        על ידי הוספת קובייה מסוג <strong>לוגו</strong> וגרירתה.
+                    </div>
+                    <select id="d-logo" style="width:100%;margin-top:6px;"></select>
+                </div>
+
                 <h3>תצוגה מקדימה</h3>
+                <div class="field">
+                    <label for="pv-aspect">יחס המסך בפועל</label>
+                    <select id="pv-aspect">
+                        <option value="16:9">16:9 — מסך רחב (הנפוץ)</option>
+                        <option value="16:10">16:10</option>
+                        <option value="4:3">4:3 — מסך מרובע</option>
+                        <option value="21:9">21:9 — אולטרה־רחב</option>
+                        <option value="9:16">9:16 — מסך אנכי</option>
+                        <option value="3:4">3:4 — אנכי מרובע</option>
+                    </select>
+                    <div class="desc">בחרו את היחס של המסך האמיתי בבית הכנסת כדי לראות בדיוק איך ייראה שם.</div>
+                </div>
                 <div class="field">
                     <!-- הכתובת נקבעת ב-renderIdentity לפי בית הכנסת המחובר.
                          ה-iframe מרונדר בגודל מסך מלא ומוקטן בטרנספורם, כדי שרואים
@@ -286,6 +312,52 @@
         </div>
 
         <!-- Settings -->
+        <!-- מסכים ופריסה -->
+        <div class="tab-content" data-tab="screens">
+            <div class="panel">
+                <h2>מסכים מתחלפים</h2>
+                <p class="desc">
+                    בונים מסך אחד או כמה, וגוררים את הקוביות למקום שרוצים. כמה מסכים
+                    יתחלפו ביניהם אוטומטית לפי הקצב שתגדירו.
+                </p>
+
+                <div class="sc-editor" id="sc-editor">
+                    <div class="sc-bar">
+                        <label><input type="checkbox" id="sc-enabled"> הפעלת מצב מסכים</label>
+                        <label>יחס מסך
+                            <select id="sc-aspect">
+                                <option value="16:9">16:9 — מסך רחב (הנפוץ)</option>
+                                <option value="16:10">16:10</option>
+                                <option value="4:3">4:3 — מסך מרובע</option>
+                                <option value="21:9">21:9 — אולטרה־רחב</option>
+                                <option value="9:16">9:16 — מסך אנכי</option>
+                                <option value="3:4">3:4 — אנכי מרובע</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="sc-hint">
+                        כשמצב המסכים כבוי, הצג ממשיך בפריסה הרגילה — כך שאפשר לבנות בשקט ולהדליק בסוף.
+                    </div>
+
+                    <div class="sc-tabs" id="sc-tabs"></div>
+
+                    <div class="sc-bar">
+                        <label>שם המסך <input type="text" id="sc-name" style="min-width:160px"></label>
+                        <label>שניות לפני מעבר <input type="number" id="sc-seconds" min="3" max="600" style="width:90px"></label>
+                        <button class="btn btn-ghost btn-sm btn-danger" id="sc-del">מחיקת המסך</button>
+                    </div>
+
+                    <div class="sc-palette" id="sc-palette"></div>
+
+                    <div class="sc-canvas-wrap" id="sc-canvas-wrap">
+                        <div id="sc-canvas" style="position:absolute;inset:0;"></div>
+                    </div>
+
+                    <div id="sc-props" class="sc-props-box"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- קבצים ומדיה -->
         <div class="tab-content" data-tab="media">
             <div class="panel">
@@ -294,6 +366,24 @@
                 <input type="file" id="media-file" multiple accept="image/*,application/pdf">
                 <div class="small" id="media-progress"></div>
                 <div class="small">נפח בשימוש: <span id="media-quota">…</span></div>
+            </div>
+            <div class="panel">
+                <h2>חלון המודעות</h2>
+                <p class="desc">
+                    הקבצים שסימנתם יוצגו בסבב בתוך קובייה מסוג "חלון מודעות" בלשונית
+                    <strong>מסכים ופריסה</strong>. מסמכי Word אינם נתמכים להצגה —
+                    שמרו אותם כ־PDF (קובץ ← שמירה בשם ← PDF) והעלו את ה־PDF.
+                </p>
+                <div class="sc-bar">
+                    <label>שניות לכל מודעה <input type="number" id="mp-seconds" min="3" max="600" style="width:90px"></label>
+                    <label>התאמה
+                        <select id="mp-fit">
+                            <option value="contain">התאמה מלאה (בלי חיתוך)</option>
+                            <option value="cover">מילוי המסגרת (עם חיתוך)</option>
+                        </select>
+                    </label>
+                </div>
+                <div id="mp-list" class="plain-list small"></div>
             </div>
             <div class="panel">
                 <h2>הקבצים שלכם</h2>
