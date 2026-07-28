@@ -71,6 +71,7 @@
   const el = (tag, attrs = {}, ...children) => {
     const e = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
+      if (v == null) continue; // attrs like `disabled: cond ? 'disabled' : null` must be omitted, not stringified to "null"
       if (k === 'class') e.className = v;
       else if (k === 'html') e.innerHTML = v;
       else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
