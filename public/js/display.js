@@ -132,8 +132,17 @@
   async function fetchBundle() {
     const slug = currentSlug();
     if (!slug) throw new Error('לא זוהה בית כנסת');
-    const res = await fetch(`/api/public/${encodeURIComponent(slug)}`, { cache: 'no-store' });
+    // חותמת דקה: מסכים באותה דקה חולקים תשובה אחת מהקצה (חוסך במכסה),
+    // אבל תשובה שגויה לא יכולה להינעל במטמון ליותר מדקה.
+    const bucket = Math.floor(Date.now() / 60000);
+    const res = await fetch(`/api/public/${encodeURIComponent(slug)}?t=${bucket}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`bundle: ${res.status}`);
+
+    // אם הגיע HTML במקום JSON — סימן שה-Function לא נותב. עדיף להיכשל
+    // בקול מאשר להציג לוח ריק כאילו הכל תקין.
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) throw new Error('תשובה לא צפויה מהשרת');
+
     const body = await res.json();
     if (!body.ok) throw new Error(body.error || 'שגיאה בטעינה');
     return body;

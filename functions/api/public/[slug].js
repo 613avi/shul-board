@@ -8,11 +8,11 @@ const TTL = 60;
 
 export async function onRequestGet(context) {
   const { request, env, params } = context;
-  const cache = caches.default;
-  const cacheKey = new Request(new URL(request.url).toString(), { method: 'GET' });
 
-  const hit = await cache.match(cacheKey);
-  if (hit) return hit;
+  // אין כאן שימוש ב-caches.default במכוון. בעבר תשובת HTML של ה-fallback
+  // הסטטי ננעלה במטמון הקצה תחת הכתובת הזאת, והצג קיבל HTML במקום JSON
+  // בלי שום דרך לנקות מהקוד. במקום זה הצג מוסיף חותמת דקה לכתובת,
+  // כך שהשיתוף במטמון נשמר אבל תקלה לא יכולה להינעל ליותר מדקה.
 
   const slug = normalizeSlug(params.slug);
   const shul = await env.DB.prepare(
@@ -44,14 +44,11 @@ export async function onRequestGet(context) {
     servedFrom: request.cf?.colo ?? null,
   };
 
-  const res = Response.json(body, {
+  return Response.json(body, {
     headers: {
       'cache-control': `public, max-age=${TTL}`,
       'access-control-allow-origin': '*',
       etag: `"${version}"`,
     },
   });
-
-  context.waitUntil(cache.put(cacheKey, res.clone()));
-  return res;
 }

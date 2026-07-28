@@ -13,12 +13,22 @@ window.Api = (() => {
       },
     });
     const ct = res.headers.get('content-type') || '';
-    const body = ct.includes('application/json') ? await res.json() : await res.text();
+    const isJson = ct.includes('application/json');
+    const body = isJson ? await res.json() : await res.text();
+
     if (!res.ok) {
       const msg = (body && body.error) || `שגיאה ${res.status}`;
       const err = new Error(msg);
       err.status = res.status;
       err.body = body;
+      throw err;
+    }
+
+    // כל נתיבי ה-API מחזירים JSON. תשובת HTML עם 200 היא ה-fallback הסטטי,
+    // כלומר ה-Function לא נותב — פעם אחת זה גרם לממשק להיפתח בלי חשבון אמיתי.
+    if (!isJson) {
+      const err = new Error('השרת לא זמין כרגע — נסו שוב בעוד רגע');
+      err.status = 503;
       throw err;
     }
     return body;
