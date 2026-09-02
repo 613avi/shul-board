@@ -1,4 +1,5 @@
 import { normalizeSlug, SECTIONS, DEFAULTS } from '../../_shared.js';
+import { upgradeAll, APP_VERSION } from '../../_migrations.js';
 
 // המנה הציבורית שהצג צורך. אין כאן שום דבר סודי — זמני תפילה והודעות.
 // נשמר ב-cache של הקצה ל-60 שניות כדי לא לשרוף את מכסת הבקשות החינמית:
@@ -27,19 +28,23 @@ export async function onRequestGet(context) {
     'SELECT section, json, updated_at FROM settings WHERE shul_id = ?'
   ).bind(shul.id).all();
 
-  const data = {};
+  const raw = {};
   let version = 0;
   for (const section of SECTIONS) {
     const row = (rows.results || []).find(r => r.section === section);
-    data[section] = row ? JSON.parse(row.json) : DEFAULTS[section];
+    try { raw[section] = row ? JSON.parse(row.json) : DEFAULTS[section]; }
+    catch { raw[section] = DEFAULTS[section]; }
     if (row?.updated_at > version) version = row.updated_at;
   }
+  // נתונים שנשמרו במבנה ישן מועלים כאן לגרסה הנוכחית — הצג תמיד מקבל מבנה שהוא מכיר
+  const data = upgradeAll(raw);
 
   const body = {
     ok: true,
     slug: shul.slug,
     name: shul.name,
     version,                     // הצג משווה את זה כדי לדעת אם להתרענן
+    appVersion: APP_VERSION,     // גרסת הקוד — הצג נטען מחדש כשהיא משתנה
     data,
     servedFrom: request.cf?.colo ?? null,
   };

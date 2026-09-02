@@ -2,6 +2,7 @@ import {
   json, bad, uuid, now, hashPassword, createSession, sessionCookie,
   normalizeSlug, slugAvailable, DEFAULTS, SECTIONS, logAudit,
 } from '../_shared.js';
+import { SCHEMA_VERSION } from '../_migrations.js';
 
 // הרשמה עצמית: יוצר בית כנסת, גבאי-בעלים, והגדרות ברירת מחדל — ומחבר מיד.
 export async function onRequestPost({ request, env }) {
@@ -28,7 +29,7 @@ export async function onRequestPost({ request, env }) {
   const shulId = uuid();
   const t = now();
 
-  const config = { ...DEFAULTS.config, synagogueName: name };
+  const config = { ...DEFAULTS.config, synagogueName: name, schemaVersion: SCHEMA_VERSION };
 
   const stmts = [
     env.DB.prepare(

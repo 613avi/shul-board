@@ -48,6 +48,26 @@
 .site-body .site-footer a { color: var(--sb-gold-soft); }
 .site-body .site-footer a:hover { text-decoration: underline; }
 
+/* ---------- באנר הרצה ---------- */
+.beta-banner {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 9px 44px 9px 16px; font-size: 14px; line-height: 1.5;
+  background: linear-gradient(90deg, rgba(212, 175, 55, .22), rgba(212, 175, 55, .1));
+  border-bottom: 1px solid rgba(212, 175, 55, .35); color: var(--sb-fg);
+}
+.beta-banner[hidden] { display: none; }
+.beta-banner .beta-text { text-align: center; }
+.beta-banner b { color: var(--sb-gold-soft); }
+.beta-banner a { color: var(--sb-gold-soft); text-decoration: underline; }
+.beta-close {
+  position: absolute; inset-inline-start: 10px; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--sb-line);
+  background: transparent; color: var(--sb-dim); font-size: 18px; line-height: 1; cursor: pointer;
+}
+.beta-close:hover { background: rgba(255, 255, 255, .06); color: var(--sb-fg); }
+@media (max-width: 600px) { .beta-banner { font-size: 13px; padding-inline: 40px 12px; } }
+
 .site-nav {
   display: flex; align-items: center; justify-content: space-between;
   padding: 22px 0; gap: 16px; flex-wrap: wrap;

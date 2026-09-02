@@ -127,6 +127,7 @@
   }
 
   let _version = null;
+  let _appVersion = null;     // גרסת הקוד בשרת — שינוי בה = טעינה מחדש של הדף
   let _previewMode = false;   // נדלק כשהצג רץ בתוך ה-iframe של הניהול
 
   async function fetchBundle() {
@@ -145,6 +146,16 @@
 
     const body = await res.json();
     if (!body.ok) throw new Error(body.error || 'שגיאה בטעינה');
+
+    // פרסנו גרסת קוד חדשה? הדף נטען מחדש כדי שקוד ישן לא ירוץ מול נתונים חדשים.
+    // בתצוגה המקדימה של הניהול לא — זה היה מוחק שינויים שטרם נשמרו.
+    if (body.appVersion) {
+      if (_appVersion && body.appVersion !== _appVersion && !_previewMode) {
+        location.reload();
+        return body;
+      }
+      _appVersion = body.appVersion;
+    }
     return body;
   }
 
@@ -893,29 +904,33 @@
     }, secs * 1000);
   }
 
+  // כל קובייה מצוירת בנפרד: תקלה בהנצחות לא משאירה את הזמנים ריקים.
+  const safe = (label, fn) => { try { fn(); } catch (e) { console.error(`${label} failed`, e); } };
+
   async function refreshAll() {
     try {
       await loadData();
-      applyDesign();
-      applyScreens();
-      renderHeader();
-      renderZmanim();
-      renderTefillot();
-      renderMemorial();
-      renderAnnouncements();
-      renderUpcoming();
     } catch (e) {
-      console.error('refresh failed', e);
+      // הטעינה נכשלה — ממשיכים להציג את מה שכבר טעון
+      console.error('load failed', e);
+      if (!state.config) return;
     }
+    safe('design', applyDesign);
+    safe('screens', applyScreens);
+    safe('header', renderHeader);
+    safe('zmanim', renderZmanim);
+    safe('tefillot', renderTefillot);
+    safe('memorial', renderMemorial);
+    safe('announcements', renderAnnouncements);
+    safe('upcoming', renderUpcoming);
   }
 
   function lightRefresh() {
-    try {
-      renderHeader();
-      renderZmanim();
-      renderTefillot();
-      renderMemorial();
-    } catch (e) { console.error('lightRefresh failed', e); }
+    if (!state.config) return;
+    safe('header', renderHeader);
+    safe('zmanim', renderZmanim);
+    safe('tefillot', renderTefillot);
+    safe('memorial', renderMemorial);
   }
 
   // ---------- auto-reload on new commit ----------

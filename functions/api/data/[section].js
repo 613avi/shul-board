@@ -1,4 +1,5 @@
 import { json, bad, now, requireAuth, SECTIONS, DEFAULTS, logAudit } from '../../_shared.js';
+import { normalize, prepareForSave } from '../../_migrations.js';
 
 // קריאה/כתיבה של מקטע הגדרות אחד של בית הכנסת המחובר.
 
@@ -15,7 +16,7 @@ export async function onRequestGet({ request, env, params }) {
   return json({
     ok: true,
     section,
-    data: row ? JSON.parse(row.json) : DEFAULTS[section],
+    data: normalize(section, row ? JSON.parse(row.json) : DEFAULTS[section]),
     updatedAt: row?.updated_at ?? null,
     updatedBy: row?.updated_by ?? null,
   });
@@ -32,6 +33,8 @@ export async function onRequestPut({ request, env, params }) {
   let data;
   try { data = await request.json(); } catch { return bad('JSON לא תקין'); }
   if (data === null || typeof data !== 'object') return bad('המקטע חייב להיות אובייקט');
+  // מנקים וחותמים גרסה לפני הכתיבה — למסד נכנס רק מבנה שהצג יודע לקרוא
+  data = prepareForSave(section, data);
 
   const text = JSON.stringify(data);
   if (text.length > 1_000_000) return bad('המקטע גדול מדי (מעל 1MB)', 413);
