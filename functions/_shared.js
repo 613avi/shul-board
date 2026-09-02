@@ -192,7 +192,14 @@ export const DEFAULTS = {
     theme: { accent: '#d4af37', background: '#0e1320' },
     rotation: { enabled: false, intervalSeconds: 20 },
     zmanimOverrides: {},
-    design: { theme: 'stone', layout: '3col', style: 'classic' },
+    // המראה נבחר מהקטלוג ב-public/js/presets.js. preset הוא כרטיס אחד
+    // שקובע צבעים/סגנון/פריסה/גופן; שאר השדות מאפשרים כוונון עדין.
+    design: {
+      preset: 'jerusalem', theme: 'stone', layout: '3col', style: 'traditional', font: 'classic',
+      accent: '', scale: 1, backgroundImage: '', backgroundOverlay: 0.45, logo: { url: '' },
+    },
+    // אשף ההקמה מוצג עד שהגבאי מסיים אותו (או מדלג עליו).
+    setup: { done: false, step: 1 },
   },
   rooms: {
     rooms: [{

@@ -45,14 +45,14 @@ body { min-height: 100vh; }
 .display-header .brand { text-align: right; }
 .display-header h1 {
     font-family: 'Frank Ruhl Libre', serif;
-    font-size: clamp(2rem, 3.5vw, 3.5rem);
+    font-size: calc(var(--fs, 1) * clamp(2rem, 3.5vw, 3.5rem));
     font-weight: 900;
     color: var(--accent);
     margin: 0;
     line-height: 1.1;
 }
 .display-header .sub {
-    font-size: clamp(0.9rem, 1.3vw, 1.4rem);
+    font-size: calc(var(--fs, 1) * clamp(0.9rem, 1.3vw, 1.4rem));
     color: var(--text-dim);
     margin-top: 0.4rem;
 }
@@ -67,13 +67,13 @@ body { min-height: 100vh; }
     direction: ltr;
 }
 #current-time {
-    font-size: clamp(3rem, 6vw, 6rem);
+    font-size: calc(var(--fs, 1) * clamp(3rem, 6vw, 6rem));
     font-weight: 800;
     letter-spacing: 0.02em;
     color: var(--text);
 }
 #current-seconds {
-    font-size: clamp(1.5rem, 2.5vw, 2.5rem);
+    font-size: calc(var(--fs, 1) * clamp(1.5rem, 2.5vw, 2.5rem));
     font-weight: 600;
     color: var(--text-dim);
 }
@@ -91,7 +91,7 @@ body { min-height: 100vh; }
     padding: 0.4rem 0.9rem;
     border-radius: 999px;
     font: inherit;
-    font-size: clamp(0.85rem, 1vw, 1.1rem);
+    font-size: calc(var(--fs, 1) * clamp(0.85rem, 1vw, 1.1rem));
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -125,7 +125,7 @@ body { min-height: 100vh; }
     padding-bottom: 0.6rem;
     border-bottom: 2px solid var(--accent);
     color: var(--accent);
-    font-size: clamp(1.4rem, 2vw, 2.2rem);
+    font-size: calc(var(--fs, 1) * clamp(1.4rem, 2vw, 2.2rem));
     font-weight: 700;
     font-family: 'Frank Ruhl Libre', serif;
     flex: 0 0 auto;
@@ -158,7 +158,7 @@ body { min-height: 100vh; }
 .zmanim-card table, .tefillot-card table {
     width: 100%;
     border-collapse: collapse;
-    font-size: clamp(1rem, 1.4vw, 1.6rem);
+    font-size: calc(var(--fs, 1) * clamp(1rem, 1.4vw, 1.6rem));
 }
 .zmanim-card td, .tefillot-card td {
     padding: 0.55rem 0.3rem;
@@ -186,7 +186,7 @@ body { min-height: 100vh; }
 .tefillot-card .room-block h3,
 .tefillot-card .prayer-block h3 {
     margin: 0 0 0.4rem;
-    font-size: clamp(1.1rem, 1.5vw, 1.7rem);
+    font-size: calc(var(--fs, 1) * clamp(1.1rem, 1.5vw, 1.7rem));
     color: var(--accent-2);
     font-weight: 600;
     font-family: 'Frank Ruhl Libre', serif;
@@ -214,7 +214,7 @@ body { min-height: 100vh; }
     padding: 0.5rem 0.8rem;
     background: rgba(212,175,55,0.08);
     border-radius: 8px;
-    font-size: clamp(0.95rem, 1.3vw, 1.4rem);
+    font-size: calc(var(--fs, 1) * clamp(0.95rem, 1.3vw, 1.4rem));
 }
 .tefillot-card .shabbat-shared > div {
     display: flex;
@@ -233,7 +233,7 @@ body { min-height: 100vh; }
 }
 
 .display-header .sub.omer {
-    font-size: clamp(0.85rem, 1.1vw, 1.2rem);
+    font-size: calc(var(--fs, 1) * clamp(0.85rem, 1.1vw, 1.2rem));
     color: var(--accent);
     margin-top: 0.2rem;
     font-weight: 600;
@@ -243,7 +243,7 @@ body { min-height: 100vh; }
     list-style: none;
     padding: 0;
     margin: 0;
-    font-size: clamp(1rem, 1.3vw, 1.5rem);
+    font-size: calc(var(--fs, 1) * clamp(1rem, 1.3vw, 1.5rem));
 }
 #memorial-list li {
     padding: 0.45rem 0;
@@ -267,7 +267,7 @@ body { min-height: 100vh; }
     display: none;
 }
 #announcements-ticker {
-    font-size: clamp(1rem, 1.4vw, 1.6rem);
+    font-size: calc(var(--fs, 1) * clamp(1rem, 1.4vw, 1.6rem));
     font-weight: 700;
     display: inline-block;
     padding-right: 100%;
@@ -281,7 +281,7 @@ body { min-height: 100vh; }
 .display-footer {
     text-align: center;
     color: var(--text-dim);
-    font-size: clamp(0.9rem, 1.1vw, 1.2rem);
+    font-size: calc(var(--fs, 1) * clamp(0.9rem, 1.1vw, 1.2rem));
     padding: 0.4rem 0;
 }
 
@@ -290,7 +290,7 @@ body { min-height: 100vh; }
     justify-content: center;
     flex-wrap: wrap;
     gap: 0.8rem;
-    font-size: clamp(0.95rem, 1.3vw, 1.4rem);
+    font-size: calc(var(--fs, 1) * clamp(0.95rem, 1.3vw, 1.4rem));
     padding: 0.5rem 0.8rem;
     border-radius: 10px;
     background: rgba(138, 180, 248, 0.08);
@@ -879,3 +879,124 @@ body[data-custom-bg="1"] .display-body {
 #display-root[data-layout="sidebar-left"] .display-footer {
     display: none;
 }
+
+/* ===== ערכות צבע נוספות ===== */
+html[data-theme="midnight"], body[data-theme="midnight"] {
+    --bg: #070b18;
+    --bg-card: rgba(255, 255, 255, 0.05);
+    --bg-card-hover: rgba(255, 255, 255, 0.09);
+    --text: #eef2ff;
+    --text-dim: #9aa3c7;
+    --accent: #f2c94c;
+    --accent-2: #8ab4f8;
+    --border: rgba(242, 201, 76, 0.18);
+}
+body[data-theme="midnight"] .display-body {
+    background: radial-gradient(ellipse at top, #131c3d 0%, var(--bg) 60%);
+}
+
+html[data-theme="emerald"], body[data-theme="emerald"] {
+    --bg: #062b22;
+    --bg-card: rgba(255, 255, 255, 0.06);
+    --bg-card-hover: rgba(255, 255, 255, 0.1);
+    --text: #eefbf5;
+    --text-dim: #a7cfc0;
+    --accent: #e9c46a;
+    --accent-2: #7fd8b5;
+    --border: rgba(233, 196, 106, 0.2);
+}
+body[data-theme="emerald"] .display-body {
+    background: radial-gradient(ellipse at top, #0c4a3a 0%, var(--bg) 60%);
+}
+
+html[data-theme="burgundy"], body[data-theme="burgundy"] {
+    --bg: #3a0d14;
+    --bg-card: rgba(0, 0, 0, 0.28);
+    --bg-card-hover: rgba(0, 0, 0, 0.38);
+    --text: #fff3f0;
+    --text-dim: #e0b8b0;
+    --accent: #f4c542;
+    --accent-2: #f5a3a3;
+    --border: rgba(244, 197, 66, 0.22);
+}
+body[data-theme="burgundy"] .display-body {
+    background: radial-gradient(ellipse at top, #5c1a24 0%, var(--bg) 60%);
+}
+
+html[data-theme="slate"], body[data-theme="slate"] {
+    --bg: #1f2430;
+    --bg-card: rgba(255, 255, 255, 0.07);
+    --bg-card-hover: rgba(255, 255, 255, 0.11);
+    --text: #f1f3f8;
+    --text-dim: #aab2c5;
+    --accent: #7dd3fc;
+    --accent-2: #fbbf24;
+    --border: rgba(255, 255, 255, 0.12);
+}
+body[data-theme="slate"] .display-body {
+    background: linear-gradient(160deg, #2a3140 0%, var(--bg) 60%);
+}
+
+html[data-theme="sand"], body[data-theme="sand"] {
+    --bg: #f3e9d6;
+    --bg-card: rgba(120, 80, 30, 0.08);
+    --bg-card-hover: rgba(120, 80, 30, 0.14);
+    --text: #3f2d18;
+    --text-dim: #7a6247;
+    --accent: #a0561f;
+    --accent-2: #2d5f8a;
+    --border: rgba(120, 80, 30, 0.22);
+}
+body[data-theme="sand"] .display-body {
+    background: radial-gradient(ellipse at top, #fbf5ea 0%, var(--bg) 65%);
+}
+
+html[data-theme="sky"], body[data-theme="sky"] {
+    --bg: #e9f3fb;
+    --bg-card: rgba(255, 255, 255, 0.75);
+    --bg-card-hover: rgba(255, 255, 255, 0.95);
+    --text: #12314a;
+    --text-dim: #4d6a82;
+    --accent: #1b6ca8;
+    --accent-2: #d97706;
+    --border: rgba(27, 108, 168, 0.18);
+}
+body[data-theme="sky"] .display-body {
+    background: radial-gradient(ellipse at top, #ffffff 0%, var(--bg) 65%);
+}
+
+/* פס ההודעות על ערכות בהירות — טקסט לבן על הצבע המודגש */
+body[data-theme="sand"] .announcements-container,
+body[data-theme="sky"] .announcements-container,
+body[data-theme="parchment"] .announcements-container,
+body[data-theme="marble"] .announcements-container,
+body[data-theme="light"] .announcements-container {
+    color: #fff;
+}
+
+/* ===== גופנים (data-font) ===== */
+#display-root[data-font="serif"],
+#display-root[data-font="serif"] .clock,
+#display-root[data-font="serif"] table { font-family: 'Frank Ruhl Libre', 'David Libre', serif; }
+
+#display-root[data-font="david"],
+#display-root[data-font="david"] h1, #display-root[data-font="david"] h2, #display-root[data-font="david"] h3,
+#display-root[data-font="david"] .clock,
+#display-root[data-font="david"] table { font-family: 'David Libre', 'Frank Ruhl Libre', serif; }
+
+#display-root[data-font="sans"],
+#display-root[data-font="sans"] h1, #display-root[data-font="sans"] h2, #display-root[data-font="sans"] h3,
+#display-root[data-font="sans"] .card h2 { font-family: 'Assistant', sans-serif; }
+
+#display-root[data-font="heebo"],
+#display-root[data-font="heebo"] h1, #display-root[data-font="heebo"] h2, #display-root[data-font="heebo"] h3,
+#display-root[data-font="heebo"] .clock,
+#display-root[data-font="heebo"] table { font-family: 'Heebo', 'Assistant', sans-serif; }
+
+#display-root[data-font="rubik"],
+#display-root[data-font="rubik"] h1, #display-root[data-font="rubik"] h2, #display-root[data-font="rubik"] h3,
+#display-root[data-font="rubik"] .clock,
+#display-root[data-font="rubik"] table { font-family: 'Rubik', 'Assistant', sans-serif; }
+
+/* ===== שכבת עזר לצילום/תצוגה מקדימה ===== */
+body[data-preview] { cursor: default; }

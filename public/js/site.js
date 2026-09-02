@@ -95,7 +95,7 @@
           <h3 style="margin:0 0 8px;">בית הכנסת נפתח ✓</h3>
           <p style="margin:0 0 10px;">כתובת הצג שלכם:<br><a href="${displayUrl}" target="_blank">${displayUrl}</a></p>
           <p style="margin:0 0 14px;" class="desc">שמרו את הקישור. אפשר לפתוח אותו על כל מסך בבית הכנסת.</p>
-          <a class="btn btn-primary" href="/admin.html">מעבר לניהול והגדרת הזמנים</a>
+          <a class="btn btn-primary" href="/admin.html">להמשך ההקמה — 4 שלבים קצרים</a>
         </div>`;
       $('r-success').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) {
