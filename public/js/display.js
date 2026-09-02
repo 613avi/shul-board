@@ -674,7 +674,12 @@
     ticker.textContent = active.map(a => a.text).join('   •   ');
   }
 
+  const showUpcoming = () => !state.config || !state.config.display || state.config.display.showUpcoming !== false;
+
   function renderUpcoming() {
+    // הגדרה: "אירוע קרוב" אפשר לכבות. במצב מסכים הקובייה פשוט לא מצוירת.
+    document.body.classList.toggle('no-upcoming', !showUpcoming());
+    if (!showUpcoming()) { qs('#upcoming-event').textContent = ''; return; }
     try {
       const now = new Date();
       const hdate = getEffectiveHDate();
@@ -684,7 +689,15 @@
         candlelighting: false, sedrot: false, omer: false,
       });
       const upcoming = events.find(e => (e.getFlags() & FLAG_CHAG));
-      qs('#upcoming-event').textContent = upcoming ? upcoming.render('he') : '';
+      if (!upcoming) { qs('#upcoming-event').textContent = ''; return; }
+      // hebcal מחזיר למשל "רֹאשׁ הַשָּׁנָה 5787": מורידים ניקוד וכותבים את השנה באותיות
+      const name = upcoming.render('he')
+        .replace(/[\u0591-\u05C7]/g, '')
+        .replace(/\b5\d{3}\b/, y => hebDay(Number(y) % 1000))
+        .trim();
+      const days = upcoming.getDate().abs() - hdate.abs();
+      const when = days <= 0 ? 'היום' : days === 1 ? 'מחר' : `בעוד ${days} ימים`;
+      qs('#upcoming-event').textContent = `${name} · ${when}`;
     } catch { /* ignore */ }
   }
 
@@ -820,6 +833,7 @@
     _stage.innerHTML = '';
 
     for (const block of screen.blocks) {
+      if (block.type === 'upcoming' && !showUpcoming()) continue;
       const wrap = document.createElement('div');
       wrap.className = 'screen-block';
       wrap.dataset.type = block.type;
@@ -989,9 +1003,13 @@
         }
         if (incoming.logo && typeof incoming.logo === 'object') design.logo = incoming.logo;
         state.config.design = design;
+        if (event.data.display && typeof event.data.display === 'object') {
+          state.config.display = { ...(state.config.display || {}), ...event.data.display };
+        }
         applyDesign();
-        // הלוגו יושב בתוך קובייה — צריך לצייר מחדש את המסך כדי שהחלפה תיראה
-        if (incoming.logo) applyScreens();
+        safe('upcoming', renderUpcoming);
+        // הלוגו וקוביית האירוע יושבים בתוך קוביות — מציירים מחדש כדי שהשינוי ייראה
+        if (incoming.logo || event.data.display) applyScreens();
       }
 
       // תצוגה מקדימה חיה של עורך המסכים

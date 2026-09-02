@@ -265,3 +265,6 @@
   .sp-time-row { grid-template-columns: 1fr 1fr; }
   table.data-table { display: block; overflow-x: auto; }
 }
+
+.check-row { display: flex; align-items: center; gap: 10px; font-size: 15px; cursor: pointer; }
+.check-row input { width: 18px; height: 18px; accent-color: var(--ad-gold); }
