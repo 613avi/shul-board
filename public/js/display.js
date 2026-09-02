@@ -678,26 +678,33 @@
   }
 
   function applyDesign() {
-    if (!state.config || !state.config.design) return;
-    const d = state.config.design;
-    const theme = d.theme || 'dark';
-    const layout = d.layout || '3col';
-    const style = d.style || 'classic';
-    const bgImage = (typeof d.backgroundImage === 'string' ? d.backgroundImage : '').trim();
-    const overlay = typeof d.backgroundOverlay === 'number' ? d.backgroundOverlay : 0.45;
+    if (!state.config) return;
+    // הקטלוג המשותף (js/presets.js) משלים כל שדה חסר מהמראה שנבחר,
+    // כך שהגדרות ישנות ממשיכות לעבוד וגם design ריק מקבל מראה סביר.
+    const d = window.SB_PRESETS
+      ? window.SB_PRESETS.resolveDesign(state.config.design)
+      : { theme: 'dark', layout: '3col', style: 'classic', font: 'classic', accent: '', scale: 1,
+          backgroundImage: '', backgroundOverlay: 0.45, ...(state.config.design || {}) };
 
-    document.body.setAttribute('data-theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', d.theme);
+    document.documentElement.setAttribute('data-theme', d.theme);
     const root = qs('#display-root');
     if (root) {
-      root.setAttribute('data-layout', layout);
-      root.setAttribute('data-style', style);
+      root.setAttribute('data-layout', d.layout);
+      root.setAttribute('data-style', d.style);
+      root.setAttribute('data-font', d.font || 'classic');
+      root.style.setProperty('--fs', String(d.scale || 1));
     }
 
+    // צבע הדגשה מותאם: inline על ה-html גובר על הערכה, ריק = צבע הערכה
+    if (d.accent) document.documentElement.style.setProperty('--accent', d.accent);
+    else document.documentElement.style.removeProperty('--accent');
+
+    const bgImage = (d.backgroundImage || '').trim();
     if (bgImage) {
       const safeUrl = bgImage.replace(/["'\\)]/g, '');
       document.body.style.setProperty('--custom-bg-url', `url("${safeUrl}")`);
-      document.body.style.setProperty('--bg-overlay', String(Math.min(0.9, Math.max(0, overlay))));
+      document.body.style.setProperty('--bg-overlay', String(Math.min(0.9, Math.max(0, d.backgroundOverlay))));
       document.body.setAttribute('data-custom-bg', '1');
     } else {
       document.body.removeAttribute('data-custom-bg');
@@ -952,14 +959,24 @@
       if (event.data && event.data.type === 'PREVIEW_DESIGN') {
         if (event.origin !== location.origin) return;
         _previewMode = true;
+        document.body.setAttribute('data-preview', '1');
         if (!state.config) state.config = {};
-        if (!state.config.design) state.config.design = {};
-        if (event.data.theme) state.config.design.theme = event.data.theme;
-        if (event.data.style) state.config.design.style = event.data.style;
-        if (event.data.layout) state.config.design.layout = event.data.layout;
-        if (typeof event.data.backgroundImage === 'string') state.config.design.backgroundImage = event.data.backgroundImage;
-        if (typeof event.data.backgroundOverlay === 'number') state.config.design.backgroundOverlay = event.data.backgroundOverlay;
+        // הניהול שולח את כל אובייקט העיצוב; שדות בודדים נתמכים לתאימות
+        const incoming = event.data.design && typeof event.data.design === 'object'
+          ? event.data.design
+          : event.data;
+        const design = { ...(state.config.design || {}) };
+        for (const k of ['preset', 'theme', 'style', 'layout', 'font', 'accent', 'backgroundImage']) {
+          if (typeof incoming[k] === 'string') design[k] = incoming[k];
+        }
+        for (const k of ['backgroundOverlay', 'scale']) {
+          if (typeof incoming[k] === 'number') design[k] = incoming[k];
+        }
+        if (incoming.logo && typeof incoming.logo === 'object') design.logo = incoming.logo;
+        state.config.design = design;
         applyDesign();
+        // הלוגו יושב בתוך קובייה — צריך לצייר מחדש את המסך כדי שהחלפה תיראה
+        if (incoming.logo) applyScreens();
       }
 
       // תצוגה מקדימה חיה של עורך המסכים

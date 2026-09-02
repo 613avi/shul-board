@@ -80,7 +80,7 @@
     };
 
     if (payload.name.length < 2) { fail('הזינו את שם בית הכנסת'); return; }
-    if (payload.slug.length < 3) { fail('בחרו כתובת באנגלית, לפחות 3 תווים'); return; }
+    if (payload.slug.length < 3) { fail('בחרו שם באנגלית, לפחות 3 תווים'); return; }
     if (payload.gabbai.length < 2) { fail('הזינו את שמכם'); return; }
     if (payload.password.length < 6) { fail('הסיסמה חייבת להיות באורך 6 תווים לפחות'); return; }
 
@@ -95,7 +95,7 @@
           <h3 style="margin:0 0 8px;">בית הכנסת נפתח ✓</h3>
           <p style="margin:0 0 10px;">כתובת הצג שלכם:<br><a href="${displayUrl}" target="_blank">${displayUrl}</a></p>
           <p style="margin:0 0 14px;" class="desc">שמרו את הקישור. אפשר לפתוח אותו על כל מסך בבית הכנסת.</p>
-          <a class="btn btn-primary" href="/admin.html">מעבר לניהול והגדרת הזמנים</a>
+          <a class="btn btn-primary" href="/admin.html">להמשך ההקמה — 4 שלבים קצרים</a>
         </div>`;
       $('r-success').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) {

@@ -147,7 +147,12 @@
 /* ---------- וריאנט כהה: זהב על עץ כהה ---------- */
 body[data-theme="wood"] #display-root[data-style="traditional"],
 body[data-theme="dark"] #display-root[data-style="traditional"],
-body[data-theme="blue"] #display-root[data-style="traditional"] {
+body[data-theme="blue"] #display-root[data-style="traditional"],
+body[data-theme="carved"] #display-root[data-style="traditional"],
+body[data-theme="midnight"] #display-root[data-style="traditional"],
+body[data-theme="emerald"] #display-root[data-style="traditional"],
+body[data-theme="burgundy"] #display-root[data-style="traditional"],
+body[data-theme="slate"] #display-root[data-style="traditional"] {
   --tr-ink: #e6c87a;
   --tr-ink-soft: #cbb083;
   --tr-line: rgba(214, 178, 105, .4);
@@ -156,12 +161,22 @@ body[data-theme="blue"] #display-root[data-style="traditional"] {
 }
 body[data-theme="wood"] #display-root[data-style="traditional"] .card h2,
 body[data-theme="dark"] #display-root[data-style="traditional"] .card h2,
-body[data-theme="blue"] #display-root[data-style="traditional"] .card h2 {
+body[data-theme="blue"] #display-root[data-style="traditional"] .card h2,
+body[data-theme="carved"] #display-root[data-style="traditional"] .card h2,
+body[data-theme="midnight"] #display-root[data-style="traditional"] .card h2,
+body[data-theme="emerald"] #display-root[data-style="traditional"] .card h2,
+body[data-theme="burgundy"] #display-root[data-style="traditional"] .card h2,
+body[data-theme="slate"] #display-root[data-style="traditional"] .card h2 {
   text-shadow: 0 1px 2px rgba(0, 0, 0, .55);
 }
 body[data-theme="wood"] #display-root[data-style="traditional"] #zmanim-table td:last-child,
 body[data-theme="dark"] #display-root[data-style="traditional"] #zmanim-table td:last-child,
-body[data-theme="blue"] #display-root[data-style="traditional"] #zmanim-table td:last-child {
+body[data-theme="blue"] #display-root[data-style="traditional"] #zmanim-table td:last-child,
+body[data-theme="carved"] #display-root[data-style="traditional"] #zmanim-table td:last-child,
+body[data-theme="midnight"] #display-root[data-style="traditional"] #zmanim-table td:last-child,
+body[data-theme="emerald"] #display-root[data-style="traditional"] #zmanim-table td:last-child,
+body[data-theme="burgundy"] #display-root[data-style="traditional"] #zmanim-table td:last-child,
+body[data-theme="slate"] #display-root[data-style="traditional"] #zmanim-table td:last-child {
   background: rgba(0, 0, 0, .28);
   box-shadow: inset 0 0 0 .12vmin rgba(214, 178, 105, .25);
 }

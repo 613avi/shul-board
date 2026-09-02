@@ -15,8 +15,9 @@
     },
     zmanimOverrides: {},
     theme: { accent: '#d4af37', background: '#0e1320' },
-    design: { theme: 'dark', layout: '3col' },
+    design: { preset: 'jerusalem', theme: 'stone', layout: '3col', style: 'traditional', font: 'classic' },
     rotation: { enabled: false, intervalSeconds: 20 },
+    setup: { done: false, step: 1 },
   };
 
   // ---- data normalization ----
@@ -118,15 +119,15 @@
     if (!state.data.screens || !Array.isArray(state.data.screens.screens) || !state.data.screens.screens.length) {
       state.data.screens = defaultScreens();
     }
-    if (!state.data.config.design.logo) state.data.config.design.logo = { url: '' };
     // normalize
     if (!state.data.config.location) state.data.config.location = { ...DEFAULT_CONFIG.location };
     if (!state.data.config.displayedZmanim) state.data.config.displayedZmanim = { ...DEFAULT_CONFIG.displayedZmanim };
     if (!state.data.config.zmanimOverrides) state.data.config.zmanimOverrides = {};
-    if (!state.data.config.design) state.data.config.design = { theme: 'dark', layout: '3col', style: 'classic' };
-    if (!state.data.config.design.style) state.data.config.design.style = 'classic';
-    if (typeof state.data.config.design.backgroundImage !== 'string') state.data.config.design.backgroundImage = '';
-    if (typeof state.data.config.design.backgroundOverlay !== 'number') state.data.config.design.backgroundOverlay = 0.45;
+    state.data.config.design = normalizeDesign(state.data.config.design);
+    // בתי כנסת שנפתחו לפני האשף לא מקבלים אותו בכפייה — רק הרשמות חדשות
+    if (!state.data.config.setup || typeof state.data.config.setup !== 'object') {
+      state.data.config.setup = { done: true, step: 1 };
+    }
     if (!Array.isArray(state.data.rooms.rooms)) state.data.rooms.rooms = [];
     state.data.rooms.rooms = state.data.rooms.rooms.map(normalizeRoom);
     if (!Array.isArray(state.data.memorial.entries)) state.data.memorial.entries = [];
@@ -170,10 +171,19 @@
     state.me = me;
     await loadData();
     qs('#login-view').style.display = 'none';
-    qs('#app-view').style.display = '';
     renderIdentity();
     renderAll();
     if (typeof renderMedia === 'function') renderMedia().catch(() => {});
+    // הרשמה חדשה נכנסת ישר לאשף ההקמה; מי שסיים אותו (או שנפתח לפניו) — לניהול המלא
+    if (state.data.config.setup && state.data.config.setup.done === false) showWizard();
+    else showApp();
+  }
+
+  function showApp() {
+    qs('#wizard-view').style.display = 'none';
+    qs('#app-view').style.display = '';
+    renderHome();
+    scalePreview();
   }
 
   function renderIdentity() {
@@ -189,7 +199,21 @@
     const exe = qs('#link-installer');
     if (exe) exe.href = me.urls.installer;
     const bat = qs('#link-bat');
-    if (bat) bat.href = `/download/ShulBoard-${me.shul.slug}.bat`;
+    const batUrl = `/download/ShulBoard-${me.shul.slug}.bat`;
+    if (bat) bat.href = batUrl;
+
+    // כתובת הצג בכל המקומות שמציגים אותה
+    const url = me.urls.display;
+    set('#home-url', url);
+    set('#link-display-text', url);
+    set('#wz-display-url', url);
+    set('#wz-shul-name', me.shul.name);
+    for (const [sel, href] of [
+      ['#home-open', url], ['#wz-open', url],
+      ['#wz-link-installer', me.urls.installer], ['#wz-link-bat', batUrl],
+    ]) { const a = qs(sel); if (a) a.href = href; }
+    renderQr('#install-qr', url);
+    renderQr('#wz-qr', url);
 
     // התצוגה המקדימה טוענת את הצג האמיתי של בית הכנסת המחובר.
     // נטען פעם אחת בלבד — טעינה חוזרת הייתה מאפסת שינויי עיצוב שטרם נשמרו.
@@ -206,14 +230,42 @@
         list.appendChild(el('li', {}, `${g.name}${g.is_owner ? ' (פתח את החשבון)' : ''}`));
       });
     }
-    const act = qs('#activity-list');
-    if (act) {
+    for (const sel of ['#activity-list', '#home-activity']) {
+      const act = qs(sel);
+      if (!act) continue;
       act.innerHTML = '';
-      (me.recentActivity || []).forEach(a => {
+      const rows = me.recentActivity || [];
+      if (!rows.length) act.appendChild(el('li', {}, 'עדיין אין פעילות.'));
+      rows.slice(0, sel === '#home-activity' ? 6 : 15).forEach(a => {
         const when = new Date(a.created_at).toLocaleString('he-IL');
-        act.appendChild(el('li', {}, `${when} · ${a.gabbai || '—'} · ${a.action}${a.detail ? ' · ' + a.detail : ''}`));
+        act.appendChild(el('li', {}, `${when} · ${a.gabbai || '—'} · ${ACTION_LABELS[a.action] || a.action}${a.detail ? ' · ' + (SECTION_LABELS[a.detail] || a.detail) : ''}`));
       });
     }
+  }
+
+  const ACTION_LABELS = {
+    register: 'פתיחת בית הכנסת', login: 'כניסה', 'login-failed': 'ניסיון כניסה שנכשל',
+    save: 'שמירה', upload: 'העלאת קובץ', delete: 'מחיקה',
+  };
+  const SECTION_LABELS = {
+    config: 'הגדרות ומראה', rooms: 'זמני תפילות', memorial: 'הנצחות', announcements: 'הודעות',
+    'special-times': 'חגים ואירועים', 'zmanim-calendar': 'לוח זמנים שנתי',
+    'media-playlist': 'חלון המודעות', screens: 'מסכים ופריסה',
+  };
+
+  // קוד QR של כתובת הצג — לפתיחה מהירה בטלוויזיה חכמה או בטאבלט
+  function renderQr(sel, url) {
+    const box = qs(sel);
+    if (!box || !window.QRCode || box.dataset.for === url) return;
+    box.dataset.for = url;
+    box.innerHTML = '';
+    try { new QRCode(box, { text: url, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M }); }
+    catch { box.remove(); }
+  }
+
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); status('הכתובת הועתקה ✓', 'success'); }
+    catch { status('לא ניתן להעתיק אוטומטית — סמנו והעתיקו ידנית', 'error'); }
   }
 
   async function logout() {
@@ -224,18 +276,29 @@
     qs('#login-view').style.display = '';
   }
 
-  // ---------- Tabs ----------
+  // ---------- ניווט ----------
+  // בלשוניות המראה והמסכים התצוגה המקדימה צמודה לצד; בשאר היא מוסתרת
+  // (display:none לא טוען מחדש את ה-iframe, כך שהמצב שטרם נשמר נשאר).
+  const PREVIEW_TABS = new Set(['design', 'screens']);
+
+  function switchTab(name) {
+    if (!qs(`.tab-content[data-tab="${name}"]`)) name = 'home';
+    qsa('#admin-nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    qsa('.tab-content').forEach(c => c.classList.toggle('active', c.dataset.tab === name));
+    qs('#admin-shell').classList.toggle('with-preview', PREVIEW_TABS.has(name));
+    if (name === 'home') renderHome();
+    if (name === 'design') { renderDesign(); scalePreview(); pushDesignPreview(); }
+    if (name === 'screens') { renderScreens(); scalePreview(); }
+    window.scrollTo({ top: 0 });
+  }
+
   function setupTabs() {
-    qsa('.tab-bar button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        qsa('.tab-bar button').forEach(b => b.classList.remove('active'));
-        qsa('.tab-content').forEach(c => c.classList.remove('active'));
-        btn.classList.add('active');
-        qs(`.tab-content[data-tab="${btn.dataset.tab}"]`).classList.add('active');
-        if (btn.dataset.tab === 'design') scalePreview();
-        if (btn.dataset.tab === 'screens') renderScreens();
-      });
-    });
+    qsa('#admin-nav button').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+    qsa('[data-goto]').forEach(btn => btn.addEventListener('click', async () => {
+      // מתוך האשף — מסיימים אותו קודם, כדי שהוא לא יקפוץ שוב בכניסה הבאה
+      if (qs('#wizard-view').style.display !== 'none') await wizardFinish();
+      switchTab(btn.dataset.goto);
+    }));
     window.addEventListener('resize', scalePreview);
   }
 
@@ -248,17 +311,30 @@
     qs('#g-lon').value = c.location.longitude ?? '';
     qs('#g-tz').value = c.location.timezone || 'Asia/Jerusalem';
     qs('#g-candle').value = c.location.candleLightingMinutes ?? 18;
+    renderCityChips('#g-cities', (city) => { applyCity(city); renderGeneral(); });
+  }
 
-    // Design
-    if (qs('#d-theme')) qs('#d-theme').value = c.design?.theme || 'dark';
-    if (qs('#d-style')) qs('#d-style').value = c.design?.style || 'classic';
-    if (qs('#d-layout')) qs('#d-layout').value = c.design?.layout || '3col';
-    if (qs('#d-bg-image')) qs('#d-bg-image').value = c.design?.backgroundImage || '';
-    if (qs('#d-bg-overlay')) {
-      const pct = Math.round((c.design?.backgroundOverlay ?? 0.45) * 100);
-      qs('#d-bg-overlay').value = pct;
-      if (qs('#d-bg-overlay-val')) qs('#d-bg-overlay-val').textContent = pct + '%';
+  // ערים נפוצות — לחיצה אחת במקום קואורדינטות
+  function renderCityChips(sel, onPick) {
+    const row = qs(sel);
+    if (!row) return;
+    row.innerHTML = '';
+    const loc = state.data.config.location || {};
+    for (const c of SB_PRESETS.CITIES) {
+      const active = Math.abs(Number(loc.latitude) - c.lat) < 0.01 && Math.abs(Number(loc.longitude) - c.lon) < 0.01;
+      row.appendChild(el('button', {
+        class: `chip${active ? ' active' : ''}`, type: 'button', onclick: () => onPick(c),
+      }, c.name));
     }
+  }
+  function applyCity(c) {
+    const loc = state.data.config.location;
+    loc.latitude = c.lat;
+    loc.longitude = c.lon;
+    loc.timezone = 'Asia/Jerusalem';
+    loc.candleLightingMinutes = c.candle;
+    if (!String(loc.address || '').trim()) loc.address = c.name;
+    markDirty();
   }
   function bindGeneral() {
     const fields = [
@@ -272,85 +348,415 @@
     for (const [sel, setter] of fields) {
       qs(sel).addEventListener('input', (e) => { setter(e.target.value); markDirty(); });
     }
-    qs('#g-geocode').addEventListener('click', geocodeAddress);
-
-    // Design
-    const updatePreview = () => {
-      const iframe = qs('#design-preview');
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({
-          type: 'PREVIEW_DESIGN',
-          theme: qs('#d-theme')?.value || 'dark',
-          style: qs('#d-style')?.value || 'classic',
-          layout: qs('#d-layout')?.value || '3col',
-          backgroundImage: qs('#d-bg-image')?.value || '',
-          backgroundOverlay: (parseInt(qs('#d-bg-overlay')?.value, 10) || 45) / 100
-        }, '*');
-      }
-    };
-
-    if (qs('#d-theme')) qs('#d-theme').addEventListener('change', (e) => {
-      if (!state.data.config.design) state.data.config.design = {};
-      state.data.config.design.theme = e.target.value;
-      markDirty();
-      updatePreview();
-    });
-    if (qs('#d-style')) qs('#d-style').addEventListener('change', (e) => {
-      if (!state.data.config.design) state.data.config.design = {};
-      state.data.config.design.style = e.target.value;
-      markDirty();
-      updatePreview();
-    });
-    if (qs('#d-layout')) qs('#d-layout').addEventListener('change', (e) => {
-      if (!state.data.config.design) state.data.config.design = {};
-      state.data.config.design.layout = e.target.value;
-      markDirty();
-      updatePreview();
-    });
-    if (qs('#d-bg-image')) qs('#d-bg-image').addEventListener('input', (e) => {
-      if (!state.data.config.design) state.data.config.design = {};
-      state.data.config.design.backgroundImage = e.target.value.trim();
-      markDirty();
-      updatePreview();
-    });
-    if (qs('#d-bg-overlay')) qs('#d-bg-overlay').addEventListener('input', (e) => {
-      if (!state.data.config.design) state.data.config.design = {};
-      const pct = parseInt(e.target.value, 10) || 0;
-      state.data.config.design.backgroundOverlay = pct / 100;
-      if (qs('#d-bg-overlay-val')) qs('#d-bg-overlay-val').textContent = pct + '%';
-      markDirty();
-      updatePreview();
-    });
-
-    // Initial preview setup on load
-    const iframe = qs('#design-preview');
-    if (iframe) {
-        iframe.addEventListener('load', () => updatePreview());
-    }
+    qs('#g-geocode').addEventListener('click', () => geocodeAddress('#g-address', '#g-geocode-status').then(ok => { if (ok) renderGeneral(); }));
   }
-  async function geocodeAddress() {
-    const address = qs('#g-address').value.trim();
-    const st = qs('#g-geocode-status');
-    if (!address) { st.textContent = 'הזינו כתובת'; return; }
+
+  // איתור כתובת (OpenStreetMap). מחזיר true אם נמצא ועודכן המיקום.
+  async function geocodeAddress(inputSel, statusSel) {
+    const address = qs(inputSel).value.trim();
+    const st = qs(statusSel);
+    if (!address) { st.textContent = 'הזינו כתובת'; return false; }
     st.textContent = 'מחפש...';
     try {
       const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
       const res = await fetch(url, { headers: { 'Accept-Language': 'he' } });
       const data = await res.json();
-      if (!data.length) { st.textContent = 'לא נמצא'; return; }
+      if (!data.length) { st.textContent = 'לא נמצא — נסו לבחור עיר מהרשימה'; return false; }
       const { lat, lon, display_name } = data[0];
-      qs('#g-lat').value = lat;
-      qs('#g-lon').value = lon;
-      state.data.config.location.latitude = parseFloat(lat);
-      state.data.config.location.longitude = parseFloat(lon);
-      if (!state.data.config.location.timezone) {
-        qs('#g-tz').value = 'Asia/Jerusalem';
-        state.data.config.location.timezone = 'Asia/Jerusalem';
-      }
+      const loc = state.data.config.location;
+      loc.address = address;
+      loc.latitude = parseFloat(lat);
+      loc.longitude = parseFloat(lon);
+      if (!loc.timezone) loc.timezone = 'Asia/Jerusalem';
       st.textContent = `נמצא: ${display_name}`;
       markDirty();
+      return true;
     } catch (e) {
       st.textContent = `שגיאה: ${e.message}`;
+      return false;
+    }
+  }
+
+  // ================= מראה הצג =================
+  // הקטלוג (מראות, ערכות, סגנונות, גופנים) יושב ב-js/presets.js ומשותף לצג.
+
+  const P = window.SB_PRESETS;
+  const design = () => state.data.config.design;
+
+  // resolveDesign משלים ברירות מחדל; preset נשמר ריק כשהגבאי כיוונן ידנית
+  function normalizeDesign(d) {
+    return { ...P.resolveDesign(d), preset: (d && typeof d.preset === 'string') ? d.preset : '' };
+  }
+
+  const presetMatches = (p, d) =>
+    p.theme === d.theme && p.style === d.style && p.layout === d.layout && p.font === d.font;
+
+  // כרטיס בגלריה: ציור סכמטי של הלוח בצבעי הערכה — בלי לטעון iframe לכל מראה
+  function presetCard(p, active, onClick) {
+    const t = P.byId(P.THEMES, p.theme) || P.THEMES[0];
+    const thumb = el('div', { class: 'preset-thumb', 'data-layout': p.layout, 'data-style': p.style });
+    thumb.style.setProperty('--p-bg', t.swatch.bg);
+    thumb.style.setProperty('--p-card', t.swatch.card);
+    thumb.style.setProperty('--p-accent', t.swatch.accent);
+    thumb.style.setProperty('--p-text', t.swatch.text);
+    thumb.innerHTML =
+      '<div class="pt-head"><span class="pt-title"></span><span class="pt-clock"></span></div>' +
+      '<div class="pt-cols"><div class="c1"><i></i><i></i><i></i></div>' +
+      '<div class="c2"><i></i><i></i><i></i><i></i></div><div class="c3"><i></i><i></i></div></div>';
+    return el('button', { class: `preset-card${active ? ' active' : ''}`, type: 'button', onclick: onClick },
+      thumb, el('div', { class: 'preset-name' }, p.name), el('div', { class: 'preset-desc' }, p.desc));
+  }
+
+  function renderPresetGrid(sel, onPick) {
+    const grid = qs(sel);
+    if (!grid) return;
+    grid.innerHTML = '';
+    const d = design();
+    for (const p of P.DESIGN_PRESETS) {
+      const active = d.preset ? d.preset === p.id : presetMatches(p, d);
+      grid.appendChild(presetCard(p, active, () => onPick(p)));
+    }
+  }
+
+  function applyPreset(p) {
+    const d = design();
+    d.preset = p.id;
+    d.theme = p.theme; d.style = p.style; d.layout = p.layout; d.font = p.font;
+    d.accent = '';
+    markDirty();
+    renderDesign();
+    pushDesignPreview();
+  }
+
+  // כוונון ידני מנתק את המראה מהכרטיס — הכרטיס יסומן שוב רק אם הערכים חוזרים להתאים
+  function tune(fn) {
+    fn(design());
+    design().preset = '';
+    markDirty();
+    renderDesign();
+    pushDesignPreview();
+  }
+
+  function fillSelect(sel, list, value) {
+    const s = qs(sel);
+    if (!s) return;
+    s.innerHTML = '';
+    for (const item of list) s.appendChild(el('option', { value: item.id }, item.desc ? `${item.name} — ${item.desc}` : item.name));
+    s.value = value;
+  }
+
+  function renderDesign() {
+    const d = design();
+    if (!qs('#preset-grid')) return;
+    renderPresetGrid('#preset-grid', applyPreset);
+
+    const row = qs('#d-theme-row');
+    row.innerHTML = '';
+    for (const t of P.THEMES) {
+      const b = el('button', {
+        class: `swatch${t.id === d.theme ? ' active' : ''}`, type: 'button', title: t.name,
+        onclick: () => tune(x => { x.theme = t.id; x.accent = ''; }),
+      });
+      b.style.setProperty('--s-bg', t.swatch.bg);
+      b.style.setProperty('--s-accent', t.swatch.accent);
+      row.appendChild(b);
+    }
+
+    fillSelect('#d-style', P.STYLES, d.style);
+    fillSelect('#d-layout', P.LAYOUTS, d.layout);
+
+    const fr = qs('#d-font-row');
+    fr.innerHTML = '';
+    for (const f of P.FONTS) {
+      const chip = el('button', {
+        class: `chip${f.id === d.font ? ' active' : ''}`, type: 'button',
+        onclick: () => tune(x => { x.font = f.id; }),
+      }, f.name, el('span', { class: 'sub' }, f.desc));
+      chip.style.fontFamily = f.sample;
+      fr.appendChild(chip);
+    }
+
+    const themeAccent = (P.byId(P.THEMES, d.theme) || P.THEMES[0]).swatch.accent;
+    qs('#d-accent').value = d.accent || themeAccent;
+    qs('#d-accent-reset').disabled = !d.accent;
+
+    const pct = Math.round((d.scale || 1) * 100);
+    qs('#d-scale').value = pct;
+    qs('#d-scale-val').textContent = pct + '%';
+
+    qs('#d-bg-image').value = d.backgroundImage || '';
+    const ov = Math.round((d.backgroundOverlay ?? 0.45) * 100);
+    qs('#d-bg-overlay').value = ov;
+    qs('#d-bg-overlay-val').textContent = ov + '%';
+
+    renderBgGrid();
+    renderLogoPicker();
+  }
+
+  // תמונות הרקע — מהקבצים שהועלו
+  function renderBgGrid() {
+    const grid = qs('#d-bg-grid');
+    if (!grid) return;
+    const d = design();
+    grid.innerHTML = '';
+    grid.appendChild(el('button', {
+      class: `bg-pick none${d.backgroundImage ? '' : ' active'}`, type: 'button',
+      onclick: () => { d.backgroundImage = ''; markDirty(); renderDesign(); pushDesignPreview(); },
+    }, 'בלי תמונה'));
+    for (const m of state.media.filter(m => m.kind === 'image')) {
+      const b = el('button', {
+        class: `bg-pick${d.backgroundImage === m.url ? ' active' : ''}`, type: 'button', title: m.filename,
+        onclick: () => { d.backgroundImage = m.url; markDirty(); renderDesign(); pushDesignPreview(); },
+      });
+      b.style.backgroundImage = `url("${m.url}")`;
+      grid.appendChild(b);
+    }
+  }
+
+  function bindDesign() {
+    if (!qs('#preset-grid')) return;
+    qs('#d-style').addEventListener('change', (e) => tune(x => { x.style = e.target.value; }));
+    qs('#d-layout').addEventListener('change', (e) => tune(x => { x.layout = e.target.value; }));
+    qs('#d-accent').addEventListener('input', (e) => {
+      design().accent = e.target.value;
+      qs('#d-accent-reset').disabled = false;
+      markDirty(); pushDesignPreview();
+    });
+    qs('#d-accent-reset').addEventListener('click', () => {
+      design().accent = '';
+      markDirty(); renderDesign(); pushDesignPreview();
+    });
+    qs('#d-scale').addEventListener('input', (e) => {
+      design().scale = parseInt(e.target.value, 10) / 100;
+      qs('#d-scale-val').textContent = e.target.value + '%';
+      markDirty(); pushDesignPreview();
+    });
+    qs('#d-bg-image').addEventListener('change', (e) => {
+      design().backgroundImage = e.target.value.trim();
+      markDirty(); renderBgGrid(); pushDesignPreview();
+    });
+    qs('#d-bg-overlay').addEventListener('input', (e) => {
+      const pct = parseInt(e.target.value, 10) || 0;
+      design().backgroundOverlay = pct / 100;
+      qs('#d-bg-overlay-val').textContent = pct + '%';
+      markDirty(); pushDesignPreview();
+    });
+    // כשהצג בתצוגה המקדימה נטען — דוחפים את המצב שטרם נשמר
+    const pv = qs('#design-preview');
+    if (pv) pv.addEventListener('load', () => { pushDesignPreview(); pushScreensPreview(); });
+  }
+
+  // דוחף את העיצוב לתצוגות המקדימות (בניהול ובאשף) בלי לשמור
+  function pushDesignPreview() {
+    for (const sel of ['#design-preview', '#wz-preview']) {
+      const f = qs(sel);
+      if (!f || !f.contentWindow || !f.dataset.loadedFor) continue;
+      f.contentWindow.postMessage({ type: 'PREVIEW_DESIGN', design: { ...design() } }, location.origin);
+    }
+  }
+
+  // ================= לוח הבית =================
+  const LS_INSTALLED = () => `sb_installed_${state.me?.shul?.slug || ''}`;
+
+  function renderHome() {
+    const list = qs('#home-checklist');
+    if (!list || !state.data.config) return;
+    const c = state.data.config;
+    const rooms = state.data.rooms.rooms || [];
+    const hasTimes = rooms.some(r =>
+      ['shacharit', 'mincha', 'arvit'].some(k => (r.weekday?.[k] || []).length) ||
+      ['kabbalat', 'shacharit', 'mincha'].some(k => (r.shabbat?.[k] || []).length));
+    let installed = false;
+    try { installed = !!localStorage.getItem(LS_INSTALLED()); } catch {}
+
+    const items = [
+      { ok: !!String(c.location?.address || '').trim(), text: 'מיקום בית הכנסת', tab: 'general' },
+      { ok: hasTimes, text: 'זמני תפילות', tab: 'rooms' },
+      { ok: !!(c.design?.preset) || c.setup?.done === true, text: 'מראה הצג', tab: 'design' },
+      { ok: installed, text: 'הפעלה על המסך בבית הכנסת', tab: 'installer' },
+      { ok: (state.data.memorial.entries || []).length > 0, text: 'לוח הנצחות (רשות)', tab: 'memorial' },
+      { ok: (state.data.announcements.entries || []).length > 0, text: 'הודעה ראשונה לציבור (רשות)', tab: 'announcements' },
+    ];
+    list.innerHTML = '';
+    items.forEach((it, i) => {
+      list.appendChild(el('li', { class: it.ok ? 'done' : '' },
+        el('span', { class: 'ck' }, it.ok ? '✓' : String(i + 1)),
+        el('span', { class: 'txt' }, it.text),
+        el('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => switchTab(it.tab) }, it.ok ? 'עריכה' : 'הגדרה'),
+      ));
+    });
+  }
+
+  // ================= אשף ההקמה =================
+  // ארבעה שלבים קצרים. כל "המשך" שומר לשרת, כך שאפשר לעצור באמצע ולחזור.
+
+  let wzStep = 1;
+
+  function showWizard(step) {
+    qs('#app-view').style.display = 'none';
+    qs('#wizard-view').style.display = '';
+    wzStep = Math.min(4, Math.max(1, Number(step ?? state.data.config.setup?.step) || 1));
+    wzRender();
+  }
+
+  function wzRender() {
+    qsa('#wz-steps .st').forEach(s => {
+      const n = Number(s.dataset.step);
+      s.classList.toggle('active', n === wzStep);
+      s.classList.toggle('done', n < wzStep);
+    });
+    qsa('.wz-step').forEach(s => s.classList.toggle('active', Number(s.dataset.step) === wzStep));
+    qs('#wz-back').style.visibility = wzStep === 1 ? 'hidden' : '';
+    qs('#wz-next').textContent = wzStep === 4 ? 'סיום — לניהול המלא' : 'שמירה והמשך ←';
+    qs('#wz-msg').textContent = '';
+    if (wzStep === 1) wzFill1();
+    if (wzStep === 2) wzFill2();
+    if (wzStep === 3) wzFill3();
+    window.scrollTo({ top: 0 });
+  }
+
+  function wzFill1() {
+    const c = state.data.config;
+    qs('#wz-name').value = c.synagogueName || state.me?.shul?.name || '';
+    qs('#wz-address').value = c.location.address || '';
+    qs('#wz-candle').value = c.location.candleLightingMinutes ?? 18;
+    qs('#wz-latlon').textContent = `${Number(c.location.latitude).toFixed(4)}, ${Number(c.location.longitude).toFixed(4)}`;
+    renderCityChips('#wz-cities', (city) => { applyCity(city); wzFill1(); });
+  }
+
+  // זמנים פשוטים: שדה טקסט אחד לכל תפילה, מופרד בפסיקים
+  const fixedTimes = (arr) => (arr || [])
+    .map(e => typeof e === 'string' ? e : (e && e.type !== 'relative' ? e.time : null))
+    .filter(Boolean).join(', ');
+  const numList = (arr) => (arr || []).map(Number).filter(n => !isNaN(n)).join(', ');
+
+  function parseTimes(str) {
+    const out = [];
+    for (const tok of String(str || '').split(/[,\s;]+/)) {
+      const m = tok.match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) { if (tok) throw new Error(`"${tok}" אינה שעה תקינה (HH:MM)`); continue; }
+      out.push(`${m[1].padStart(2, '0')}:${m[2]}`);
+    }
+    return out;
+  }
+  const parseNums = (str) => String(str || '').split(/[,\s;]+/).filter(Boolean).map(Number).filter(n => !isNaN(n));
+  // שומר רשומות יחסיות שהוגדרו בניהול המלא; מחליף רק את השעות הקבועות
+  const replaceFixed = (arr, fixed) => [...fixed, ...(arr || []).filter(e => e && typeof e === 'object' && e.type === 'relative')];
+
+  function wzRoom() {
+    const rooms = state.data.rooms.rooms;
+    if (!rooms.length) rooms.push(normalizeRoom({ id: 'main', name: 'היכל מרכזי' }));
+    return rooms[0];
+  }
+
+  function wzFill2() {
+    const r = wzRoom();
+    qs('#wz-wk-shacharit').value = fixedTimes(r.weekday.shacharit);
+    qs('#wz-wk-mincha').value = fixedTimes(r.weekday.mincha);
+    qs('#wz-wk-arvit').value = fixedTimes(r.weekday.arvit);
+    qs('#wz-sh-kabbalat').value = fixedTimes(r.shabbat.kabbalat);
+    qs('#wz-sh-mincha-erev').value = numList(r.shabbat.minchaErevOffsets);
+    qs('#wz-sh-shacharit').value = fixedTimes(r.shabbat.shacharit);
+    qs('#wz-sh-mincha').value = fixedTimes(r.shabbat.mincha);
+    qs('#wz-sh-arvit').value = numList(r.shabbat.arvitMotzashOffsets);
+  }
+
+  function wzFill3() {
+    renderPresetGrid('#wz-presets', (p) => { applyPreset(p); wzFill3(); });
+    const fr = qs('#wz-fonts');
+    fr.innerHTML = '';
+    for (const f of P.FONTS) {
+      const chip = el('button', {
+        class: `chip${f.id === design().font ? ' active' : ''}`, type: 'button',
+        onclick: () => { tune(x => { x.font = f.id; }); wzFill3(); },
+      }, f.name);
+      chip.style.fontFamily = f.sample;
+      fr.appendChild(chip);
+    }
+    const pv = qs('#wz-preview');
+    if (pv && state.me && pv.dataset.loadedFor !== state.me.shul.slug) {
+      pv.dataset.loadedFor = state.me.shul.slug;
+      pv.addEventListener('load', () => pushDesignPreview());
+      pv.src = state.me.urls.display;
+    }
+    scalePreview();
+  }
+
+  async function wzSave(section, data) {
+    await Api.saveSection(section, data);
+  }
+
+  async function wzNext() {
+    const msg = qs('#wz-msg');
+    const btn = qs('#wz-next');
+    msg.textContent = '';
+    const c = state.data.config;
+    try {
+      btn.disabled = true;
+      if (wzStep === 1) {
+        const name = qs('#wz-name').value.trim();
+        if (name.length < 2) throw new Error('הזינו את שם בית הכנסת');
+        c.synagogueName = name;
+        c.location.address = qs('#wz-address').value.trim();
+        c.location.candleLightingMinutes = parseInt(qs('#wz-candle').value, 10) || 18;
+        c.setup.step = 2;
+        await wzSave('config', c);
+      } else if (wzStep === 2) {
+        const r = wzRoom();
+        r.weekday.shacharit = replaceFixed(r.weekday.shacharit, parseTimes(qs('#wz-wk-shacharit').value));
+        r.weekday.mincha    = replaceFixed(r.weekday.mincha,    parseTimes(qs('#wz-wk-mincha').value));
+        r.weekday.arvit     = replaceFixed(r.weekday.arvit,     parseTimes(qs('#wz-wk-arvit').value));
+        r.shabbat.kabbalat  = replaceFixed(r.shabbat.kabbalat,  parseTimes(qs('#wz-sh-kabbalat').value));
+        r.shabbat.shacharit = replaceFixed(r.shabbat.shacharit, parseTimes(qs('#wz-sh-shacharit').value));
+        r.shabbat.mincha    = replaceFixed(r.shabbat.mincha,    parseTimes(qs('#wz-sh-mincha').value));
+        r.shabbat.minchaErevOffsets   = parseNums(qs('#wz-sh-mincha-erev').value);
+        r.shabbat.arvitMotzashOffsets = parseNums(qs('#wz-sh-arvit').value);
+        c.setup.step = 3;
+        await wzSave('rooms', state.data.rooms);
+        await wzSave('config', c);
+      } else if (wzStep === 3) {
+        c.setup.step = 4;
+        await wzSave('config', c);
+      } else {
+        await wizardFinish();
+        return;
+      }
+      wzStep += 1;
+      wzRender();
+      renderAll();
+    } catch (e) {
+      if (e.status === 401) { location.reload(); return; }
+      msg.textContent = e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function wizardFinish() {
+    const c = state.data.config;
+    c.setup = { done: true, step: 4 };
+    try { await wzSave('config', c); } catch (e) { status(`שגיאה בשמירה: ${e.message}`, 'error'); return; }
+    markClean();
+    renderAll();
+    showApp();
+    status('ההקמה הושלמה — הצג באוויר ✓', 'success');
+  }
+
+  function setupWizard() {
+    if (!qs('#wizard-view')) return;
+    qs('#wz-next').addEventListener('click', wzNext);
+    qs('#wz-back').addEventListener('click', () => { if (wzStep > 1) { wzStep -= 1; wzRender(); } });
+    qs('#wz-skip').addEventListener('click', wizardFinish);
+    qs('#wz-geocode').addEventListener('click', () =>
+      geocodeAddress('#wz-address', '#wz-geocode-status').then(ok => { if (ok) wzFill1(); }));
+    qs('#wz-copy').addEventListener('click', () => copyText(qs('#wz-display-url').textContent));
+    qs('#home-copy').addEventListener('click', () => copyText(qs('#home-url').textContent));
+    qs('#link-display-copy').addEventListener('click', () => copyText(qs('#link-display-text').textContent));
+    qs('#home-wizard').addEventListener('click', () => showWizard(1));
+    // הורדת המתקין נחשבת כ"הופעל על המסך" בצ'ק-ליסט
+    for (const sel of ['#link-installer', '#link-bat', '#wz-link-installer', '#wz-link-bat']) {
+      const a = qs(sel);
+      if (a) a.addEventListener('click', () => { try { localStorage.setItem(LS_INSTALLED(), '1'); } catch {} });
     }
   }
 
@@ -1010,6 +1416,7 @@
         await Api.saveSection(section, data);
       }
       markClean();
+      renderHome();
       status('נשמר ופורסם ✓', 'success');
       const when = new Date().toLocaleString('he-IL');
       qs('#last-save-status').textContent = `נשמר בהצלחה ב־${when}. הצג יתעדכן תוך עד 3 דקות.`;
@@ -1191,6 +1598,8 @@
   // ---------- Render all ----------
   function renderAll() {
     renderGeneral();
+    renderDesign();
+    renderHome();
     renderZmanim();
     renderRooms();
     renderMemorial();
@@ -1205,19 +1614,23 @@
   // נקרא בטעינה, בשינוי גודל חלון ובמעבר ללשונית העיצוב — הרוחב הוא 0
   // כל עוד הלשונית מוסתרת, ואז אין מה לחשב.
   function scalePreview() {
-    const pv = qs('#design-preview');
-    const box = pv && pv.parentElement;
-    if (!box) return;
-    const w = box.clientWidth;
-    if (!w) return;
-    // ה-iframe מרונדר ברוחב וירטואלי קבוע, והגובה נגזר מהיחס שנבחר,
-    // כך שהצג נראה בדיוק כמו על המסך האמיתי.
     const ratio = ASPECT_RATIO[qs('#pv-aspect')?.value || '16:9'] || 16 / 9;
-    const vw = 1920;
-    const vh = Math.round(vw / ratio);
-    pv.style.width = vw + 'px';
-    pv.style.height = vh + 'px';
-    pv.style.transform = `scale(${w / vw})`;
+    for (const sel of ['#design-preview', '#wz-preview']) {
+      const pv = qs(sel);
+      const box = pv && pv.parentElement;
+      if (!box) continue;
+      if (sel === '#design-preview') box.style.aspectRatio = `${ratio}`;
+      const w = box.clientWidth;
+      if (!w) continue;
+      // ה-iframe מרונדר ברוחב וירטואלי קבוע, והגובה נגזר מהיחס שנבחר,
+      // כך שהצג נראה בדיוק כמו על המסך האמיתי.
+      const r = sel === '#design-preview' ? ratio : 16 / 9;
+      const vw = 1920;
+      const vh = Math.round(vw / r);
+      pv.style.width = vw + 'px';
+      pv.style.height = vh + 'px';
+      pv.style.transform = `scale(${w / vw})`;
+    }
   }
 
   // התצוגה המקדימה מציגה את היחס האמיתי של המסך בבית הכנסת
@@ -1226,11 +1639,7 @@
   function setupPreviewAspect() {
     const sel = qs('#pv-aspect');
     if (!sel) return;
-    sel.addEventListener('change', () => {
-      const box = qs('#design-preview')?.parentElement;
-      if (box) box.style.aspectRatio = sel.value.replace(':', ' / ');
-      scalePreview();
-    });
+    sel.addEventListener('change', scalePreview);
   }
 
   // ================= עורך המסכים =================
@@ -1307,10 +1716,45 @@
     qs('#sc-seconds').value = screen.seconds || 20;
     qs('#sc-del').disabled = data.screens.length <= 1;
 
+    renderTemplates();
     renderPalette();
     renderCanvas();
     renderBlockProps();
     pushScreensPreview();
+  }
+
+  // תבניות מוכנות — סידור קוביות בלחיצה אחת (js/presets.js)
+  function renderTemplates() {
+    const grid = qs('#sc-templates');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (const t of P.SCREEN_TEMPLATES) {
+      const thumb = el('div', { class: 'tpl-thumb', 'data-aspect': t.aspect || '16:9' });
+      for (const b of t.blocks) {
+        const i = el('i', { 'data-type': b.type });
+        i.style.left = `${(b.x / GRID.cols) * 100}%`;
+        i.style.top = `${(b.y / GRID.rows) * 100}%`;
+        i.style.width = `${(b.w / GRID.cols) * 100}%`;
+        i.style.height = `${(b.h / GRID.rows) * 100}%`;
+        thumb.appendChild(i);
+      }
+      grid.appendChild(el('button', { class: 'tpl-card', type: 'button', onclick: () => applyTemplate(t) },
+        thumb, el('div', { class: 'tpl-name' }, t.name), el('div', { class: 'tpl-desc' }, t.desc)));
+    }
+  }
+
+  function applyTemplate(t) {
+    const data = scData();
+    const s = scScreen();
+    if (s.blocks.length > 1 && !confirm(`להחליף את הפריסה של "${s.name}" בתבנית "${t.name}"?`)) return;
+    s.blocks = t.blocks.map(b => ({ ...b, id: `b-${b.type}-${Math.random().toString(36).slice(2, 7)}` }));
+    if (t.aspect) data.aspect = t.aspect;
+    // בחירת תבנית = רוצים לראות אותה על הצג. הכיבוי נשאר זמין בתיבת הסימון.
+    data.enabled = true;
+    scSelected = null;
+    markDirty();
+    renderScreens();
+    status(`התבנית "${t.name}" הוחלה על "${s.name}"`, 'success');
   }
 
   function renderPalette() {
@@ -1539,9 +1983,10 @@
     }
 
     wrap.innerHTML = '';
+    renderLogoPicker();
+    renderBgGrid();
     if (!state.media.length) {
       wrap.appendChild(el('p', { class: 'desc' }, 'עדיין לא הועלו קבצים.'));
-      renderLogoPicker();
       return;
     }
 
@@ -1572,7 +2017,8 @@
                     state.data.config.design = state.data.config.design || {};
                     state.data.config.design.backgroundImage = isBg ? '' : item.url;
                     markDirty();
-                    renderGeneral();
+                    renderDesign();
+                    pushDesignPreview();
                     renderMedia();
                     status(isBg ? 'הוסר רקע הצג' : 'הוגדר כרקע הצג — לחצו "שמירה ופרסום"', 'success');
                   },
@@ -1670,6 +2116,7 @@
       sel.addEventListener('change', () => {
         state.data.config.design.logo = { url: sel.value };
         markDirty();
+        pushDesignPreview();
       });
     }
   }
@@ -1714,6 +2161,7 @@
 
     qs('#logout-btn').addEventListener('click', logout);
     qs('#save-all-btn').addEventListener('click', saveAll);
+    qs('#save-float-btn').addEventListener('click', saveAll);
 
     qs('#add-room-btn').addEventListener('click', () => {
       const next = state.data.rooms.rooms.length + 1;
@@ -1749,6 +2197,8 @@
     setupMedia();
 
     bindGeneral();
+    bindDesign();
+    setupWizard();
     setupTabs();
     setupCSV();
     setupScreens();

@@ -4,17 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ניהול הצג — ShulBoard</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%8D%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="/css/board.css">
     <link rel="stylesheet" href="/css/traditional.css">
     <link rel="stylesheet" href="/css/site.css">
     <link rel="stylesheet" href="/css/screens.css">
+    <link rel="stylesheet" href="/css/admin.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Frank+Ruhl+Libre:wght@700;900&family=David+Libre:wght@700&family=Heebo:wght@700&family=Rubik:wght@600&display=swap" rel="stylesheet">
 </head>
 <body class="admin-body">
 
-<!-- Login -->
+<!-- ===================== כניסה ===================== -->
 <div id="login-view">
     <div class="login-box">
         <a href="/" class="brand-link">ShulBoard</a>
@@ -39,7 +41,151 @@
     </div>
 </div>
 
-<!-- App -->
+<!-- ===================== אשף ההקמה ===================== -->
+<div id="wizard-view" style="display:none;">
+    <div class="wz-top">
+        <div class="brand">ShulBoard <small id="wz-shul-name"></small></div>
+        <button class="btn btn-ghost btn-sm" id="wz-skip">דילוג לניהול המלא</button>
+    </div>
+
+    <div class="wz-wrap">
+        <div class="wz-steps" id="wz-steps">
+            <div class="st" data-step="1"><span class="n">1</span><span class="lbl">פרטים ומיקום</span></div>
+            <div class="st" data-step="2"><span class="n">2</span><span class="lbl">זמני תפילה</span></div>
+            <div class="st" data-step="3"><span class="n">3</span><span class="lbl">מראה הצג</span></div>
+            <div class="st" data-step="4"><span class="n">4</span><span class="lbl">הפעלה על המסך</span></div>
+        </div>
+
+        <!-- שלב 1 -->
+        <section class="wz-step" data-step="1">
+            <div class="panel">
+                <h2>ברוכים הבאים! נתחיל מהבסיס</h2>
+                <p class="lead">שם בית הכנסת והמיקום שלו — לפיהם מחושבים זמני היום, הדלקת נרות וצאת השבת.</p>
+                <div class="field">
+                    <label for="wz-name">שם בית הכנסת (כפי שיופיע על הצג)</label>
+                    <input type="text" id="wz-name" placeholder="לדוגמה: בית הכנסת המרכזי">
+                </div>
+                <div class="field">
+                    <label>עיר</label>
+                    <div class="chip-row city-chips" id="wz-cities"></div>
+                    <div class="desc">בחרו עיר, או הקלידו כתובת מדויקת ולחצו "איתור".</div>
+                </div>
+                <div class="field">
+                    <label for="wz-address">כתובת מדויקת (רשות)</label>
+                    <div style="display:flex;gap:0.5rem;">
+                        <input type="text" id="wz-address" placeholder="לדוגמה: יפו 97, ירושלים">
+                        <button class="btn btn-ghost" id="wz-geocode" type="button">איתור</button>
+                    </div>
+                    <div class="desc" id="wz-geocode-status"></div>
+                </div>
+                <div class="row">
+                    <div class="field">
+                        <label for="wz-candle">הדלקת נרות — דקות לפני השקיעה</label>
+                        <input type="number" id="wz-candle" min="0" max="90">
+                        <div class="desc">בירושלים 40, ברוב הארץ 18.</div>
+                    </div>
+                    <div class="field">
+                        <label>נקודת המיקום</label>
+                        <div class="small" id="wz-latlon" dir="ltr" style="padding-top:.6rem;"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- שלב 2 -->
+        <section class="wz-step" data-step="2">
+            <div class="panel">
+                <h2>זמני התפילות</h2>
+                <p class="lead">
+                    הקלידו שעות מופרדות בפסיק, למשל <code class="inline" dir="ltr">06:30, 07:15</code>.
+                    שדה ריק = לא מוצג. זמנים יחסיים לשקיעה, חדרים נוספים ותפילות לחגים — בניהול המלא, אחרי ההקמה.
+                </p>
+                <h3>ימי חול</h3>
+                <div class="times-simple">
+                    <div class="field"><label for="wz-wk-shacharit">שחרית</label><input type="text" id="wz-wk-shacharit" placeholder="06:30, 07:30"></div>
+                    <div class="field"><label for="wz-wk-mincha">מנחה</label><input type="text" id="wz-wk-mincha" placeholder="13:30"></div>
+                    <div class="field"><label for="wz-wk-arvit">ערבית</label><input type="text" id="wz-wk-arvit" placeholder="20:00, 21:30"></div>
+                </div>
+                <h3>שבת</h3>
+                <div class="times-simple">
+                    <div class="field"><label for="wz-sh-kabbalat">קבלת שבת</label><input type="text" id="wz-sh-kabbalat" placeholder="שעה קבועה, או ריק"></div>
+                    <div class="field"><label for="wz-sh-mincha-erev">מנחה ערב שבת — דקות מהדלקת נרות</label><input type="text" id="wz-sh-mincha-erev" placeholder="-15"></div>
+                    <div class="field"><label for="wz-sh-shacharit">שחרית שבת</label><input type="text" id="wz-sh-shacharit" placeholder="08:30"></div>
+                    <div class="field"><label for="wz-sh-mincha">מנחה שבת</label><input type="text" id="wz-sh-mincha" placeholder="17:00"></div>
+                    <div class="field"><label for="wz-sh-arvit">ערבית מוצ״ש — דקות אחרי צאת השבת</label><input type="text" id="wz-sh-arvit" placeholder="30"></div>
+                </div>
+                <div class="desc">הדלקת נרות וצאת השבת מחושבות אוטומטית לפי המיקום שבחרתם, כך שמנחה של ערב שבת וערבית של מוצ״ש זזות לבד כל שבוע.</div>
+            </div>
+        </section>
+
+        <!-- שלב 3 -->
+        <section class="wz-step" data-step="3">
+            <div class="wz-design-grid">
+                <div class="panel">
+                    <h2>איך הצג ייראה?</h2>
+                    <p class="lead">בחרו מראה — התצוגה המקדימה משתנה מיד. אפשר לשנות הכל אחר כך בלשונית "מראה הצג".</p>
+                    <div class="preset-grid" id="wz-presets"></div>
+                    <div class="field" style="margin-top:16px;">
+                        <label>גופן</label>
+                        <div class="chip-row" id="wz-fonts"></div>
+                    </div>
+                </div>
+                <div class="panel wz-preview-wrap">
+                    <h2>תצוגה מקדימה</h2>
+                    <div class="preview-frame"><iframe id="wz-preview" src="about:blank" title="תצוגה מקדימה"></iframe></div>
+                    <div class="desc">כך ייראה הצג עם הנתונים שכבר שמרתם.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- שלב 4 -->
+        <section class="wz-step" data-step="4">
+            <div class="panel wz-done">
+                <div style="font-size:44px;">🎉</div>
+                <div class="big">הצג מוכן!</div>
+                <p class="lead">עכשיו נשאר רק לפתוח אותו על המסך בבית הכנסת.</p>
+            </div>
+            <div class="row">
+                <div class="panel">
+                    <h2>על מחשב Windows</h2>
+                    <p class="desc">הורידו את הקובץ על המחשב שמחובר למסך והפעילו אותו. הצג נפתח במסך מלא ומופעל אוטומטית בכל הדלקה.</p>
+                    <p>
+                        <a class="btn btn-primary" id="wz-link-installer" href="#" download>הורדת קובץ ההתקנה</a>
+                        <a class="btn btn-ghost" id="wz-link-bat" href="#" download>חלופה ללא התקנה</a>
+                    </p>
+                </div>
+                <div class="panel">
+                    <h2>על כל מסך אחר</h2>
+                    <p class="desc">טלוויזיה חכמה, טאבלט או כל דפדפן — פתחו את הכתובת ולחצו F11 למסך מלא:</p>
+                    <div class="display-url">
+                        <code id="wz-display-url"></code>
+                        <button class="btn btn-ghost btn-sm" id="wz-copy" type="button">העתקה</button>
+                        <a class="btn btn-ghost btn-sm" id="wz-open" href="#" target="_blank">פתיחה</a>
+                    </div>
+                    <div class="qr-box" id="wz-qr" style="margin-top:12px;"></div>
+                </div>
+            </div>
+            <div class="panel">
+                <h2>מה עוד אפשר להוסיף</h2>
+                <div class="next-steps">
+                    <button class="btn btn-ghost" data-goto="memorial">🕯️ לוח הנצחות</button>
+                    <button class="btn btn-ghost" data-goto="announcements">📢 הודעות לציבור</button>
+                    <button class="btn btn-ghost" data-goto="media">🖼️ מודעות ותמונות</button>
+                    <button class="btn btn-ghost" data-goto="screens">🖥️ מסכים מתחלפים</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="wz-nav">
+        <button class="btn btn-ghost" id="wz-back" type="button">→ חזרה</button>
+        <span class="wz-msg" id="wz-msg"></span>
+        <span class="spacer"></span>
+        <button class="btn btn-primary" id="wz-next" type="button">שמירה והמשך ←</button>
+    </div>
+</div>
+
+<!-- ===================== ממשק הניהול ===================== -->
 <div id="app-view" style="display:none;">
     <div class="admin-topbar">
         <h1><span id="hdr-shul">…</span> <small class="hdr-sub">מחובר: <span id="hdr-gabbai">…</span></small></h1>
@@ -50,32 +196,75 @@
         </div>
     </div>
 
-    <div class="admin-container">
-        <div class="unsaved-indicator" id="unsaved">יש שינויים שלא נשמרו. לחצו "שמירה ופרסום" כדי לפרסם אותם לאתר.</div>
+    <div class="admin-shell" id="admin-shell">
+        <nav class="admin-nav" id="admin-nav">
+            <button class="active" data-tab="home"><span class="ico">🏠</span>לוח הבית</button>
+            <div class="nav-group">תוכן</div>
+            <button data-tab="general"><span class="ico">📍</span>פרטים ומיקום</button>
+            <button data-tab="rooms"><span class="ico">🕍</span>זמני תפילות</button>
+            <button data-tab="zmanim"><span class="ico">🕐</span>זמני היום</button>
+            <button data-tab="memorial"><span class="ico">🕯️</span>לעילוי נשמת</button>
+            <button data-tab="announcements"><span class="ico">📢</span>הודעות</button>
+            <button data-tab="special"><span class="ico">📅</span>חגים ואירועים</button>
+            <div class="nav-group">מראה</div>
+            <button data-tab="design"><span class="ico">🎨</span>מראה הצג</button>
+            <button data-tab="screens"><span class="ico">🖥️</span>מסכים ופריסה</button>
+            <button data-tab="media"><span class="ico">🖼️</span>קבצים ומדיה</button>
+            <div class="nav-group">מערכת</div>
+            <button data-tab="installer"><span class="ico">💾</span>התקנה על המסך</button>
+            <button data-tab="settings"><span class="ico">👥</span>חשבון</button>
+        </nav>
 
-        <div class="tab-bar">
-            <button class="active" data-tab="general">כללי</button>
-            <button data-tab="rooms">חדרי תפילה</button>
-            <button data-tab="zmanim">זמני היום</button>
-            <button data-tab="memorial">לעילוי נשמת</button>
-            <button data-tab="announcements">הודעות</button>
-            <button data-tab="special">זמנים מיוחדים</button>
-            <button data-tab="design">עיצוב</button>
-            <button data-tab="screens">מסכים ופריסה</button>
-            <button data-tab="media">קבצים ומדיה</button>
-            <button data-tab="installer">התקנה על המסך</button>
-            <button data-tab="settings">חשבון</button>
+        <main class="admin-main">
+
+        <!-- לוח הבית -->
+        <div class="tab-content active" data-tab="home">
+            <div class="home-grid">
+                <div class="panel">
+                    <h2>הצג שלכם</h2>
+                    <div class="display-url">
+                        <code id="home-url"></code>
+                        <button class="btn btn-ghost btn-sm" id="home-copy" type="button">העתקה</button>
+                        <a class="btn btn-primary btn-sm" id="home-open" href="#" target="_blank">פתיחה</a>
+                    </div>
+                    <p class="small" style="margin-bottom:0;">הצג בודק שינויים כל 3 דקות ומתעדכן לבד אחרי "שמירה ופרסום".</p>
+                </div>
+                <div class="panel">
+                    <h2>מצב ההקמה</h2>
+                    <ul class="checklist" id="home-checklist"></ul>
+                    <p style="margin:12px 0 0;"><button class="btn btn-ghost btn-sm" id="home-wizard" type="button">הפעלת אשף ההקמה מחדש</button></p>
+                </div>
+                <div class="panel">
+                    <h2>פעולות מהירות</h2>
+                    <div class="quick-actions">
+                        <button class="btn btn-ghost" data-goto="announcements" type="button">📢 הוספת הודעה</button>
+                        <button class="btn btn-ghost" data-goto="memorial" type="button">🕯️ הוספת הנצחה</button>
+                        <button class="btn btn-ghost" data-goto="media" type="button">🖼️ העלאת מודעה</button>
+                        <button class="btn btn-ghost" data-goto="design" type="button">🎨 שינוי המראה</button>
+                        <button class="btn btn-ghost" data-goto="rooms" type="button">🕍 עדכון זמני תפילה</button>
+                        <button class="btn btn-ghost" data-goto="special" type="button">📅 זמנים לחג</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h2>פעילות אחרונה</h2>
+                    <ul id="home-activity" class="plain-list small"></ul>
+                </div>
+            </div>
         </div>
 
-        <!-- General -->
-        <div class="tab-content active" data-tab="general">
+        <!-- פרטים ומיקום -->
+        <div class="tab-content" data-tab="general">
             <div class="panel">
-                <h2>הגדרות כלליות</h2>
+                <h2>פרטים ומיקום</h2>
                 <div class="field">
                     <label for="g-name">שם בית הכנסת</label>
                     <input type="text" id="g-name">
                 </div>
                 <h3>מיקום</h3>
+                <div class="field">
+                    <label>עיר</label>
+                    <div class="chip-row city-chips" id="g-cities"></div>
+                </div>
                 <div class="field">
                     <label for="g-address">כתובת</label>
                     <div style="display:flex;gap:0.5rem;">
@@ -84,21 +273,24 @@
                     </div>
                     <div class="desc" id="g-geocode-status"></div>
                 </div>
-                <div class="row-3">
-                    <div class="field">
-                        <label for="g-lat">קו רוחב</label>
-                        <input type="number" step="any" id="g-lat">
+                <details>
+                    <summary class="small" style="cursor:pointer;">קואורדינטות ואזור זמן (מתקדם)</summary>
+                    <div class="row-3" style="margin-top:10px;">
+                        <div class="field">
+                            <label for="g-lat">קו רוחב</label>
+                            <input type="number" step="any" id="g-lat">
+                        </div>
+                        <div class="field">
+                            <label for="g-lon">קו אורך</label>
+                            <input type="number" step="any" id="g-lon">
+                        </div>
+                        <div class="field">
+                            <label for="g-tz">אזור זמן</label>
+                            <input type="text" id="g-tz" placeholder="Asia/Jerusalem">
+                        </div>
                     </div>
-                    <div class="field">
-                        <label for="g-lon">קו אורך</label>
-                        <input type="number" step="any" id="g-lon">
-                    </div>
-                    <div class="field">
-                        <label for="g-tz">אזור זמן</label>
-                        <input type="text" id="g-tz" placeholder="Asia/Jerusalem">
-                    </div>
-                </div>
-                <div class="field">
+                </details>
+                <div class="field" style="margin-top:12px;">
                     <label for="g-candle">הדלקת נרות — דקות לפני שקיעה</label>
                     <input type="number" id="g-candle" value="18">
                     <div class="desc">בירושלים נהוג 40 דקות. בדרך כלל 18.</div>
@@ -106,78 +298,59 @@
             </div>
         </div>
 
-        <!-- Rooms -->
+        <!-- זמני תפילות -->
         <div class="tab-content" data-tab="rooms">
             <div class="panel">
-                <h2>חדרי תפילה</h2>
-                <p class="small">ניתן להגדיר מספר מניינים/חדרים, לכל אחד זמני תפילה משלו. בדף הראשי אפשר לעבור בין החדרים באמצעות הכפתורים בראש הדף.</p>
+                <h2>זמני תפילות</h2>
+                <p class="small">לכל חדר/מניין זמנים משלו. לכל תפילה אפשר להוסיף כמה מניינים, לקבוע שעה קבועה או שעה יחסית לזמן ביום (למשל 20 דקות לפני השקיעה), ולהגביל לימים מסוימים.</p>
                 <div id="rooms-list"></div>
-                <button class="btn btn-ghost" id="add-room-btn">+ חדר חדש</button>
+                <button class="btn btn-ghost" id="add-room-btn">+ חדר / מניין נוסף</button>
             </div>
         </div>
 
-        <!-- Zmanim -->
+        <!-- זמני היום -->
         <div class="tab-content" data-tab="zmanim">
             <div class="panel">
-                <h2>ניהול זמני היום (הלכתיים)</h2>
+                <h2>זמני היום (הלכתיים)</h2>
                 <p class="small">
-                    לכל זמן: <strong>סמנו בצ׳ק־בוקס</strong> אם להציג על הלוח.
-                    <strong>שדה הדריסה</strong> מאפשר להזין שעה קבועה (HH:MM) שתדרוס את החישוב האוטומטי לכל יום —
-                    שימושי למשל להגדיר "הנץ הנראה" לפי ההר שרואים מהבית כנסת במקום חישוב תיאורטי.
-                    השאירו ריק כדי להשתמש בברירת המחדל המחושבת לפי המיקום.
-                    <strong>ברירת המחדל</strong> המחושבת היום מוצגת ליד השדה.
+                    סמנו אילו זמנים להציג על הלוח. שדה הדריסה מאפשר להזין שעה קבועה שתחליף את החישוב האוטומטי בכל יום —
+                    למשל "הנץ הנראה" לפי ההר שרואים מבית הכנסת. השאירו ריק לחישוב לפי המיקום.
                 </p>
                 <div class="zmanim-grid" id="zmanim-grid"></div>
             </div>
 
-            <div class="panel">
-                <h2>לוח זמנים שנתי (CSV)</h2>
-                <p class="small">
-                    אפשרות להעלות קובץ CSV עם זמני היום <strong>לכל השנה מראש</strong> — לתאריך יחיד או לטווח.
-                    כל שעה שתמלאו תדרוס את החישוב האוטומטי לאותו תאריך בלבד; תאים ריקים נשארים עם ברירת המחדל.
-                    דריסה פר־תאריך קודמת לדריסה הגלובלית שלמעלה.
+            <details class="panel">
+                <summary style="cursor:pointer;font-weight:700;">לוח זמנים שנתי מקובץ CSV (מתקדם)</summary>
+                <p class="small" style="margin-top:10px;">
+                    אפשרות להעלות קובץ CSV עם זמני היום <strong>לכל השנה מראש</strong>. כל שעה שתמלאו תדרוס את החישוב האוטומטי לאותו תאריך בלבד.
                 </p>
                 <p class="small">
                     <strong>פורמט:</strong> שורה ראשונה = כותרות. עמודה ראשונה <code class="inline">date</code> (YYYY-MM-DD),
-                    ואחריה עד 13 עמודות לפי המפתחות הבאים:
+                    ואחריה עמודות לפי המפתחות:
                     <code class="inline">alotHaShachar, misheyakir, sunrise, sofZmanShmaMGA, sofZmanShma,
                     sofZmanTfillaMGA, sofZmanTfilla, chatzot, minchaGedola, minchaKetana, plagHaMincha, sunset, tzeit</code>.
-                    ערך בכל תא: <code class="inline">HH:MM</code> (24 שעות) או ריק. לא חובה להכניס את כולן —
-                    אפשר להכניס רק את העמודות שרוצים לדרוס (למשל רק <code class="inline">sunrise</code>).
+                    ערך בכל תא: <code class="inline">HH:MM</code> או ריק.
                 </p>
                 <label class="file-drop">
                     <input type="file" accept=".csv,text/csv" id="zm-csv-file">
                     <div>גררו לכאן קובץ CSV או לחצו לבחירה</div>
-                    <div class="small">ערכים חדשים <strong>ימוזגו</strong> עם הנתונים הקיימים; תאריכים שלא בקובץ לא ישתנו.</div>
+                    <div class="small">ערכים חדשים <strong>ימוזגו</strong> עם הנתונים הקיימים.</div>
                 </label>
                 <div style="margin-top:0.7rem; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
                     <button class="btn btn-ghost btn-sm" id="zm-csv-sample">הורדת תבנית לשנה הקרובה</button>
                     <button class="btn btn-ghost btn-sm" id="zm-csv-download">הורדת CSV נוכחי</button>
-                    <button class="btn btn-ghost btn-sm" id="zm-csv-replace">החלפה מלאה (מחיקת קיימים)</button>
+                    <button class="btn btn-ghost btn-sm" id="zm-csv-replace">החלפה מלאה</button>
                     <button class="btn btn-danger btn-sm" id="zm-csv-clear">ניקוי הלוח השנתי</button>
                     <span class="small" id="zm-csv-count" style="margin-inline-start:auto;"></span>
                 </div>
-            </div>
+            </details>
         </div>
 
-        <!-- Memorial -->
+        <!-- הנצחות -->
         <div class="tab-content" data-tab="memorial">
             <div class="panel">
                 <h2>לוח הנצחות</h2>
-                <p class="small">רשימת הנפטרים עם תאריך היארצייט העברי. שמות שחל היום יאריצייט שלהם יודגשו על הלוח.</p>
-
-                <h3>העלאת CSV</h3>
-                <label class="file-drop" id="mem-drop">
-                    <input type="file" accept=".csv,text/csv" id="mem-file">
-                    <div>גררו לכאן קובץ CSV או לחצו לבחירה</div>
-                    <div class="small">עמודות נתמכות: שם, יום, חודש, הערות. הקובץ יחליף את הרשימה הנוכחית.</div>
-                </label>
-                <div style="margin-top:0.5rem;">
-                    <button class="btn btn-ghost btn-sm" id="mem-download">הורדת CSV נוכחי</button>
-                    <button class="btn btn-ghost btn-sm" id="mem-clear">ניקוי הכל</button>
-                </div>
-
-                <h3>עריכה</h3>
+                <p class="small">רשימת הנפטרים עם תאריך היארצייט העברי. שמות שחל היום היארצייט שלהם מודגשים על הלוח.</p>
                 <table class="data-table" id="mem-table">
                     <thead>
                         <tr>
@@ -192,13 +365,25 @@
                 </table>
                 <button class="btn btn-ghost btn-sm" id="add-mem-btn" style="margin-top:0.5rem;">+ שורה חדשה</button>
             </div>
+            <details class="panel">
+                <summary style="cursor:pointer;font-weight:700;">ייבוא וייצוא מקובץ CSV</summary>
+                <label class="file-drop" id="mem-drop" style="margin-top:10px;">
+                    <input type="file" accept=".csv,text/csv" id="mem-file">
+                    <div>גררו לכאן קובץ CSV או לחצו לבחירה</div>
+                    <div class="small">עמודות נתמכות: שם, יום, חודש, הערות. הקובץ יחליף את הרשימה הנוכחית.</div>
+                </label>
+                <div style="margin-top:0.5rem;">
+                    <button class="btn btn-ghost btn-sm" id="mem-download">הורדת CSV נוכחי</button>
+                    <button class="btn btn-ghost btn-sm" id="mem-clear">ניקוי הכל</button>
+                </div>
+            </details>
         </div>
 
-        <!-- Announcements -->
+        <!-- הודעות -->
         <div class="tab-content" data-tab="announcements">
             <div class="panel">
                 <h2>הודעות לציבור</h2>
-                <p class="small">ההודעות יוצגו כבאנר מתחת לטבלה. הגדירו תאריך התחלה/סיום כדי לתזמן.</p>
+                <p class="small">ההודעות רצות בפס בתחתית הצג. הגדירו תאריך התחלה/סיום כדי לתזמן, או השאירו ריק להודעה קבועה.</p>
                 <table class="data-table" id="ann-table">
                     <thead>
                         <tr>
@@ -214,131 +399,116 @@
             </div>
         </div>
 
-        <!-- Special times (events) -->
+        <!-- חגים ואירועים -->
         <div class="tab-content" data-tab="special">
             <div class="panel">
-                <h2>אירועים וזמני תפילה מיוחדים</h2>
-                <p class="small">לכל אירוע (חג, תאריך מיוחד, יום זיכרון) אפשר להגדיר תאריך עברי (משתנה בשקיעה) או לועזי, ולהוסיף מספר זמני תפילה. אפשרות "מילוי מהיר" עוזרת לחגים נפוצים.</p>
+                <h2>חגים ואירועים מיוחדים</h2>
+                <p class="small">לכל אירוע (חג, תאריך מיוחד, יום זיכרון) אפשר להגדיר תאריך עברי או לועזי ולהוסיף זמני תפילה. "מילוי מהיר" עוזר לחגים נפוצים.</p>
                 <div id="sp-list"></div>
                 <button class="btn btn-ghost" id="add-sp-btn">+ אירוע חדש</button>
             </div>
         </div>
 
-        <!-- Design -->
+        <!-- מראה הצג -->
         <div class="tab-content" data-tab="design">
             <div class="panel">
-                <h2>עיצוב ופריסה</h2>
+                <h2>מראה הצג</h2>
+                <p class="small">בחרו מראה מוכן — התצוגה המקדימה משתנה מיד. המראה מתפרסם לצג רק אחרי "שמירה ופרסום".</p>
+                <div class="preset-grid" id="preset-grid"></div>
+            </div>
+
+            <div class="panel">
+                <h2>כוונון עדין</h2>
+                <p class="small">כל שינוי כאן מותאם על גבי המראה שבחרתם.</p>
+                <div class="tune-grid">
+                    <div class="field">
+                        <label>ערכת צבע</label>
+                        <div class="swatch-row" id="d-theme-row"></div>
+                    </div>
+                    <div class="field">
+                        <label for="d-style">סגנון האלמנטים</label>
+                        <select id="d-style"></select>
+                    </div>
+                    <div class="field">
+                        <label for="d-layout">פריסת המסך</label>
+                        <select id="d-layout"></select>
+                        <div class="desc">כשמצב "מסכים מתחלפים" פעיל, הפריסה נקבעת שם.</div>
+                    </div>
+                    <div class="field">
+                        <label>גופן</label>
+                        <div class="chip-row" id="d-font-row"></div>
+                    </div>
+                    <div class="field">
+                        <label for="d-accent">צבע הדגשה</label>
+                        <div class="inline-controls">
+                            <input type="color" id="d-accent" value="#d4af37">
+                            <button class="btn btn-ghost btn-sm" id="d-accent-reset" type="button">חזרה לצבע הערכה</button>
+                        </div>
+                        <div class="desc">צבע הכותרות, השעות והפס התחתון.</div>
+                    </div>
+                    <div class="field">
+                        <label for="d-scale">גודל הטקסט</label>
+                        <div class="inline-controls">
+                            <input type="range" id="d-scale" min="70" max="150" step="5" value="100">
+                            <span class="range-val" id="d-scale-val">100%</span>
+                        </div>
+                        <div class="desc">למסך גדול שנצפה מרחוק הגדילו; למסך קטן או עמוס הקטינו.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>רקע ולוגו</h2>
                 <div class="field">
-                    <label for="d-theme">ערכת נושא (צבעים)</label>
-                    <select id="d-theme">
-                        <optgroup label="ערכות צבע">
-                            <option value="dark">כהה (ברירת מחדל)</option>
-                            <option value="light">בהיר ונקי</option>
-                            <option value="blue">כחול עמוק</option>
-                            <option value="wood">עץ (קלאסי)</option>
-                            <option value="marble">שיש (יוקרתי)</option>
-                        </optgroup>
-                        <optgroup label="מבוסס תמונה">
-                            <option value="stone">אבן ירושלמית</option>
-                            <option value="parchment">קלף עתיק</option>
-                            <option value="carved">עץ מגולף (מסגרת זהב)</option>
-                        </optgroup>
-                    </select>
+                    <label>תמונת רקע</label>
+                    <div class="bg-grid" id="d-bg-grid"></div>
+                    <div class="desc">התמונות שהעליתם בלשונית "קבצים ומדיה". אפשר גם להדביק כתובת תמונה:</div>
+                    <input type="text" id="d-bg-image" placeholder="https://..." dir="ltr" style="margin-top:6px;">
                 </div>
                 <div class="field">
-                    <label for="d-bg-image">תמונת רקע מותאמת (URL, אופציונלי)</label>
-                    <input type="text" id="d-bg-image" placeholder="https://... (יחליף את רקע ערכת הנושא)">
-                    <small style="color:#666;">הזינו כתובת תמונה להתאמה אישית של הרקע. השאירו ריק כדי להשתמש ברקע של ערכת הנושא.</small>
-                </div>
-                <div class="field">
-                    <label for="d-bg-overlay">חשכת רקע (<span id="d-bg-overlay-val">45%</span>)</label>
+                    <label for="d-bg-overlay">החשכת הרקע (<span id="d-bg-overlay-val">45%</span>)</label>
                     <input type="range" id="d-bg-overlay" min="0" max="90" step="5" value="45">
-                    <small style="color:#666;">שולט בכהות השכבה מעל תמונת הרקע המותאמת לקריאות הטקסט.</small>
+                    <div class="desc">שכבה כהה מעל תמונת הרקע כדי שהטקסט יישאר קריא.</div>
                 </div>
                 <div class="field">
-                    <label for="d-style">סגנון אלמנטים</label>
-                    <select id="d-style">
-                        <option value="traditional">מסורתי מפואר (עיטורים וכתרים)</option>
-                        <option value="classic">קלאסי (ברירת מחדל)</option>
-                        <option value="modern">מודרני (עגול ורך)</option>
-                        <option value="minimalist">מינימליסטי (ללא רקע)</option>
-                        <option value="ornate">מעוטר (מסורתי)</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label for="d-layout">פריסת מסך (מבנה)</label>
-                    <select id="d-layout">
-                        <option value="3col">3 עמודות (קלאסי)</option>
-                        <option value="2col">2 עמודות (תפילות במרכז)</option>
-                        <option value="horizontal">2 עמודות (הנצחות ברוחב מלא למטה)</option>
-                        <option value="sidebar-right">סרגל צד ימין</option>
-                        <option value="sidebar-left">סרגל צד שמאל</option>
-                    </select>
-                </div>
-
-                <h3>לוגו בית המדרש</h3>
-                <div class="field">
-                    <div class="desc">
-                        העלו תמונה בלשונית "קבצים ומדיה", ואז בחרו אותה כאן.
-                        המיקום, הגודל, השקיפות והמצב הצף נקבעים בלשונית "מסכים ופריסה"
-                        על ידי הוספת קובייה מסוג <strong>לוגו</strong> וגרירתה.
-                    </div>
-                    <select id="d-logo" style="width:100%;margin-top:6px;"></select>
-                </div>
-
-                <h3>תצוגה מקדימה</h3>
-                <div class="field">
-                    <label for="pv-aspect">יחס המסך בפועל</label>
-                    <select id="pv-aspect">
-                        <option value="16:9">16:9 — מסך רחב (הנפוץ)</option>
-                        <option value="16:10">16:10</option>
-                        <option value="4:3">4:3 — מסך מרובע</option>
-                        <option value="21:9">21:9 — אולטרה־רחב</option>
-                        <option value="9:16">9:16 — מסך אנכי</option>
-                        <option value="3:4">3:4 — אנכי מרובע</option>
-                    </select>
-                    <div class="desc">בחרו את היחס של המסך האמיתי בבית הכנסת כדי לראות בדיוק איך ייראה שם.</div>
-                </div>
-                <div class="field">
-                    <!-- הכתובת נקבעת ב-renderIdentity לפי בית הכנסת המחובר.
-                         ה-iframe מרונדר בגודל מסך מלא ומוקטן בטרנספורם, כדי שרואים
-                         את כל הלוח ולא רק את החלק העליון שלו. -->
-                    <div class="preview-frame">
-                        <iframe id="design-preview" src="about:blank" title="תצוגה מקדימה של הצג"></iframe>
-                    </div>
-                    <div class="desc">כך ייראה הצג. שינויי עיצוב מוצגים כאן מיד, אבל מתפרסמים רק אחרי "שמירה ופרסום".</div>
+                    <label for="d-logo">לוגו</label>
+                    <select id="d-logo"></select>
+                    <div class="desc">הלוגו מוצג במצב "מסכים מתחלפים" על ידי הוספת קובייה מסוג לוגו (יש תבנית מוכנה "עם לוגו").</div>
                 </div>
             </div>
         </div>
 
-        <!-- Settings -->
         <!-- מסכים ופריסה -->
         <div class="tab-content" data-tab="screens">
             <div class="panel">
                 <h2>מסכים מתחלפים</h2>
-                <p class="desc">
-                    בונים מסך אחד או כמה, וגוררים את הקוביות למקום שרוצים. כמה מסכים
-                    יתחלפו ביניהם אוטומטית לפי הקצב שתגדירו.
+                <p class="small">
+                    בונים מסך אחד או כמה, וגוררים את הקוביות למקום שרוצים. כמה מסכים יתחלפו ביניהם אוטומטית.
+                    כשמצב המסכים כבוי, הצג משתמש בפריסה שנבחרה ב"מראה הצג".
                 </p>
+                <div class="sc-bar">
+                    <label><input type="checkbox" id="sc-enabled"> הפעלת מצב מסכים</label>
+                    <label>יחס המסך בבית הכנסת
+                        <select id="sc-aspect">
+                            <option value="16:9">16:9 — מסך רחב (הנפוץ)</option>
+                            <option value="16:10">16:10</option>
+                            <option value="4:3">4:3 — מסך מרובע</option>
+                            <option value="21:9">21:9 — אולטרה־רחב</option>
+                            <option value="9:16">9:16 — מסך אנכי</option>
+                            <option value="3:4">3:4 — אנכי מרובע</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
 
+            <div class="panel">
+                <h2>תבניות מוכנות</h2>
+                <p class="small">לחיצה על תבנית מסדרת את הקוביות של המסך הנוכחי. אחר כך אפשר לגרור ולשנות.</p>
+                <div class="tpl-grid" id="sc-templates"></div>
+            </div>
+
+            <div class="panel">
                 <div class="sc-editor" id="sc-editor">
-                    <div class="sc-bar">
-                        <label><input type="checkbox" id="sc-enabled"> הפעלת מצב מסכים</label>
-                        <label>יחס מסך
-                            <select id="sc-aspect">
-                                <option value="16:9">16:9 — מסך רחב (הנפוץ)</option>
-                                <option value="16:10">16:10</option>
-                                <option value="4:3">4:3 — מסך מרובע</option>
-                                <option value="21:9">21:9 — אולטרה־רחב</option>
-                                <option value="9:16">9:16 — מסך אנכי</option>
-                                <option value="3:4">3:4 — אנכי מרובע</option>
-                            </select>
-                        </label>
-                    </div>
-                    <div class="sc-hint">
-                        כשמצב המסכים כבוי, הצג ממשיך בפריסה הרגילה — כך שאפשר לבנות בשקט ולהדליק בסוף.
-                    </div>
-
                     <div class="sc-tabs" id="sc-tabs"></div>
 
                     <div class="sc-bar">
@@ -363,16 +533,18 @@
             <div class="panel">
                 <h2>העלאת קבצים</h2>
                 <p class="desc">תמונות ומודעות להצגה על הצג, וקובצי PDF. עד 5MB לקובץ.</p>
-                <input type="file" id="media-file" multiple accept="image/*,application/pdf">
-                <div class="small" id="media-progress"></div>
-                <div class="small">נפח בשימוש: <span id="media-quota">…</span></div>
+                <label class="file-drop">
+                    <input type="file" id="media-file" multiple accept="image/*,application/pdf">
+                    <div>גררו לכאן תמונות או PDF, או לחצו לבחירה</div>
+                    <div class="small" id="media-progress"></div>
+                </label>
+                <div class="small" style="margin-top:8px;">נפח בשימוש: <span id="media-quota">…</span></div>
             </div>
             <div class="panel">
                 <h2>חלון המודעות</h2>
                 <p class="desc">
-                    הקבצים שסימנתם יוצגו בסבב בתוך קובייה מסוג "חלון מודעות" בלשונית
-                    <strong>מסכים ופריסה</strong>. מסמכי Word אינם נתמכים להצגה —
-                    שמרו אותם כ־PDF (קובץ ← שמירה בשם ← PDF) והעלו את ה־PDF.
+                    הקבצים שסימנתם יוצגו בסבב בתוך קובייה מסוג "חלון מודעות" בלשונית <strong>מסכים ופריסה</strong>
+                    (יש תבנית מוכנה "עם חלון מודעות"). מסמכי Word אינם נתמכים — שמרו אותם כ־PDF.
                 </p>
                 <div class="sc-bar">
                     <label>שניות לכל מודעה <input type="number" id="mp-seconds" min="3" max="600" style="width:90px"></label>
@@ -391,7 +563,7 @@
             </div>
         </div>
 
-        <!-- התקנה על מחשב המסך -->
+        <!-- התקנה -->
         <div class="tab-content" data-tab="installer">
             <div class="panel">
                 <h2>הפעלת הצג על המחשב שבבית הכנסת</h2>
@@ -403,14 +575,17 @@
                     <a class="btn btn-primary" id="link-installer" href="#" download>הורדת קובץ ההתקנה (EXE)</a>
                     <a class="btn btn-ghost" id="link-bat" href="#" download>חלופה ללא התקנה (BAT)</a>
                 </p>
-                <div class="small">
-                    הקובץ מותאם אישית לבית הכנסת שלכם — המזהה מוטמע בשם הקובץ, אז אל תשנו אותו.
-                </div>
+                <div class="small">הקובץ מותאם אישית לבית הכנסת שלכם — המזהה מוטמע בשם הקובץ, אז אל תשנו אותו.</div>
             </div>
             <div class="panel">
                 <h2>כתובת הצג</h2>
-                <p class="desc">אפשר גם פשוט לפתוח את הכתובת הזאת בדפדפן וללחוץ F11:</p>
-                <p><a id="link-display-full" href="#" target="_blank" dir="ltr"></a></p>
+                <p class="desc">טלוויזיה חכמה, טאבלט או כל דפדפן — פתחו את הכתובת ולחצו F11 למסך מלא:</p>
+                <div class="display-url">
+                    <code id="link-display-text"></code>
+                    <button class="btn btn-ghost btn-sm" id="link-display-copy" type="button">העתקה</button>
+                    <a class="btn btn-ghost btn-sm" id="link-display-full" href="#" target="_blank">פתיחה</a>
+                </div>
+                <div class="qr-box" id="install-qr" style="margin-top:12px;"></div>
             </div>
         </div>
 
@@ -431,12 +606,40 @@
                 <div id="last-save-status" class="small">אין שמירות בסשן הזה.</div>
             </div>
         </div>
+
+        </main>
+
+        <!-- תצוגה מקדימה — מוצגת בלשוניות המראה והמסכים -->
+        <aside class="preview-dock" id="preview-dock">
+            <div class="pv-head">
+                <strong>תצוגה מקדימה</strong>
+                <select id="pv-aspect" title="יחס המסך בפועל">
+                    <option value="16:9">16:9 רחב</option>
+                    <option value="16:10">16:10</option>
+                    <option value="4:3">4:3</option>
+                    <option value="21:9">21:9</option>
+                    <option value="9:16">9:16 אנכי</option>
+                    <option value="3:4">3:4</option>
+                </select>
+            </div>
+            <div class="preview-frame">
+                <iframe id="design-preview" src="about:blank" title="תצוגה מקדימה של הצג"></iframe>
+            </div>
+            <div class="desc">כך ייראה הצג. שינויי מראה ופריסה מוצגים מיד, ומתפרסמים רק אחרי "שמירה ופרסום".</div>
+        </aside>
+    </div>
+
+    <div class="unsaved-indicator" id="unsaved">
+        <span>יש שינויים שלא פורסמו לצג</span>
+        <button class="btn btn-primary btn-sm" id="save-float-btn" type="button">שמירה ופרסום</button>
     </div>
 </div>
 
 <div class="status-bar" id="status-bar"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@hebcal/core@5.10.1/dist/bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/js/presets.js"></script>
 <script src="/js/api.js"></script>
 <script src="/js/admin.js"></script>
 </body>
