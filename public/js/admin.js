@@ -124,6 +124,7 @@
     if (!state.data.config.displayedZmanim) state.data.config.displayedZmanim = { ...DEFAULT_CONFIG.displayedZmanim };
     if (!state.data.config.zmanimOverrides) state.data.config.zmanimOverrides = {};
     state.data.config.design = normalizeDesign(state.data.config.design);
+    if (!state.data.config.display || typeof state.data.config.display !== 'object') state.data.config.display = { showUpcoming: true };
     // בתי כנסת שנפתחו לפני האשף לא מקבלים אותו בכפייה — רק הרשמות חדשות
     if (!state.data.config.setup || typeof state.data.config.setup !== 'object') {
       state.data.config.setup = { done: true, step: 1 };
@@ -489,6 +490,9 @@
     qs('#d-bg-overlay').value = ov;
     qs('#d-bg-overlay-val').textContent = ov + '%';
 
+    const up = qs('#d-show-upcoming');
+    if (up) up.checked = state.data.config.display?.showUpcoming !== false;
+
     renderBgGrid();
     renderLogoPicker();
   }
@@ -541,6 +545,11 @@
       qs('#d-bg-overlay-val').textContent = pct + '%';
       markDirty(); pushDesignPreview();
     });
+    const up = qs('#d-show-upcoming');
+    if (up) up.addEventListener('change', () => {
+      state.data.config.display = { ...(state.data.config.display || {}), showUpcoming: up.checked };
+      markDirty(); pushDesignPreview();
+    });
     // כשהצג בתצוגה המקדימה נטען — דוחפים את המצב שטרם נשמר
     const pv = qs('#design-preview');
     if (pv) pv.addEventListener('load', () => { pushDesignPreview(); pushScreensPreview(); });
@@ -551,7 +560,9 @@
     for (const sel of ['#design-preview', '#wz-preview']) {
       const f = qs(sel);
       if (!f || !f.contentWindow || !f.dataset.loadedFor) continue;
-      f.contentWindow.postMessage({ type: 'PREVIEW_DESIGN', design: { ...design() } }, location.origin);
+      f.contentWindow.postMessage({
+        type: 'PREVIEW_DESIGN', design: { ...design() }, display: { ...(state.data.config.display || {}) },
+      }, location.origin);
     }
   }
 

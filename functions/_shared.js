@@ -198,6 +198,8 @@ export const DEFAULTS = {
       preset: 'jerusalem', theme: 'stone', layout: '3col', style: 'traditional', font: 'classic',
       accent: '', scale: 1, backgroundImage: '', backgroundOverlay: 0.45, logo: { url: '' },
     },
+    // מה מוצג על הלוח מעבר לקוביות עצמן
+    display: { showUpcoming: true },
     // אשף ההקמה מוצג עד שהגבאי מסיים אותו (או מדלג עליו).
     setup: { done: false, step: 1 },
   },

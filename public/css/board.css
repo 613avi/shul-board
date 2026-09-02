@@ -998,5 +998,8 @@ body[data-theme="light"] .announcements-container {
 #display-root[data-font="rubik"] .clock,
 #display-root[data-font="rubik"] table { font-family: 'Rubik', 'Assistant', sans-serif; }
 
+/* "אירוע קרוב" כבוי בהגדרות */
+body.no-upcoming .display-footer { display: none !important; }
+
 /* ===== שכבת עזר לצילום/תצוגה מקדימה ===== */
 body[data-preview] { cursor: default; }

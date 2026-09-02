@@ -674,7 +674,12 @@
     ticker.textContent = active.map(a => a.text).join('   •   ');
   }
 
+  const showUpcoming = () => !state.config || !state.config.display || state.config.display.showUpcoming !== false;
+
   function renderUpcoming() {
+    // הגדרה: "אירוע קרוב" אפשר לכבות. במצב מסכים הקובייה פשוט לא מצוירת.
+    document.body.classList.toggle('no-upcoming', !showUpcoming());
+    if (!showUpcoming()) { qs('#upcoming-event').textContent = ''; return; }
     try {
       const now = new Date();
       const hdate = getEffectiveHDate();
@@ -828,6 +833,7 @@
     _stage.innerHTML = '';
 
     for (const block of screen.blocks) {
+      if (block.type === 'upcoming' && !showUpcoming()) continue;
       const wrap = document.createElement('div');
       wrap.className = 'screen-block';
       wrap.dataset.type = block.type;
@@ -997,9 +1003,13 @@
         }
         if (incoming.logo && typeof incoming.logo === 'object') design.logo = incoming.logo;
         state.config.design = design;
+        if (event.data.display && typeof event.data.display === 'object') {
+          state.config.display = { ...(state.config.display || {}), ...event.data.display };
+        }
         applyDesign();
-        // הלוגו יושב בתוך קובייה — צריך לצייר מחדש את המסך כדי שהחלפה תיראה
-        if (incoming.logo) applyScreens();
+        safe('upcoming', renderUpcoming);
+        // הלוגו וקוביית האירוע יושבים בתוך קוביות — מציירים מחדש כדי שהשינוי ייראה
+        if (incoming.logo || event.data.display) applyScreens();
       }
 
       // תצוגה מקדימה חיה של עורך המסכים
