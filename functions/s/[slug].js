@@ -1,4 +1,5 @@
 import { normalizeSlug } from '../_shared.js';
+import { APP_VERSION } from '../_migrations.js';
 
 // מגיש את דף הצג עבור בית כנסת מסוים ומזריק את המזהה,
 // כך שה-JS לא צריך לנחש אותו מה-URL.
@@ -22,7 +23,9 @@ export async function onRequestGet({ request, env, params }) {
   html = html.replace(
     '<!--SHUL_BOOTSTRAP-->',
     `<script>window.SHUL = ${JSON.stringify({ slug: shul.slug, name: shul.name })};</script>`
-  ).replace('<title>', `<title>${escapeHtml(shul.name)} — `);
+  ).replace('<title>', `<title>${escapeHtml(shul.name)} — `)
+   // חותמת גרסה על הנכסים המקומיים: אחרי פריסה הצג מקבל css/js חדשים, לא עותק מהמטמון
+   .replace(/(href|src)="(\/(?:css|js)\/[^"?]+)"/g, `$1="$2?v=${APP_VERSION}"`);
 
   return new Response(html, {
     headers: {

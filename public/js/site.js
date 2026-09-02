@@ -111,7 +111,24 @@
     }
   }
 
+  // באנר ההרצה: מוצג עד שסוגרים אותו, ואז נשאר סגור בדפדפן הזה
+  const BANNER_KEY = 'sb_beta_banner_v1';
+  function setupBanner() {
+    const banner = $('beta-banner');
+    if (!banner) return;
+    let dismissed = false;
+    try { dismissed = localStorage.getItem(BANNER_KEY) === '1'; } catch {}
+    banner.hidden = dismissed;
+    const link = $('beta-link');
+    if (link && link.dataset.feedbackUrl) link.href = link.dataset.feedbackUrl;
+    $('beta-close').addEventListener('click', () => {
+      banner.hidden = true;
+      try { localStorage.setItem(BANNER_KEY, '1'); } catch {}
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
+    setupBanner();
     renderPreview();
 
     $('r-name').addEventListener('input', () => {
