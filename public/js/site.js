@@ -80,7 +80,7 @@
     };
 
     if (payload.name.length < 2) { fail('הזינו את שם בית הכנסת'); return; }
-    if (payload.slug.length < 3) { fail('בחרו כתובת באנגלית, לפחות 3 תווים'); return; }
+    if (payload.slug.length < 3) { fail('בחרו שם באנגלית, לפחות 3 תווים'); return; }
     if (payload.gabbai.length < 2) { fail('הזינו את שמכם'); return; }
     if (payload.password.length < 6) { fail('הסיסמה חייבת להיות באורך 6 תווים לפחות'); return; }
 
