@@ -684,7 +684,15 @@
         candlelighting: false, sedrot: false, omer: false,
       });
       const upcoming = events.find(e => (e.getFlags() & FLAG_CHAG));
-      qs('#upcoming-event').textContent = upcoming ? upcoming.render('he') : '';
+      if (!upcoming) { qs('#upcoming-event').textContent = ''; return; }
+      // hebcal מחזיר למשל "רֹאשׁ הַשָּׁנָה 5787": מורידים ניקוד וכותבים את השנה באותיות
+      const name = upcoming.render('he')
+        .replace(/[\u0591-\u05C7]/g, '')
+        .replace(/\b5\d{3}\b/, y => hebDay(Number(y) % 1000))
+        .trim();
+      const days = upcoming.getDate().abs() - hdate.abs();
+      const when = days <= 0 ? 'היום' : days === 1 ? 'מחר' : `בעוד ${days} ימים`;
+      qs('#upcoming-event').textContent = `${name} · ${when}`;
     } catch { /* ignore */ }
   }
 
