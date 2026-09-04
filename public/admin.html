@@ -52,8 +52,9 @@
         <div class="wz-steps" id="wz-steps">
             <div class="st" data-step="1"><span class="n">1</span><span class="lbl">פרטים ומיקום</span></div>
             <div class="st" data-step="2"><span class="n">2</span><span class="lbl">זמני תפילה</span></div>
-            <div class="st" data-step="3"><span class="n">3</span><span class="lbl">מראה הצג</span></div>
-            <div class="st" data-step="4"><span class="n">4</span><span class="lbl">הפעלה על המסך</span></div>
+            <div class="st" data-step="3"><span class="n">3</span><span class="lbl">מראה ולוגו</span></div>
+            <div class="st" data-step="4"><span class="n">4</span><span class="lbl">פריסת המסך</span></div>
+            <div class="st" data-step="5"><span class="n">5</span><span class="lbl">הפעלה על המסך</span></div>
         </div>
 
         <!-- שלב 1 -->
@@ -118,28 +119,110 @@
             </div>
         </section>
 
-        <!-- שלב 3 -->
-        <section class="wz-step" data-step="3">
-            <div class="wz-design-grid">
-                <div class="panel">
-                    <h2>איך הצג ייראה?</h2>
-                    <p class="lead">בחרו מראה — התצוגה המקדימה משתנה מיד. אפשר לשנות הכל אחר כך בלשונית "מראה הצג".</p>
-                    <div class="preset-grid" id="wz-presets"></div>
-                    <div class="field" style="margin-top:16px;">
-                        <label>גופן</label>
-                        <div class="chip-row" id="wz-fonts"></div>
-                    </div>
-                </div>
-                <div class="panel wz-preview-wrap">
-                    <h2>תצוגה מקדימה</h2>
-                    <div class="preview-frame"><iframe id="wz-preview" src="about:blank" title="תצוגה מקדימה"></iframe></div>
-                    <div class="desc">כך ייראה הצג עם הנתונים שכבר שמרתם.</div>
-                </div>
-            </div>
-        </section>
+        <!-- שלבים 3-4: מראה ופריסה, עם תצוגה מקדימה צמודה -->
+        <div class="wz-design-grid" id="wz-look-wrap">
+            <div>
+                <section class="wz-step" data-step="3">
+                    <div class="panel">
+                        <h2>איך הצג ייראה?</h2>
+                        <p class="lead">שלושה צעדים קצרים, וכל שינוי מוצג מיד בתצוגה המקדימה. הכל ניתן לשינוי גם אחר כך.</p>
 
-        <!-- שלב 4 -->
-        <section class="wz-step" data-step="4">
+                        <div class="wz-section">
+                            <h3><span class="num">א</span> בחרו מראה בסיסי</h3>
+                            <div class="preset-grid" id="wz-presets"></div>
+                            <div class="community-block" id="wz-community-wrap" hidden>
+                                <h4>מראות שבתי כנסת אחרים פרסמו</h4>
+                                <div class="preset-grid" id="wz-community"></div>
+                            </div>
+                        </div>
+
+                        <div class="wz-section">
+                            <h3><span class="num">ב</span> התאימו אישית</h3>
+                            <p class="desc">רוצים שהצג שלכם ייראה משלכם? החליפו ערכת צבע, גופן וצבע הדגשה.</p>
+                            <div class="tune-grid">
+                                <div class="field"><label>ערכת צבע</label><div class="swatch-row" id="wz-themes"></div></div>
+                                <div class="field"><label>גופן</label><div class="chip-row" id="wz-fonts"></div></div>
+                                <div class="field">
+                                    <label for="wz-accent">צבע הדגשה</label>
+                                    <div class="inline-controls">
+                                        <input type="color" id="wz-accent" value="#d4af37">
+                                        <button class="btn btn-ghost btn-sm" id="wz-accent-reset" type="button">צבע הערכה</button>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label for="wz-scale">גודל הטקסט</label>
+                                    <div class="inline-controls">
+                                        <input type="range" id="wz-scale" min="70" max="150" step="5" value="100">
+                                        <span class="range-val" id="wz-scale-val">100%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="wz-section">
+                            <h3><span class="num">ג</span> לוגו ורקע</h3>
+                            <div class="row">
+                                <div class="field">
+                                    <label>לוגו בית הכנסת</label>
+                                    <div class="logo-pick">
+                                        <div class="logo-preview" id="wz-logo-preview">אין לוגו</div>
+                                        <div>
+                                            <label class="btn btn-ghost btn-sm file-btn">העלאת לוגו <input type="file" id="wz-logo-file" accept="image/*" hidden></label>
+                                            <button class="btn btn-ghost btn-sm" id="wz-logo-remove" type="button" hidden>הסרה</button>
+                                            <div class="desc">מופיע ליד שם בית הכנסת. PNG עם רקע שקוף נראה הכי טוב.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label>תמונת רקע</label>
+                                    <label class="btn btn-ghost btn-sm file-btn">העלאת תמונה <input type="file" id="wz-bg-file" accept="image/*" hidden></label>
+                                    <div class="bg-grid" id="wz-bg-grid" style="margin-top:8px;"></div>
+                                    <div class="inline-controls" style="margin-top:8px;">
+                                        <span class="desc" style="margin:0;">החשכה</span>
+                                        <input type="range" id="wz-overlay" min="0" max="90" step="5" value="45">
+                                        <span class="range-val" id="wz-overlay-val">45%</span>
+                                    </div>
+                                    <div class="desc">תמונה של בית הכנסת, ארון הקודש או נוף ירושלמי. ההחשכה שומרת על קריאות.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="wz-step" data-step="4">
+                    <div class="panel">
+                        <h2>איך לסדר את המסך?</h2>
+                        <p class="lead">בחרו פריסה. "קלאסי" מציג את שלושת הלוחות; שאר התבניות מוסיפות חלון מודעות, לוגו, או מתאימות למסך אנכי. גרירה ושינוי גודל של הקוביות: בניהול המלא, לשונית "מסכים ופריסה".</p>
+                        <div class="sc-bar" style="margin-bottom:12px;">
+                            <label>יחס המסך בבית הכנסת
+                                <select id="wz-aspect">
+                                    <option value="16:9">16:9 — מסך רחב (הנפוץ)</option>
+                                    <option value="16:10">16:10</option>
+                                    <option value="4:3">4:3 — מסך מרובע</option>
+                                    <option value="21:9">21:9 — אולטרה־רחב</option>
+                                    <option value="9:16">9:16 — מסך אנכי</option>
+                                    <option value="3:4">3:4 — אנכי מרובע</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="tpl-grid" id="wz-templates"></div>
+                        <div class="wz-section" style="margin-top:18px;">
+                            <h3><span class="num">✓</span> מה מוצג</h3>
+                            <label class="check-row"><input type="checkbox" id="wz-show-upcoming"> <span>אירוע קרוב בתחתית המסך</span></label>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="panel wz-preview-wrap" id="wz-preview-panel">
+                <h2>תצוגה מקדימה</h2>
+                <div class="preview-frame"><iframe id="wz-preview" src="about:blank" title="תצוגה מקדימה"></iframe></div>
+                <div class="desc">כך ייראה הצג עם הנתונים שכבר שמרתם.</div>
+            </div>
+        </div>
+
+        <!-- שלב 5 -->
+        <section class="wz-step" data-step="5">
             <div class="panel wz-done">
                 <div style="font-size:44px;">🎉</div>
                 <div class="big">הצג מוכן!</div>
@@ -164,6 +247,15 @@
                     </div>
                     <div class="qr-box" id="wz-qr" style="margin-top:12px;"></div>
                 </div>
+            </div>
+            <div class="panel publish-panel" id="wz-publish" hidden>
+                <h2>המראה שיצרתם ייחודי 🎨</h2>
+                <p class="desc">רוצים שבתי כנסת אחרים יוכלו להשתמש בו? התבנית כוללת רק צבעים, סגנון ופריסה, בלי הלוגו ובלי הזמנים וההנצחות שלכם.</p>
+                <div class="inline-controls">
+                    <input type="text" id="wz-pub-name" placeholder="שם לתבנית, למשל: כחול ירושלמי עם מודעות" style="flex:1;min-width:200px;">
+                    <button class="btn btn-primary btn-sm" id="wz-pub-btn" type="button">פרסום לקהילה</button>
+                </div>
+                <div class="desc" id="wz-pub-msg"></div>
             </div>
             <div class="panel">
                 <h2>מה עוד אפשר להוסיף</h2>
@@ -417,6 +509,12 @@
                 <div class="preset-grid" id="preset-grid"></div>
             </div>
 
+            <div class="panel" id="community-panel">
+                <h2>תבניות מהקהילה</h2>
+                <p class="small">מראות ופריסות שבתי כנסת אחרים פרסמו. לחיצה מעתיקה את המראה (הלוגו והתוכן שלכם נשארים).</p>
+                <div class="preset-grid" id="community-grid"><div class="sc-hint">טוען…</div></div>
+            </div>
+
             <div class="panel">
                 <h2>כוונון עדין</h2>
                 <p class="small">כל שינוי כאן מותאם על גבי המראה שבחרתם.</p>
@@ -455,6 +553,18 @@
                         <div class="desc">למסך גדול שנצפה מרחוק הגדילו; למסך קטן או עמוס הקטינו.</div>
                     </div>
                 </div>
+            </div>
+
+            <div class="panel publish-panel" id="publish-panel">
+                <h2>שיתוף המראה שלכם</h2>
+                <p class="small">יצרתם מראה משלכם? פרסמו אותו כתבנית ובתי כנסת אחרים יוכלו לבחור בו. נשמרים רק צבעים, סגנון, גופן ופריסת המסך — בלי הלוגו ובלי התוכן. מפרסמים את המצב <strong>השמור</strong>, אז שמרו קודם.</p>
+                <div class="row">
+                    <div class="field"><label for="pub-name">שם התבנית</label><input type="text" id="pub-name" placeholder="למשל: אבן ירושלמית עם חלון מודעות"></div>
+                    <div class="field"><label for="pub-desc">תיאור קצר (רשות)</label><input type="text" id="pub-desc" placeholder="מתאים למסך רחב, טקסט גדול"></div>
+                </div>
+                <button class="btn btn-primary btn-sm" id="pub-btn" type="button">פרסום לקהילה</button>
+                <div class="desc" id="pub-msg"></div>
+                <div id="my-templates" class="plain-list small" style="margin-top:10px;"></div>
             </div>
 
             <div class="panel">
@@ -637,6 +747,18 @@
     <div class="unsaved-indicator" id="unsaved">
         <span>יש שינויים שלא פורסמו לצג</span>
         <button class="btn btn-primary btn-sm" id="save-float-btn" type="button">שמירה ופרסום</button>
+    </div>
+</div>
+
+<!-- מדריך צף: מסביר צעד-צעד איך להגדיר ולהתאים את הצג -->
+<button class="tour-btn" id="tour-btn" type="button" hidden>❓ מדריך</button>
+<div class="tour-card" id="tour-card" hidden>
+    <div class="tour-head"><span class="tour-count" id="tour-count"></span><button class="tour-close" id="tour-close" type="button" aria-label="סגירה">×</button></div>
+    <h3 id="tour-title"></h3>
+    <p id="tour-text"></p>
+    <div class="tour-nav">
+        <button class="btn btn-ghost btn-sm" id="tour-prev" type="button">→ הקודם</button>
+        <button class="btn btn-primary btn-sm" id="tour-next" type="button">הבא ←</button>
     </div>
 </div>
 

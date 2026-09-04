@@ -720,6 +720,14 @@
       root.style.setProperty('--fs', String(d.scale || 1));
     }
 
+    // לוגו בכותרת (במצב מסכים קוביית לוגו נפרדת מסתירה אותו דרך body.logo-block)
+    const logoEl = qs('#header-logo');
+    if (logoEl) {
+      const url = (d.logo && d.logo.url || '').trim();
+      if (url && logoEl.getAttribute('src') !== url) logoEl.src = url;
+      logoEl.hidden = !url;
+    }
+
     // צבע הדגשה מותאם: inline על ה-html גובר על הערכה, ריק = צבע הערכה
     if (d.accent) document.documentElement.style.setProperty('--accent', d.accent);
     else document.documentElement.style.removeProperty('--accent');
@@ -780,6 +788,7 @@
     clearInterval(_screenTimer); _screenTimer = null;
     clearInterval(_mediaTimer); _mediaTimer = null;
     document.body.removeAttribute('data-screens');
+    document.body.classList.remove('logo-block');
   }
 
   function screensConfig() {
@@ -830,6 +839,7 @@
 
     // הכל מוסתר, ומה שנמצא במסך הנוכחי יוחזר לתצוגה
     for (const { el } of _homes.values()) el.hidden = true;
+    document.body.classList.toggle('logo-block', screen.blocks.some(b => b.type === 'logo'));
     _stage.innerHTML = '';
 
     for (const block of screen.blocks) {
