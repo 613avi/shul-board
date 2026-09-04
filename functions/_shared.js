@@ -4,6 +4,7 @@
 export const SECTIONS = [
   'config', 'rooms', 'memorial', 'announcements',
   'special-times', 'zmanim-calendar', 'media-playlist', 'screens',
+  'dedications', 'shiurim', 'texts',
 ];
 
 // רשת הפריסה של עורך המסכים. כל הקואורדינטות של הקוביות הן בתאים,
@@ -188,6 +189,7 @@ export const DEFAULTS = {
       sofZmanTfilla: true, chatzot: true, minchaGedola: true, minchaKetana: true,
       plagHaMincha: true, sunset: true, tzeit: true,
       sofZmanShmaMGA: true, sofZmanTfillaMGA: true,
+      tzeit72: false, chatzotNight: false,
     },
     theme: { accent: '#d4af37', background: '#0e1320' },
     rotation: { enabled: false, intervalSeconds: 20 },
@@ -198,8 +200,20 @@ export const DEFAULTS = {
       preset: 'jerusalem', theme: 'stone', layout: '3col', style: 'traditional', font: 'classic',
       accent: '', scale: 1, backgroundImage: '', backgroundOverlay: 0.45, logo: { url: '' },
     },
-    // מה מוצג על הלוח מעבר לקוביות עצמן
-    display: { showUpcoming: true, headerLogo: true },
+    // מה מוצג על הלוח מעבר לקוביות עצמן. תכונות חדשות דולקות רק להרשמות חדשות —
+    // המיגרציה ב-_migrations.js מכבה אותן לבתי כנסת שנשמרו לפניהן.
+    display: {
+      showUpcoming: true, headerLogo: true,
+      todayLine: true,          // שורת "היום": חגים, ראש חודש, חנוכה, שבת מברכים ומולד
+      fastTimes: true,          // תחילת וסיום הצום בימי תענית
+      nextHighlight: true,      // הדגשת המניין הבא + "בעוד X דק׳"
+      hidePast: false,          // הסתרת תפילות שכבר עברו היום
+      extendedMentions: true,   // תחנון והלל בשורת ההזכרות
+      learning: ['dafyomi'],    // לוחות לימוד יומי לקוביית "לימוד יומי"
+      weather: { enabled: false },
+      sleep: { enabled: false, from: '23:30', to: '05:00' },
+      textsSeconds: 15,         // קצב החלפת הטקסטים/ההקדשות
+    },
     // אשף ההקמה מוצג עד שהגבאי מסיים אותו (או מדלג עליו).
     setup: { done: false, step: 1 },
   },
@@ -221,6 +235,13 @@ export const DEFAULTS = {
 
   // חלון המודעות: קבצים שהועלו ומוצגים בסבב בתוך קובייה מסוג media
   'media-playlist': { seconds: 12, fit: 'contain', entries: [] },
+
+  // הקדשות וברכות: לעילוי נשמת / לרפואה / להצלחה / תרומה / מזל טוב — מוצגות בסבב
+  dedications: { entries: [] },
+  // לוח שיעורים קבוע: { title, lecturer, days:[0..6], time:'HH:MM', place, notes }
+  shiurim: { entries: [] },
+  // טקסטים מתחלפים: הלכה יומית, פסוק, דבר תורה — { title, body }
+  texts: { entries: [] },
 
   // מסכים מתחלפים. enabled=false משאיר את הפריסה הקלאסית,
   // כך שבתי כנסת קיימים לא משתנים בלי שביקשו.

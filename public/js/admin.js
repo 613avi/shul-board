@@ -58,6 +58,9 @@
       zmanimCalendar: { entries: {} },
       mediaPlaylist: { seconds: 12, fit: 'contain', entries: [] },
       screens: null,
+      dedications: { entries: [] },
+      shiurim: { entries: [] },
+      texts: { entries: [] },
     },
     dirty: false,
   };
@@ -115,6 +118,9 @@
     state.data.zmanimCalendar = d['zmanim-calendar'] || { entries: {} };
     state.data.mediaPlaylist = d['media-playlist'] || { seconds: 12, fit: 'contain', entries: [] };
     state.data.screens = d['screens'] || null;
+    state.data.dedications = { entries: Array.isArray(d.dedications?.entries) ? d.dedications.entries : [] };
+    state.data.shiurim = { entries: Array.isArray(d.shiurim?.entries) ? d.shiurim.entries : [] };
+    state.data.texts = { entries: Array.isArray(d.texts?.entries) ? d.texts.entries : [] };
     state.meta = res.meta || {};
     if (!Array.isArray(state.data.mediaPlaylist.entries)) state.data.mediaPlaylist.entries = [];
     if (!state.data.screens || !Array.isArray(state.data.screens.screens) || !state.data.screens.screens.length) {
@@ -381,6 +387,112 @@
     }
   }
 
+  // ================= הקדשות וברכות =================
+  const DAY_NAMES = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+
+  function cardHead(title, onDelete) {
+    return el('div', { class: 'head' }, el('strong', {}, title),
+      el('button', { class: 'btn btn-danger btn-sm', type: 'button', onclick: onDelete }, 'מחיקה'));
+  }
+  const inputFor = (obj, key, type = 'text', placeholder = '', onInput) => {
+    const i = el('input', { type, placeholder });
+    i.value = obj[key] ?? '';
+    i.addEventListener('input', () => { obj[key] = i.value; markDirty(); if (onInput) onInput(); });
+    return i;
+  };
+  const fieldOf = (label, input) => el('div', { class: 'field' }, el('label', {}, label), input);
+
+  function renderDedications() {
+    const host = qs('#ded-list');
+    if (!host) return;
+    host.innerHTML = '';
+    const list = state.data.dedications.entries;
+    if (!list.length) { host.appendChild(el('div', { class: 'empty-state' }, 'אין הקדשות — הוסיפו "לעילוי נשמת", "לרפואה" או "מזל טוב".')); return; }
+    list.forEach((d) => {
+      const card = el('div', { class: 'entry-card' });
+      const title = el('strong', {}, d.text || '(ריק)');
+      card.appendChild(el('div', { class: 'head' }, title,
+        el('button', { class: 'btn btn-danger btn-sm', type: 'button', onclick: () => {
+          state.data.dedications.entries = list.filter(x => x !== d); markDirty(); renderDedications();
+        } }, 'מחיקה')));
+      const chips = el('div', { class: 'type-chips' });
+      for (const t of P.DEDICATION_TYPES) {
+        chips.appendChild(el('button', { class: `chip${d.type === t.id ? ' active' : ''}`, type: 'button',
+          onclick: () => { d.type = t.id; markDirty(); renderDedications(); } }, `${t.icon} ${t.name}`));
+      }
+      card.appendChild(fieldOf('סוג', chips));
+      card.appendChild(fieldOf('הטקסט (למשל: ר׳ יעקב בן משה ז״ל / דוד ושרה כהן להולדת הבת)',
+        inputFor(d, 'text', 'text', '', () => { title.textContent = d.text || '(ריק)'; })));
+      card.appendChild(el('div', { class: 'row-3' },
+        fieldOf('מאת / הערה (רשות)', inputFor(d, 'from', 'text', 'לדוגמה: נתרם ע״י משפחת לוי')),
+        fieldOf('מתאריך (רשות)', inputFor(d, 'startDate', 'date')),
+        fieldOf('עד תאריך (רשות)', inputFor(d, 'endDate', 'date'))));
+      host.appendChild(card);
+    });
+  }
+
+  // ================= שיעורים =================
+  function renderShiurim() {
+    const host = qs('#shiur-list');
+    if (!host) return;
+    host.innerHTML = '';
+    const list = state.data.shiurim.entries;
+    if (!list.length) { host.appendChild(el('div', { class: 'empty-state' }, 'אין שיעורים — הוסיפו שיעור קבוע.')); return; }
+    list.forEach((sh) => {
+      const card = el('div', { class: 'entry-card' });
+      const title = el('strong', {}, sh.title || '(ללא שם)');
+      card.appendChild(el('div', { class: 'head' }, title,
+        el('button', { class: 'btn btn-danger btn-sm', type: 'button', onclick: () => {
+          state.data.shiurim.entries = list.filter(x => x !== sh); markDirty(); renderShiurim();
+        } }, 'מחיקה')));
+      card.appendChild(el('div', { class: 'row' },
+        fieldOf('נושא השיעור', inputFor(sh, 'title', 'text', 'לדוגמה: דף היומי', () => { title.textContent = sh.title || '(ללא שם)'; })),
+        fieldOf('מגיד השיעור (רשות)', inputFor(sh, 'lecturer', 'text', 'הרב ...'))));
+      const time = inputFor(sh, 'time', 'time');
+      const days = el('div', { class: 'day-chips' });
+      const active = Array.isArray(sh.days) ? sh.days : [];
+      DAY_NAMES.forEach((name, i) => {
+        const cb = el('input', { type: 'checkbox' });
+        cb.checked = active.includes(i);
+        const lab = el('label', { class: cb.checked ? 'on' : '' }, cb, name);
+        cb.addEventListener('change', () => {
+          const cur = Array.isArray(sh.days) ? [...sh.days] : [];
+          sh.days = cb.checked ? [...new Set([...cur, i])].sort() : cur.filter(x => x !== i);
+          lab.classList.toggle('on', cb.checked); markDirty();
+        });
+        days.appendChild(lab);
+      });
+      card.appendChild(el('div', { class: 'row-3' },
+        fieldOf('שעה', time),
+        fieldOf('ימים (ריק = כל יום)', days),
+        fieldOf('מקום (רשות)', inputFor(sh, 'place', 'text', 'בית המדרש'))));
+      host.appendChild(card);
+    });
+  }
+
+  // ================= טקסטים מתחלפים =================
+  function renderTexts() {
+    const host = qs('#text-list');
+    if (!host) return;
+    host.innerHTML = '';
+    const list = state.data.texts.entries;
+    if (!list.length) { host.appendChild(el('div', { class: 'empty-state' }, 'אין טקסטים — הוסיפו הלכה יומית, פסוק או דבר תורה קצר.')); return; }
+    list.forEach((t) => {
+      const card = el('div', { class: 'entry-card' });
+      const title = el('strong', {}, t.title || '(ללא כותרת)');
+      card.appendChild(el('div', { class: 'head' }, title,
+        el('button', { class: 'btn btn-danger btn-sm', type: 'button', onclick: () => {
+          state.data.texts.entries = list.filter(x => x !== t); markDirty(); renderTexts();
+        } }, 'מחיקה')));
+      card.appendChild(fieldOf('כותרת (רשות)', inputFor(t, 'title', 'text', 'לדוגמה: הלכה יומית', () => { title.textContent = t.title || '(ללא כותרת)'; })));
+      const ta = el('textarea', { placeholder: 'הטקסט שיוצג על הצג' });
+      ta.value = t.body || '';
+      ta.addEventListener('input', () => { t.body = ta.value; markDirty(); });
+      card.appendChild(fieldOf('תוכן', ta));
+      host.appendChild(card);
+    });
+  }
+
   // ================= מראה הצג =================
   // הקטלוג (מראות, ערכות, סגנונות, גופנים) יושב ב-js/presets.js ומשותף לצג.
 
@@ -476,9 +588,60 @@
     if (up) up.checked = state.data.config.display?.showUpcoming !== false;
     const hl = qs('#d-header-logo');
     if (hl) hl.checked = !!state.data.config.display?.headerLogo;
+    renderFeatures();
 
     renderBgGrid();
     renderLogoPicker();
+  }
+
+  // ---------- "מה מוצג על הלוח": תכונות הצג ----------
+  const FEATURE_FLAGS = ['todayLine', 'fastTimes', 'nextHighlight', 'hidePast', 'extendedMentions'];
+  const disp = () => {
+    const c = state.data.config;
+    if (!c.display || typeof c.display !== 'object') c.display = {};
+    return c.display;
+  };
+
+  function renderFeatures() {
+    if (!qs('#features-panel')) return;
+    const d = disp();
+    for (const k of FEATURE_FLAGS) { const cb = qs(`#f-${k}`); if (cb) cb.checked = !!d[k]; }
+    const w = qs('#f-weather'); if (w) w.checked = !!(d.weather && d.weather.enabled);
+    const chips = qs('#f-learning');
+    if (chips) {
+      const sel = Array.isArray(d.learning) ? d.learning : ['dafyomi'];
+      chips.innerHTML = '';
+      for (const l of P.LEARNING) {
+        chips.appendChild(el('button', {
+          class: `chip${sel.includes(l.id) ? ' active' : ''}`, type: 'button',
+          onclick: () => {
+            const cur = Array.isArray(d.learning) ? [...d.learning] : ['dafyomi'];
+            d.learning = cur.includes(l.id) ? cur.filter(x => x !== l.id) : [...cur, l.id];
+            markDirty(); renderFeatures(); pushDesignPreview();
+          },
+        }, l.name));
+      }
+    }
+    const sl = d.sleep || {};
+    if (qs('#f-sleep')) qs('#f-sleep').checked = !!sl.enabled;
+    if (qs('#f-sleep-from')) qs('#f-sleep-from').value = sl.from || '23:30';
+    if (qs('#f-sleep-to')) qs('#f-sleep-to').value = sl.to || '05:00';
+    if (qs('#f-textsSeconds')) qs('#f-textsSeconds').value = d.textsSeconds || 15;
+  }
+
+  function bindFeatures() {
+    if (!qs('#features-panel')) return;
+    for (const k of FEATURE_FLAGS) {
+      const cb = qs(`#f-${k}`);
+      if (cb) cb.addEventListener('change', () => { disp()[k] = cb.checked; markDirty(); pushDesignPreview(); });
+    }
+    qs('#f-weather').addEventListener('change', (e) => { disp().weather = { ...(disp().weather || {}), enabled: e.target.checked }; markDirty(); pushDesignPreview(); });
+    const sleepChanged = () => {
+      disp().sleep = { enabled: qs('#f-sleep').checked, from: qs('#f-sleep-from').value || '23:30', to: qs('#f-sleep-to').value || '05:00' };
+      markDirty(); pushDesignPreview();
+    };
+    for (const id of ['#f-sleep', '#f-sleep-from', '#f-sleep-to']) qs(id).addEventListener('change', sleepChanged);
+    qs('#f-textsSeconds').addEventListener('input', (e) => { disp().textsSeconds = Math.max(4, parseInt(e.target.value, 10) || 15); markDirty(); pushDesignPreview(); });
   }
 
   // תמונות הרקע — מהקבצים שהועלו
@@ -645,9 +808,11 @@
     { tab: 'design', sel: '#community-panel', title: 'תבניות מהקהילה', text: 'מראות שבתי כנסת אחרים בנו ופרסמו. לחיצה מעתיקה את המראה והפריסה; הלוגו והתוכן שלכם נשארים.' },
     { tab: 'design', sel: '#d-theme-row', title: 'כוונון עדין', text: 'ערכת צבע, גופן, צבע הדגשה וגודל טקסט. כך הצג שלכם נראה משלכם ולא כמו כולם.' },
     { tab: 'design', sel: '#d-bg-grid', title: 'רקע ולוגו', text: 'תמונה של בית הכנסת או נוף כרקע, עם החשכה לקריאות. הלוגו מופיע ליד שם בית הכנסת בכותרת.' },
+    { tab: 'design', sel: '#features-panel', title: 'מה מוצג על הלוח', text: 'התכונות החכמות: שורת "היום" עם חגים ומולד, הדגשת התפילה הבאה, תחנון והלל, לימוד יומי, מזג אוויר ומצב שינה בלילה.' },
     { tab: 'design', sel: '#publish-panel', title: 'שיתוף המראה', text: 'יצרתם מראה יפה? פרסמו אותו כתבנית, ובתי כנסת אחרים יוכלו לבחור בו.' },
     { tab: 'screens', sel: '#sc-templates', title: 'פריסת המסך', text: 'תבניות לסידור הקוביות: עם חלון מודעות, עם לוגו, מסך אנכי. לחיצה מסדרת, ואחר כך אפשר לגרור.' },
     { tab: 'screens', sel: '#sc-canvas-wrap', title: 'עורך הקוביות', text: 'גוררים קובייה להזזה, מושכים את הריבוע הכחול לשינוי גודל. "+ מסך" יוצר מסך נוסף שיתחלף אוטומטית.' },
+    { tab: 'dedications', sel: '#ded-list', title: 'הקדשות וברכות', text: 'לעילוי נשמת, לרפואה, מזל טוב — מוצגות בסבב על הצג. אפשר לתזמן לפי תאריכים.' },
     { tab: 'media', sel: '#media-file', title: 'קבצים ומודעות', text: 'תמונות ו-PDF להצגה בסבב בחלון המודעות, או לשימוש כרקע וכלוגו.' },
     { tab: 'announcements', sel: '#ann-table', title: 'הודעות לציבור', text: 'הודעה רצה בתחתית הצג, עם תאריכי התחלה וסיום כדי לתזמן מראש.' },
     { tab: 'installer', sel: '#link-installer', title: 'התקנה על המסך', text: 'קובץ שפותח את הצג במסך מלא בכל הדלקה של המחשב. או פשוט הכתובת בכל דפדפן.' },
@@ -1082,21 +1247,7 @@
   }
 
   // ---------- Zmanim ----------
-  const ZMANIM_KEYS = [
-    ['alotHaShachar',    'עלות השחר'],
-    ['misheyakir',       'משיכיר'],
-    ['sunrise',          'הנץ החמה'],
-    ['sofZmanShmaMGA',   'סוף זמן ק״ש (מג״א)'],
-    ['sofZmanShma',      'סוף זמן ק״ש (גר״א)'],
-    ['sofZmanTfillaMGA', 'סוף זמן תפילה (מג״א)'],
-    ['sofZmanTfilla',    'סוף זמן תפילה (גר״א)'],
-    ['chatzot',          'חצות היום'],
-    ['minchaGedola',     'מנחה גדולה'],
-    ['minchaKetana',     'מנחה קטנה'],
-    ['plagHaMincha',     'פלג המנחה'],
-    ['sunset',           'שקיעת החמה'],
-    ['tzeit',            'צאת הכוכבים'],
-  ];
+  const ZMANIM_KEYS = window.SB_PRESETS.ZMANIM;
   // hebcal method map (matches display.js ZMANIM_DEFS)
   const ZMANIM_FN = {
     alotHaShachar:    z => z.alotHaShachar(),
@@ -1112,6 +1263,8 @@
     plagHaMincha:     z => z.plagHaMincha(),
     sunset:           z => z.sunset(),
     tzeit:            z => z.tzeit(),
+    tzeit72:          z => z.sunsetOffset(72),
+    chatzotNight:     z => z.chatzotNight(),
   };
 
   function computeDefaultZmanim() {
@@ -1730,6 +1883,9 @@
       ['zmanim-calendar', state.data.zmanimCalendar],
       ['media-playlist', state.data.mediaPlaylist],
       ['screens', state.data.screens],
+      ['dedications', state.data.dedications],
+      ['shiurim', state.data.shiurim],
+      ['texts', state.data.texts],
     ];
 
     try {
@@ -1926,6 +2082,9 @@
     renderMemorial();
     renderAnnouncements();
     renderSpecial();
+    renderDedications();
+    renderShiurim();
+    renderTexts();
     updateZmCsvCount();
     if (qs('#sc-editor')) renderScreens();
     renderPlaylist();
@@ -1968,20 +2127,11 @@
 
   const GRID = { cols: 24, rows: 18 };
 
-  const BLOCK_TYPES = {
-    header:        'כותרת ושעון',
-    zmanim:        'זמני היום',
-    tefillot:      'זמני תפילות',
-    memorial:      'לעילוי נשמת',
-    mentions:      'הזכרות בתפילה',
-    announcements: 'הודעות רצות',
-    upcoming:      'אירוע קרוב',
-    media:         'חלון מודעות',
-    logo:          'לוגו',
-  };
+  const BLOCK_TYPES = Object.fromEntries(P.BLOCKS.map(b => [b.type, b.name]));
+  const BLOCK_DESC = Object.fromEntries(P.BLOCKS.map(b => [b.type, b.desc]));
 
   // סוגים שאפשר להוסיף רק פעם אחת למסך — הם עוטפים אלמנט יחיד בדף
-  const SINGLE_USE = new Set(Object.keys(BLOCK_TYPES).filter(t => t !== 'logo' && t !== 'media'));
+  const SINGLE_USE = new Set(P.BLOCKS.filter(b => b.single).map(b => b.type));
 
   const ASPECTS = ['16:9', '16:10', '4:3', '21:9', '9:16', '3:4'];
 
@@ -2094,8 +2244,8 @@
     for (const [type, label] of Object.entries(BLOCK_TYPES)) {
       pal.appendChild(el('button', {
         disabled: SINGLE_USE.has(type) && used.has(type) ? 'disabled' : null,
-        onclick: () => addBlock(type),
-      }, `+ ${label}`));
+        onclick: () => addBlock(type), title: BLOCK_DESC[type] || '',
+      }, `+ ${label}`, el('small', {}, BLOCK_DESC[type] || '')));
     }
   }
 
@@ -2105,7 +2255,7 @@
     for (const b of scScreen().blocks) {
       const div = el('div', {
         class: `sc-block${b.id === scSelected ? ' selected' : ''}`,
-        'data-id': b.id,
+        'data-id': b.id, 'data-type': b.type,
       });
       div.style.left   = `${(b.x / GRID.cols) * 100}%`;
       div.style.top    = `${(b.y / GRID.rows) * 100}%`;
@@ -2220,6 +2370,15 @@
       markDirty(); pushScreensPreview();
     });
     box.appendChild(el('label', { class: 'sc-prop' }, 'צף מעל השאר', float));
+
+    if (block.type === 'clock') {
+      const v = el('select', {});
+      v.appendChild(el('option', { value: 'digital' }, 'דיגיטלי'));
+      v.appendChild(el('option', { value: 'analog' }, 'אנלוגי (מחוגים)'));
+      v.value = block.variant === 'analog' ? 'analog' : 'digital';
+      v.addEventListener('change', () => { block.variant = v.value; markDirty(); pushScreensPreview(); });
+      box.appendChild(el('label', { class: 'sc-prop' }, 'סוג שעון', v));
+    }
 
     box.appendChild(el('button', {
       class: 'btn btn-ghost btn-sm btn-danger',
@@ -2527,8 +2686,22 @@
 
     setupMedia();
 
+    qs('#add-ded-btn').addEventListener('click', () => {
+      state.data.dedications.entries.push({ type: 'neshama', text: '', from: '', startDate: '', endDate: '' });
+      markDirty(); renderDedications();
+    });
+    qs('#add-shiur-btn').addEventListener('click', () => {
+      state.data.shiurim.entries.push({ title: '', lecturer: '', days: [], time: '', place: '' });
+      markDirty(); renderShiurim();
+    });
+    qs('#add-text-btn').addEventListener('click', () => {
+      state.data.texts.entries.push({ title: '', body: '' });
+      markDirty(); renderTexts();
+    });
+
     bindGeneral();
     bindDesign();
+    bindFeatures();
     setupWizard();
     setupTour();
     setupTabs();

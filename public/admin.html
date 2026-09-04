@@ -299,6 +299,9 @@
             <button data-tab="memorial"><span class="ico">🕯️</span>לעילוי נשמת</button>
             <button data-tab="announcements"><span class="ico">📢</span>הודעות</button>
             <button data-tab="special"><span class="ico">📅</span>חגים ואירועים</button>
+            <button data-tab="dedications"><span class="ico">🎗️</span>הקדשות וברכות</button>
+            <button data-tab="shiurim"><span class="ico">📖</span>שיעורים</button>
+            <button data-tab="texts"><span class="ico">📜</span>טקסטים מתחלפים</button>
             <div class="nav-group">מראה</div>
             <button data-tab="design"><span class="ico">🎨</span>מראה הצג</button>
             <button data-tab="screens"><span class="ico">🖥️</span>מסכים ופריסה</button>
@@ -502,6 +505,36 @@
             </div>
         </div>
 
+        <!-- הקדשות וברכות -->
+        <div class="tab-content" data-tab="dedications">
+            <div class="panel">
+                <h2>הקדשות וברכות</h2>
+                <p class="small">לעילוי נשמת, לרפואה שלמה, להצלחה, תרומה, מזל טוב — מוצגות בסבב בקוביית "הקדשות וברכות" (לשונית "מסכים ופריסה", תבנית "לוח קהילה"). תאריכים ריקים = תמיד.</p>
+                <div id="ded-list"></div>
+                <button class="btn btn-ghost" id="add-ded-btn" type="button">+ הקדשה / ברכה</button>
+            </div>
+        </div>
+
+        <!-- שיעורים -->
+        <div class="tab-content" data-tab="shiurim">
+            <div class="panel">
+                <h2>לוח שיעורים</h2>
+                <p class="small">שיעורים קבועים לפי ימים. הצג מציג את השיעורים של היום ושל מחר בקוביית "שיעורים". בלי ימים מסומנים = כל יום.</p>
+                <div id="shiur-list"></div>
+                <button class="btn btn-ghost" id="add-shiur-btn" type="button">+ שיעור</button>
+            </div>
+        </div>
+
+        <!-- טקסטים מתחלפים -->
+        <div class="tab-content" data-tab="texts">
+            <div class="panel">
+                <h2>טקסטים מתחלפים</h2>
+                <p class="small">הלכה יומית, פסוק, דבר תורה קצר, פנינה — מתחלפים בסבב בקוביית "טקסט מתחלף". קצב ההחלפה ב"מראה הצג" → "מה מוצג על הלוח".</p>
+                <div id="text-list"></div>
+                <button class="btn btn-ghost" id="add-text-btn" type="button">+ טקסט</button>
+            </div>
+        </div>
+
         <!-- מראה הצג -->
         <div class="tab-content" data-tab="design">
             <div class="panel">
@@ -568,10 +601,36 @@
                 <div id="my-templates" class="plain-list small" style="margin-top:10px;"></div>
             </div>
 
-            <div class="panel">
+            <div class="panel" id="features-panel">
                 <h2>מה מוצג על הלוח</h2>
-                <label class="check-row"><input type="checkbox" id="d-show-upcoming"> <span>אירוע קרוב בתחתית המסך <span class="desc" style="display:inline;">(למשל "ראש השנה תשפ״ז · בעוד 10 ימים")</span></span></label>
-                <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="d-header-logo"> <span>הלוגו ליד שם בית הכנסת בכותרת <span class="desc" style="display:inline;">(במצב מסכים, קוביית לוגו נפרדת מחליפה אותו)</span></span></label>
+                <p class="small">תכונות חכמות של הצג. כל אחת משתקפת מיד בתצוגה המקדימה.</p>
+                <div class="feature-list">
+                    <label class="check-row"><input type="checkbox" id="f-todayLine"> <span>שורת "היום" בכותרת<span class="desc">חגים, ראש חודש, חנוכה, שבת מברכים והמולד, צומות</span></span></label>
+                    <label class="check-row"><input type="checkbox" id="f-fastTimes"> <span>תחילת וסיום הצום<span class="desc">בימי תענית, בלוח התפילות</span></span></label>
+                    <label class="check-row"><input type="checkbox" id="f-nextHighlight"> <span>הדגשת התפילה הבאה<span class="desc">המניין הקרוב מודגש עם "בעוד X דק׳", תפילות שעברו מעומעמות</span></span></label>
+                    <label class="check-row"><input type="checkbox" id="f-hidePast"> <span>הסתרת תפילות שעברו<span class="desc">מציג רק את מה שעוד לפניכם היום</span></span></label>
+                    <label class="check-row"><input type="checkbox" id="f-extendedMentions"> <span>תחנון והלל בשורת ההזכרות<span class="desc">"אין תחנון", "חצי הלל", "הלל שלם" לפי הלוח</span></span></label>
+                    <label class="check-row"><input type="checkbox" id="d-show-upcoming"> <span>אירוע קרוב בתחתית המסך<span class="desc">למשל "ראש השנה תשפ״ז · בעוד 10 ימים"</span></span></label>
+                    <label class="check-row"><input type="checkbox" id="d-header-logo"> <span>הלוגו ליד שם בית הכנסת<span class="desc">במצב מסכים, קוביית לוגו נפרדת מחליפה אותו</span></span></label>
+                    <label class="check-row"><input type="checkbox" id="f-weather"> <span>מזג אוויר<span class="desc">לקוביית "מזג אוויר": טמפרטורה ותחזית לפי המיקום (Open-Meteo)</span></span></label>
+                </div>
+
+                <h3>לימוד יומי</h3>
+                <p class="small">מה יופיע בקוביית "לימוד יומי" (תבנית "לוח לימוד" או "לוח מחוונים").</p>
+                <div class="learning-chips" id="f-learning"></div>
+
+                <h3>מצב שינה</h3>
+                <div class="inline-controls">
+                    <label class="check-row"><input type="checkbox" id="f-sleep"> <span>כיבוי המסך בשעות הלילה</span></label>
+                    <label>מ- <input type="time" id="f-sleep-from" style="width:auto;"></label>
+                    <label>עד <input type="time" id="f-sleep-to" style="width:auto;"></label>
+                </div>
+                <div class="desc">הצג מציג מסך שחור עם שעון קטן בין השעות האלה. חוסך את המסך ולא מאיר את בית הכנסת בלילה.</div>
+
+                <h3>קצב ההחלפה</h3>
+                <div class="inline-controls">
+                    <label>שניות לכל הקדשה / טקסט <input type="number" id="f-textsSeconds" min="4" max="120" style="width:80px;"></label>
+                </div>
             </div>
 
             <div class="panel">

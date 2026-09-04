@@ -20,6 +20,11 @@ window.SB_PRESETS = (() => {
     { id: 'sand',      name: 'חול',            swatch: { bg: '#f3e9d6', card: 'rgba(120,80,30,.08)', text: '#3f2d18', accent: '#a0561f' } },
     { id: 'sky',       name: 'תכלת',           swatch: { bg: '#e9f3fb', card: 'rgba(255,255,255,.75)', text: '#12314a', accent: '#1b6ca8' } },
     { id: 'light',     name: 'בהיר ונקי',      swatch: { bg: '#f5f5f5', card: 'rgba(0,0,0,.04)', text: '#1a2140', accent: '#b8860b' } },
+    { id: 'royal',     name: 'סגול מלכותי',    swatch: { bg: '#1d1033', card: 'rgba(255,255,255,.07)', text: '#f3eeff', accent: '#f0c75e' } },
+    { id: 'ocean',     name: 'ים',             swatch: { bg: '#062a3a', card: 'rgba(255,255,255,.07)', text: '#e8f6fb', accent: '#ffd166' } },
+    { id: 'charcoal',  name: 'פחם',            swatch: { bg: '#111214', card: 'rgba(255,255,255,.06)', text: '#fafafa', accent: '#ffffff' } },
+    { id: 'olive',     name: 'זית',            swatch: { bg: '#eef0e3', card: 'rgba(60,80,30,.08)', text: '#24301a', accent: '#5c7a2a' } },
+    { id: 'sunset',    name: 'שקיעה',          swatch: { bg: '#2b1620', card: 'rgba(0,0,0,.3)', text: '#fff1e6', accent: '#ff9f43' } },
   ];
 
   // ---------- סגנון האלמנטים (data-style) ----------
@@ -29,6 +34,8 @@ window.SB_PRESETS = (() => {
     { id: 'modern',      name: 'מודרני',       desc: 'פינות עגולות וצל רך' },
     { id: 'minimalist',  name: 'מינימליסטי',   desc: 'בלי רקעים, רק קו מודגש' },
     { id: 'ornate',      name: 'מעוטר',        desc: 'מסגרת כפולה וכותרות במרכז' },
+    { id: 'glass',       name: 'זכוכית',       desc: 'לוחות שקופים עם טשטוש רקע' },
+    { id: 'bold',        name: 'נועז',         desc: 'כותרות גדולות, פס עבה, ניגודיות גבוהה' },
   ];
 
   // ---------- פריסת הצג הקלאסי (data-layout) ----------
@@ -38,6 +45,7 @@ window.SB_PRESETS = (() => {
     { id: 'horizontal',    name: 'הנצחות ברוחב מלא',      desc: 'שתי עמודות למעלה, הנצחות למטה' },
     { id: 'sidebar-right', name: 'סרגל צד ימין',          desc: 'השעון והתאריך בצד' },
     { id: 'sidebar-left',  name: 'סרגל צד שמאל',          desc: 'השעון והתאריך בצד השני' },
+    { id: 'stacked',       name: 'עמודה אחת',             desc: 'הלוחות זה מתחת לזה — למסך אנכי' },
   ];
 
   // ---------- גופנים (data-font) ----------
@@ -48,6 +56,9 @@ window.SB_PRESETS = (() => {
     { id: 'sans',    name: 'נקי',          desc: 'הכל בגופן מודרני וקריא',        sample: "'Assistant', sans-serif" },
     { id: 'heebo',   name: 'היבו',         desc: 'מודרני ועבה, קריא מרחוק',        sample: "'Heebo', sans-serif" },
     { id: 'rubik',   name: 'רוביק',        desc: 'עגול וידידותי',                 sample: "'Rubik', sans-serif" },
+    { id: 'secular', name: 'סקולר',        desc: 'שלטים ולוחות — עבה ובולט',      sample: "'Secular One', sans-serif" },
+    { id: 'alef',    name: 'אלף',          desc: 'קלאסי-מודרני, קריא מאוד',       sample: "'Alef', sans-serif" },
+    { id: 'varela',  name: 'ורלה',         desc: 'רך ועגול',                      sample: "'Varela Round', sans-serif" },
   ];
 
   // ---------- מראות מוכנים ----------
@@ -68,6 +79,12 @@ window.SB_PRESETS = (() => {
     { id: 'clean',       name: 'נקי',            desc: 'מינימלי, בלי מסגרות',               theme: 'light',     style: 'minimalist',  layout: '2col',       font: 'sans' },
     { id: 'slate',       name: 'אפור מודרני',    desc: 'אפור-כחול עם תכלת',                 theme: 'slate',     style: 'minimalist',  layout: 'sidebar-right', font: 'rubik' },
     { id: 'wood',        name: 'עץ חם',          desc: 'עץ חום וזהב',                       theme: 'wood',      style: 'classic',     layout: 'horizontal', font: 'classic' },
+    { id: 'royal',       name: 'סגול מלכותי',    desc: 'סגול עמוק, זהב ולוחות זכוכית',     theme: 'royal',     style: 'glass',       layout: '3col',       font: 'heebo' },
+    { id: 'ocean',       name: 'ים',             desc: 'כחול-ירוק עמוק עם צהוב חם',         theme: 'ocean',     style: 'modern',      layout: '2col',       font: 'rubik' },
+    { id: 'charcoal',    name: 'פחם',            desc: 'שחור-לבן נועז, קריא מכל מרחק',      theme: 'charcoal',  style: 'bold',        layout: '3col',       font: 'secular' },
+    { id: 'olive',       name: 'זית',            desc: 'בהיר וטבעי, ירוק זית',              theme: 'olive',     style: 'classic',     layout: 'horizontal', font: 'alef' },
+    { id: 'sunset',      name: 'שקיעה',          desc: 'סגול-כתום חם עם זכוכית',            theme: 'sunset',    style: 'glass',       layout: '3col',       font: 'varela' },
+    { id: 'stone-glass', name: 'אבן וזכוכית',    desc: 'אבן ירושלמית עם לוחות זכוכית',      theme: 'stone',     style: 'glass',       layout: '3col',       font: 'classic' },
   ];
 
   // ---------- תבניות למסכים (רשת 24×18) ----------
@@ -124,6 +141,45 @@ window.SB_PRESETS = (() => {
       ],
     },
     {
+      id: 'dashboard', name: 'לוח מחוונים', desc: 'שעון ותאריך גדולים, שבת, זמנים, תפילות, היום ולימוד יומי',
+      blocks: [
+        B('clock', 18, 0, 6, 4), B('date', 6, 0, 12, 4), B('logo', 0, 0, 6, 4),
+        B('zmanim', 16, 4, 8, 10), B('tefillot', 8, 4, 8, 10), B('shabbat', 0, 4, 8, 5), B('learning', 0, 9, 8, 5),
+        B('today', 0, 14, 24, 1), B('mentions', 0, 15, 24, 1), B('announcements', 0, 16, 24, 2),
+      ],
+    },
+    {
+      id: 'shabbat-board', name: 'לוח שבת', desc: 'שבת במרכז: הדלקת נרות, צאת השבת, פרשה, תפילות',
+      blocks: [
+        B('header', 0, 0, 24, 3), B('shabbat', 8, 3, 8, 12), B('tefillot', 16, 3, 8, 12), B('zmanim', 0, 3, 8, 12),
+        B('mentions', 0, 15, 24, 1), B('announcements', 0, 16, 24, 2),
+      ],
+    },
+    {
+      id: 'community', name: 'לוח קהילה', desc: 'הקדשות וברכות, שיעורים והודעות לצד הזמנים',
+      blocks: [
+        B('header', 0, 0, 24, 3), B('zmanim', 17, 3, 7, 12), B('tefillot', 10, 3, 7, 12),
+        B('dedications', 0, 3, 10, 6), B('shiurim', 0, 9, 10, 6),
+        B('mentions', 0, 15, 24, 1), B('announcements', 0, 16, 24, 2),
+      ],
+    },
+    {
+      id: 'learning-board', name: 'לוח לימוד', desc: 'לימוד יומי וטקסט מתחלף (הלכה יומית) לצד הזמנים',
+      blocks: [
+        B('header', 0, 0, 24, 3), B('zmanim', 17, 3, 7, 12), B('tefillot', 10, 3, 7, 12),
+        B('learning', 0, 3, 10, 5), B('text', 0, 8, 10, 7),
+        B('today', 0, 15, 24, 1), B('announcements', 0, 16, 24, 2),
+      ],
+    },
+    {
+      id: 'vertical-full', name: 'מסך אנכי מלא', desc: 'שעון, שבת, זמנים, תפילות והקדשות בעמודה — 9:16',
+      aspect: '9:16',
+      blocks: [
+        B('clock', 0, 0, 24, 2), B('date', 0, 2, 24, 1), B('zmanim', 0, 3, 24, 5), B('tefillot', 0, 8, 24, 4),
+        B('shabbat', 0, 12, 24, 2), B('dedications', 0, 14, 24, 2), B('announcements', 0, 16, 24, 1), B('today', 0, 17, 24, 1),
+      ],
+    },
+    {
       id: 'memorial-focus', name: 'הנצחות מודגשות', desc: 'לוח הנצחות גדול בצד',
       blocks: [
         B('header', 0, 0, 24, 3), B('memorial', 14, 3, 10, 12), B('tefillot', 7, 3, 7, 12), B('zmanim', 0, 3, 7, 12),
@@ -148,6 +204,81 @@ window.SB_PRESETS = (() => {
     { name: 'אילת',       lat: 29.5577, lon: 34.9519, candle: 18 },
   ];
 
+  // ---------- קוביות המסך ----------
+  // single = עוטפת אלמנט יחיד בדף ולכן פעם אחת למסך; השאר נבנות מחדש בכל ציור.
+  const BLOCKS = [
+    { type: 'header',        name: 'כותרת ושעון',     desc: 'שם בית הכנסת, תאריך, פרשה ושעון', single: true },
+    { type: 'zmanim',        name: 'זמני היום',       desc: 'הזמנים ההלכתיים שסימנתם', single: true },
+    { type: 'tefillot',      name: 'זמני תפילות',     desc: 'המניינים של היום, עם הדגשת הבא', single: true },
+    { type: 'memorial',      name: 'לעילוי נשמת',     desc: 'לוח ההנצחות, יארצייט מודגש', single: true },
+    { type: 'mentions',      name: 'הזכרות בתפילה',   desc: 'משיב הרוח, יעלה ויבוא, תחנון, הלל', single: true },
+    { type: 'announcements', name: 'הודעות רצות',     desc: 'פס ההודעות', single: true },
+    { type: 'upcoming',      name: 'אירוע קרוב',      desc: 'החג הקרוב וספירת ימים', single: true },
+    { type: 'media',         name: 'חלון מודעות',     desc: 'תמונות ו-PDF בסבב' },
+    { type: 'logo',          name: 'לוגו',            desc: 'הלוגו שבחרתם' },
+    { type: 'clock',         name: 'שעון גדול',       desc: 'דיגיטלי או אנלוגי' },
+    { type: 'date',          name: 'תאריך גדול',      desc: 'תאריך עברי, לועזי ופרשה' },
+    { type: 'shabbat',       name: 'לוח שבת',         desc: 'הדלקת נרות, צאת השבת, פרשה' },
+    { type: 'today',         name: 'היום',            desc: 'חגים, ראש חודש, צום, שבת מברכים ומולד' },
+    { type: 'learning',      name: 'לימוד יומי',      desc: 'דף היומי, משנה יומית, רמב״ם ועוד' },
+    { type: 'dedications',   name: 'הקדשות וברכות',   desc: 'לעילוי נשמת, לרפואה, מזל טוב — בסבב' },
+    { type: 'shiurim',       name: 'שיעורים',         desc: 'השיעורים של היום והשבוע' },
+    { type: 'text',          name: 'טקסט מתחלף',      desc: 'הלכה יומית, פסוק, דבר תורה' },
+    { type: 'omer',          name: 'ספירת העומר',     desc: 'הספירה בגדול, בימי הספירה' },
+    { type: 'weather',       name: 'מזג אוויר',       desc: 'טמפרטורה ותחזית (Open-Meteo)' },
+    { type: 'countdown',     name: 'התפילה הבאה',     desc: 'ספירה לאחור למניין הקרוב' },
+  ];
+
+  // ---------- לימוד יומי (hebcal/learning) ----------
+  const LEARNING = [
+    { id: 'dafyomi',            name: 'דף היומי' },
+    { id: 'mishnayomi',         name: 'משנה יומית' },
+    { id: 'rambam1',            name: 'רמב״ם — פרק ליום' },
+    { id: 'rambam3',            name: 'רמב״ם — ג׳ פרקים' },
+    { id: 'seferhamitzvot',     name: 'ספר המצוות' },
+    { id: 'nachyomi',           name: 'נ״ך יומי' },
+    { id: 'tanakhyomi',         name: 'תנ״ך יומי' },
+    { id: 'psalms',             name: 'תהלים יומי' },
+    { id: 'yerushalmi-vilna',   name: 'ירושלמי יומי' },
+    { id: 'dafweekly',          name: 'דף השבוע' },
+    { id: 'perekyomi',          name: 'משנה — פרק ליום' },
+    { id: 'kitzurshulchanaruch', name: 'קיצור שולחן ערוך' },
+    { id: 'arukhhashulchanyomi', name: 'ערוך השולחן יומי' },
+    { id: 'chofetzchaim',       name: 'חפץ חיים' },
+    { id: 'shemirathalashon',   name: 'שמירת הלשון' },
+    { id: 'pirkeiavotsummer',   name: 'פרקי אבות (קיץ)' },
+  ];
+
+  // ---------- סוגי הקדשות ----------
+  const DEDICATION_TYPES = [
+    { id: 'neshama',   name: 'לעילוי נשמת',   icon: '🕯️' },
+    { id: 'refua',     name: 'לרפואה שלמה',   icon: '💗' },
+    { id: 'hatzlacha', name: 'להצלחה',        icon: '✨' },
+    { id: 'zechut',    name: 'לזכות',         icon: '🙏' },
+    { id: 'donation',  name: 'נתרם על ידי',   icon: '🎁' },
+    { id: 'mazal',     name: 'מזל טוב',       icon: '🎉' },
+    { id: 'welcome',   name: 'ברוכים הבאים',  icon: '🤝' },
+  ];
+
+  // ---------- זמני היום — מפתחות ושמות (משותף לניהול ולצג) ----------
+  const ZMANIM = [
+    ['alotHaShachar',    'עלות השחר'],
+    ['misheyakir',       'משיכיר'],
+    ['sunrise',          'הנץ החמה'],
+    ['sofZmanShmaMGA',   'סוף זמן ק״ש (מג״א)'],
+    ['sofZmanShma',      'סוף זמן ק״ש (גר״א)'],
+    ['sofZmanTfillaMGA', 'סוף זמן תפילה (מג״א)'],
+    ['sofZmanTfilla',    'סוף זמן תפילה (גר״א)'],
+    ['chatzot',          'חצות היום'],
+    ['minchaGedola',     'מנחה גדולה'],
+    ['minchaKetana',     'מנחה קטנה'],
+    ['plagHaMincha',     'פלג המנחה'],
+    ['sunset',           'שקיעת החמה'],
+    ['tzeit',            'צאת הכוכבים'],
+    ['tzeit72',          'צאת הכוכבים (ר״ת)'],
+    ['chatzotNight',     'חצות הלילה'],
+  ];
+
   const byId = (list, id) => list.find(x => x.id === id) || null;
 
   // מפענח design שמור לערכי תצוגה מלאים — עם ברירות מחדל לכל שדה חסר.
@@ -168,5 +299,5 @@ window.SB_PRESETS = (() => {
     };
   }
 
-  return { THEMES, STYLES, LAYOUTS, FONTS, DESIGN_PRESETS, SCREEN_TEMPLATES, CITIES, byId, resolveDesign };
+  return { THEMES, STYLES, LAYOUTS, FONTS, DESIGN_PRESETS, SCREEN_TEMPLATES, CITIES, BLOCKS, LEARNING, DEDICATION_TYPES, ZMANIM, byId, resolveDesign };
 })();

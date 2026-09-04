@@ -16,8 +16,8 @@
 
 import { DEFAULTS, SECTIONS, GRID } from './_shared.js';
 
-export const SCHEMA_VERSION = 3;
-export const APP_VERSION = '2.2.1';
+export const SCHEMA_VERSION = 4;
+export const APP_VERSION = '3.0.0';
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -53,10 +53,25 @@ const MIGRATIONS = {
     }
     return data;
   },
+  // 3 → 4: תכונות הצג החדשות (שורת היום, צומות, הדגשת התפילה הבאה, תחנון/הלל)
+  // כבויות לכל מי שנשמר לפניהן. הגבאי מדליק אותן ב"מה מוצג על הלוח".
+  4: (data) => {
+    if (isObj(data.config)) {
+      const disp = isObj(data.config.display) ? data.config.display : {};
+      data.config.display = {
+        todayLine: false, fastTimes: false, nextHighlight: false, extendedMentions: false,
+        ...disp,
+      };
+    }
+    return data;
+  },
 };
 
 // ---------- ניקוי לכל מקטע ----------
-const KNOWN_BLOCKS = new Set(['header', 'zmanim', 'tefillot', 'memorial', 'mentions', 'announcements', 'upcoming', 'media', 'logo']);
+const KNOWN_BLOCKS = new Set([
+  'header', 'zmanim', 'tefillot', 'memorial', 'mentions', 'announcements', 'upcoming', 'media', 'logo',
+  'clock', 'date', 'shabbat', 'today', 'learning', 'dedications', 'shiurim', 'text', 'omer', 'weather', 'countdown',
+]);
 const num = (v, fallback) => (Number.isFinite(Number(v)) ? Number(v) : fallback);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const entriesArray = (data, key = 'entries') =>
@@ -114,6 +129,16 @@ const NORMALIZERS = {
   announcements: (d) => entriesArray(d),
   'special-times': (d) => entriesArray(d),
   'zmanim-calendar': (d) => ({ ...(isObj(d) ? d : {}), entries: isObj(d?.entries) ? d.entries : {} }),
+  dedications: (d) => entriesArray(d),
+  shiurim: (d) => {
+    const s = entriesArray(d);
+    s.entries = s.entries.map(e => ({
+      ...e,
+      days: Array.isArray(e.days) ? e.days.map(Number).filter(n => n >= 0 && n <= 6) : [],
+    }));
+    return s;
+  },
+  texts: (d) => entriesArray(d),
   'media-playlist': (d) => {
     const p = deepDefaults(d, DEFAULTS['media-playlist']);
     p.entries = p.entries.filter(e => isObj(e) && typeof e.url === 'string');
