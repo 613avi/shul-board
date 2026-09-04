@@ -60,3 +60,18 @@ CREATE TABLE IF NOT EXISTS audit (
   created_at    INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audit_shul ON audit(shul_id, created_at DESC);
+
+-- תבניות מהקהילה: מראה + פריסה שגבאי בחר לפרסם, בלי תוכן (זמנים/הנצחות).
+-- הטבלה נוצרת גם בעצלנות מהקוד (CREATE IF NOT EXISTS) כדי שפריסה לא תדרוש הרצת סכימה.
+CREATE TABLE IF NOT EXISTS templates (
+  id            TEXT PRIMARY KEY,
+  shul_id       TEXT NOT NULL REFERENCES shuls(id) ON DELETE CASCADE,
+  name          TEXT NOT NULL,
+  description   TEXT,
+  author        TEXT,                        -- שם בית הכנסת בזמן הפרסום
+  json          TEXT NOT NULL,               -- { design, screens, display }
+  uses          INTEGER NOT NULL DEFAULT 0,
+  status        TEXT NOT NULL DEFAULT 'public',  -- public | hidden
+  created_at    INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_templates_status ON templates(status, uses DESC, created_at DESC);

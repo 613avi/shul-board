@@ -48,6 +48,7 @@
     me: null,
     meta: {},
     media: [],
+    community: [],
     data: {
       config: null,
       rooms: { rooms: [] },
@@ -124,7 +125,7 @@
     if (!state.data.config.displayedZmanim) state.data.config.displayedZmanim = { ...DEFAULT_CONFIG.displayedZmanim };
     if (!state.data.config.zmanimOverrides) state.data.config.zmanimOverrides = {};
     state.data.config.design = normalizeDesign(state.data.config.design);
-    if (!state.data.config.display || typeof state.data.config.display !== 'object') state.data.config.display = { showUpcoming: true };
+    if (!state.data.config.display || typeof state.data.config.display !== 'object') state.data.config.display = { showUpcoming: true, headerLogo: false };
     // בתי כנסת שנפתחו לפני האשף לא מקבלים אותו בכפייה — רק הרשמות חדשות
     if (!state.data.config.setup || typeof state.data.config.setup !== 'object') {
       state.data.config.setup = { done: true, step: 1 };
@@ -175,6 +176,7 @@
     renderIdentity();
     renderAll();
     if (typeof renderMedia === 'function') renderMedia().catch(() => {});
+    loadCommunity();
     // הרשמה חדשה נכנסת ישר לאשף ההקמה; מי שסיים אותו (או שנפתח לפניו) — לניהול המלא
     if (state.data.config.setup && state.data.config.setup.done === false) showWizard();
     else showApp();
@@ -183,6 +185,7 @@
   function showApp() {
     qs('#wizard-view').style.display = 'none';
     qs('#app-view').style.display = '';
+    qs('#tour-btn').hidden = false;
     renderHome();
     scalePreview();
   }
@@ -451,31 +454,10 @@
     if (!qs('#preset-grid')) return;
     renderPresetGrid('#preset-grid', applyPreset);
 
-    const row = qs('#d-theme-row');
-    row.innerHTML = '';
-    for (const t of P.THEMES) {
-      const b = el('button', {
-        class: `swatch${t.id === d.theme ? ' active' : ''}`, type: 'button', title: t.name,
-        onclick: () => tune(x => { x.theme = t.id; x.accent = ''; }),
-      });
-      b.style.setProperty('--s-bg', t.swatch.bg);
-      b.style.setProperty('--s-accent', t.swatch.accent);
-      row.appendChild(b);
-    }
-
+    renderThemeRow('#d-theme-row');
     fillSelect('#d-style', P.STYLES, d.style);
     fillSelect('#d-layout', P.LAYOUTS, d.layout);
-
-    const fr = qs('#d-font-row');
-    fr.innerHTML = '';
-    for (const f of P.FONTS) {
-      const chip = el('button', {
-        class: `chip${f.id === d.font ? ' active' : ''}`, type: 'button',
-        onclick: () => tune(x => { x.font = f.id; }),
-      }, f.name, el('span', { class: 'sub' }, f.desc));
-      chip.style.fontFamily = f.sample;
-      fr.appendChild(chip);
-    }
+    renderFontRow('#d-font-row');
 
     const themeAccent = (P.byId(P.THEMES, d.theme) || P.THEMES[0]).swatch.accent;
     qs('#d-accent').value = d.accent || themeAccent;
@@ -492,29 +474,233 @@
 
     const up = qs('#d-show-upcoming');
     if (up) up.checked = state.data.config.display?.showUpcoming !== false;
+    const hl = qs('#d-header-logo');
+    if (hl) hl.checked = !!state.data.config.display?.headerLogo;
 
     renderBgGrid();
     renderLogoPicker();
   }
 
   // תמונות הרקע — מהקבצים שהועלו
-  function renderBgGrid() {
-    const grid = qs('#d-bg-grid');
+  function renderBgGrid(sel = '#d-bg-grid', after = renderDesign) {
+    const grid = qs(sel);
     if (!grid) return;
     const d = design();
+    const pick = (url) => { d.backgroundImage = url; markDirty(); after(); pushDesignPreview(); };
     grid.innerHTML = '';
     grid.appendChild(el('button', {
-      class: `bg-pick none${d.backgroundImage ? '' : ' active'}`, type: 'button',
-      onclick: () => { d.backgroundImage = ''; markDirty(); renderDesign(); pushDesignPreview(); },
+      class: `bg-pick none${d.backgroundImage ? '' : ' active'}`, type: 'button', onclick: () => pick(''),
     }, 'בלי תמונה'));
     for (const m of state.media.filter(m => m.kind === 'image')) {
       const b = el('button', {
         class: `bg-pick${d.backgroundImage === m.url ? ' active' : ''}`, type: 'button', title: m.filename,
-        onclick: () => { d.backgroundImage = m.url; markDirty(); renderDesign(); pushDesignPreview(); },
+        onclick: () => pick(m.url),
       });
       b.style.backgroundImage = `url("${m.url}")`;
       grid.appendChild(b);
     }
+  }
+
+  // שורת ערכות צבע — משותפת לניהול ולאשף
+  function renderThemeRow(sel, after) {
+    const row = qs(sel);
+    if (!row) return;
+    const d = design();
+    row.innerHTML = '';
+    for (const t of P.THEMES) {
+      const b = el('button', {
+        class: `swatch${t.id === d.theme ? ' active' : ''}`, type: 'button', title: t.name,
+        onclick: () => { tune(x => { x.theme = t.id; x.accent = ''; }); if (after) after(); },
+      });
+      b.style.setProperty('--s-bg', t.swatch.bg);
+      b.style.setProperty('--s-accent', t.swatch.accent);
+      row.appendChild(b);
+    }
+  }
+  function renderFontRow(sel, after) {
+    const fr = qs(sel);
+    if (!fr) return;
+    const d = design();
+    fr.innerHTML = '';
+    for (const f of P.FONTS) {
+      const chip = el('button', {
+        class: `chip${f.id === d.font ? ' active' : ''}`, type: 'button',
+        onclick: () => { tune(x => { x.font = f.id; }); if (after) after(); },
+      }, f.name, el('span', { class: 'sub' }, f.desc));
+      chip.style.fontFamily = f.sample;
+      fr.appendChild(chip);
+    }
+  }
+
+  // העלאת קובץ ושימוש בו מיד (לוגו / רקע) — מהאשף, בלי לעבור דרך לשונית המדיה
+  async function uploadAndUse(file, onUrl, label) {
+    if (!file) return;
+    try {
+      status(`מעלה את ${file.name}…`);
+      const res = await Api.uploadMedia(file);
+      await renderMedia().catch(() => {});
+      onUrl(res.item.url);
+      status(`${label} עודכן ✓`, 'success');
+    } catch (e) { status(`${file.name}: ${e.message}`, 'error'); }
+  }
+
+  // ================= תבניות מהקהילה =================
+  // מראה + פריסה שבית כנסת אחר פרסם. מוחל על העיצוב וה"מסכים"; הלוגו והתוכן נשארים.
+
+  const isCustomLook = () => {
+    const d = design();
+    const sc = state.data.screens || {};
+    return !d.preset || !!d.accent || !!d.backgroundImage || !!sc.enabled;
+  };
+
+  async function loadCommunity() {
+    try {
+      const res = await Api.listTemplates();
+      state.community = res.items || [];
+    } catch { state.community = []; }
+    renderCommunity('#community-grid');
+    renderCommunity('#wz-community');
+    renderMyTemplates();
+  }
+
+  function communityCard(item, onPick) {
+    const t = P.byId(P.THEMES, item.design?.theme) || P.THEMES[0];
+    const fake = { name: item.name, desc: item.description || '', theme: t.id,
+      style: item.design?.style || 'classic', layout: item.design?.layout || '3col' };
+    const card = presetCard(fake, false, onPick);
+    if (item.screens?.enabled) card.appendChild(el('span', { class: 'preset-badge' }, 'מסכים'));
+    card.appendChild(el('div', { class: 'preset-meta' },
+      `${item.author || 'בית כנסת'}${item.uses ? ` · ${item.uses} בשימוש` : ''}`));
+    return card;
+  }
+
+  function renderCommunity(sel) {
+    const grid = qs(sel);
+    if (!grid) return;
+    const items = state.community || [];
+    grid.innerHTML = '';
+    const wrap = qs('#wz-community-wrap');
+    if (sel === '#wz-community' && wrap) wrap.hidden = !items.length;
+    if (!items.length) {
+      grid.appendChild(el('div', { class: 'sc-hint' }, 'עדיין לא פורסמו תבניות. היו הראשונים — "שיתוף המראה שלכם" למטה.'));
+      return;
+    }
+    for (const item of items) grid.appendChild(communityCard(item, () => applyCommunity(item)));
+  }
+
+  function applyCommunity(item) {
+    const keepLogo = design().logo;
+    state.data.config.design = { ...normalizeDesign(item.design || {}), logo: keepLogo || { url: '' } };
+    if (item.screens && Array.isArray(item.screens.screens) && item.screens.screens.length) {
+      state.data.screens = JSON.parse(JSON.stringify(item.screens));
+      scActive = 0; scSelected = null;
+    }
+    if (item.display && typeof item.display === 'object') state.data.config.display = { ...item.display };
+    markDirty();
+    renderAll();
+    if (qs('#wizard-view').style.display !== 'none') { wzFill3(); wzFill4(); }
+    pushDesignPreview();
+    pushScreensPreview();
+    Api.useTemplate(item.id).catch(() => {});
+    status(`הוחל המראה "${item.name}" — אפשר להמשיך להתאים`, 'success');
+  }
+
+  async function publishLook(nameSel, descSel, msgSel, btnSel) {
+    const msg = qs(msgSel), btn = qs(btnSel);
+    const name = qs(nameSel).value.trim();
+    const description = descSel && qs(descSel) ? qs(descSel).value.trim() : '';
+    msg.textContent = '';
+    if (name.length < 2) { msg.textContent = 'תנו לתבנית שם'; return; }
+    if (state.dirty) { msg.textContent = 'יש שינויים שלא נשמרו — לחצו "שמירה ופרסום" קודם, כדי שהתבנית תכלול אותם'; return; }
+    btn.disabled = true;
+    try {
+      await Api.publishTemplate({ name, description });
+      qs(nameSel).value = '';
+      msg.textContent = 'התבנית פורסמה ✓ תודה! בתי כנסת אחרים יראו אותה ברשימה.';
+      await loadCommunity();
+    } catch (e) { msg.textContent = e.message; }
+    finally { btn.disabled = false; }
+  }
+
+  function renderMyTemplates() {
+    const box = qs('#my-templates');
+    if (!box || !state.me) return;
+    const mine = (state.community || []).filter(t => t.author === state.me.shul.name);
+    box.innerHTML = '';
+    if (!mine.length) return;
+    box.appendChild(el('div', { class: 'desc' }, 'התבניות שפרסמתם:'));
+    for (const t of mine) {
+      box.appendChild(el('li', {}, el('span', {}, `${t.name}${t.uses ? ` · ${t.uses} בשימוש` : ''}`),
+        el('button', { class: 'btn btn-ghost btn-sm btn-danger', type: 'button', onclick: async () => {
+          if (!confirm(`להסיר את התבנית "${t.name}" מהקהילה?`)) return;
+          try { await Api.deleteTemplate(t.id); await loadCommunity(); } catch (e) { status(e.message, 'error'); }
+        } }, 'הסרה')));
+    }
+  }
+
+  // ================= מדריך צף =================
+  const TOUR_STEPS = [
+    { tab: 'home', sel: '#home-checklist', title: 'לוח הבית', text: 'כאן רואים מה כבר הוגדר ומה עוד חסר. כל שורה מובילה למקום הנכון בלחיצה.' },
+    { tab: 'design', sel: '#preset-grid', title: 'מראה מוכן', text: 'לחיצה על כרטיס מחליפה צבעים, סגנון, פריסה וגופן בבת אחת. התצוגה המקדימה בצד מתעדכנת מיד.' },
+    { tab: 'design', sel: '#community-panel', title: 'תבניות מהקהילה', text: 'מראות שבתי כנסת אחרים בנו ופרסמו. לחיצה מעתיקה את המראה והפריסה; הלוגו והתוכן שלכם נשארים.' },
+    { tab: 'design', sel: '#d-theme-row', title: 'כוונון עדין', text: 'ערכת צבע, גופן, צבע הדגשה וגודל טקסט. כך הצג שלכם נראה משלכם ולא כמו כולם.' },
+    { tab: 'design', sel: '#d-bg-grid', title: 'רקע ולוגו', text: 'תמונה של בית הכנסת או נוף כרקע, עם החשכה לקריאות. הלוגו מופיע ליד שם בית הכנסת בכותרת.' },
+    { tab: 'design', sel: '#publish-panel', title: 'שיתוף המראה', text: 'יצרתם מראה יפה? פרסמו אותו כתבנית, ובתי כנסת אחרים יוכלו לבחור בו.' },
+    { tab: 'screens', sel: '#sc-templates', title: 'פריסת המסך', text: 'תבניות לסידור הקוביות: עם חלון מודעות, עם לוגו, מסך אנכי. לחיצה מסדרת, ואחר כך אפשר לגרור.' },
+    { tab: 'screens', sel: '#sc-canvas-wrap', title: 'עורך הקוביות', text: 'גוררים קובייה להזזה, מושכים את הריבוע הכחול לשינוי גודל. "+ מסך" יוצר מסך נוסף שיתחלף אוטומטית.' },
+    { tab: 'media', sel: '#media-file', title: 'קבצים ומודעות', text: 'תמונות ו-PDF להצגה בסבב בחלון המודעות, או לשימוש כרקע וכלוגו.' },
+    { tab: 'announcements', sel: '#ann-table', title: 'הודעות לציבור', text: 'הודעה רצה בתחתית הצג, עם תאריכי התחלה וסיום כדי לתזמן מראש.' },
+    { tab: 'installer', sel: '#link-installer', title: 'התקנה על המסך', text: 'קובץ שפותח את הצג במסך מלא בכל הדלקה של המחשב. או פשוט הכתובת בכל דפדפן.' },
+    { tab: 'home', sel: '#save-all-btn', title: 'שמירה ופרסום', text: 'שום שינוי לא מגיע לצג עד שלוחצים כאן. אחרי השמירה הצג מתעדכן לבד תוך 3 דקות.' },
+  ];
+  let tourIdx = -1;
+  const TOUR_KEY = () => `sb_tour_v1_${state.me?.shul?.slug || ''}`;
+
+  function tourClearHighlight() {
+    qsa('.tour-highlight').forEach(e => e.classList.remove('tour-highlight'));
+  }
+
+  function tourShow(i) {
+    const step = TOUR_STEPS[i];
+    if (!step) { tourEnd(); return; }
+    tourIdx = i;
+    switchTab(step.tab);
+    tourClearHighlight();
+    const target = qs(step.sel);
+    if (target) {
+      target.classList.add('tour-highlight');
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    qs('#tour-count').textContent = `${i + 1} / ${TOUR_STEPS.length}`;
+    qs('#tour-title').textContent = step.title;
+    qs('#tour-text').textContent = step.text;
+    qs('#tour-prev').disabled = i === 0;
+    qs('#tour-next').textContent = i === TOUR_STEPS.length - 1 ? 'סיום ✓' : 'הבא ←';
+    qs('#tour-card').hidden = false;
+  }
+
+  function tourStart() { tourShow(0); }
+
+  function tourEnd() {
+    tourIdx = -1;
+    tourClearHighlight();
+    qs('#tour-card').hidden = true;
+    try { localStorage.setItem(TOUR_KEY(), '1'); } catch {}
+  }
+
+  function setupTour() {
+    if (!qs('#tour-btn')) return;
+    qs('#tour-btn').addEventListener('click', tourStart);
+    qs('#tour-close').addEventListener('click', tourEnd);
+    qs('#tour-prev').addEventListener('click', () => tourShow(tourIdx - 1));
+    qs('#tour-next').addEventListener('click', () => tourShow(tourIdx + 1));
+  }
+
+  // מוצג לבד פעם אחת — בכניסה הראשונה לניהול המלא
+  function maybeAutoTour() {
+    let seen = true;
+    try { seen = localStorage.getItem(TOUR_KEY()) === '1'; } catch {}
+    if (!seen) setTimeout(tourStart, 600);
   }
 
   function bindDesign() {
@@ -548,6 +734,11 @@
     const up = qs('#d-show-upcoming');
     if (up) up.addEventListener('change', () => {
       state.data.config.display = { ...(state.data.config.display || {}), showUpcoming: up.checked };
+      markDirty(); pushDesignPreview();
+    });
+    const hl = qs('#d-header-logo');
+    if (hl) hl.addEventListener('change', () => {
+      state.data.config.display = { ...(state.data.config.display || {}), headerLogo: hl.checked };
       markDirty(); pushDesignPreview();
     });
     // כשהצג בתצוגה המקדימה נטען — דוחפים את המצב שטרם נשמר
@@ -606,7 +797,8 @@
   function showWizard(step) {
     qs('#app-view').style.display = 'none';
     qs('#wizard-view').style.display = '';
-    wzStep = Math.min(4, Math.max(1, Number(step ?? state.data.config.setup?.step) || 1));
+    wzStep = Math.min(5, Math.max(1, Number(step ?? state.data.config.setup?.step) || 1));
+    qs('#tour-btn').hidden = true;
     wzRender();
   }
 
@@ -617,12 +809,16 @@
       s.classList.toggle('done', n < wzStep);
     });
     qsa('.wz-step').forEach(s => s.classList.toggle('active', Number(s.dataset.step) === wzStep));
+    const look = qs('#wz-look-wrap');
+    if (look) look.hidden = !(wzStep === 3 || wzStep === 4);
     qs('#wz-back').style.visibility = wzStep === 1 ? 'hidden' : '';
-    qs('#wz-next').textContent = wzStep === 4 ? 'סיום — לניהול המלא' : 'שמירה והמשך ←';
+    qs('#wz-next').textContent = wzStep === 5 ? 'סיום — לניהול המלא' : 'שמירה והמשך ←';
     qs('#wz-msg').textContent = '';
     if (wzStep === 1) wzFill1();
     if (wzStep === 2) wzFill2();
     if (wzStep === 3) wzFill3();
+    if (wzStep === 4) wzFill4();
+    if (wzStep === 5) wzFill5();
     window.scrollTo({ top: 0 });
   }
 
@@ -672,25 +868,85 @@
     qs('#wz-sh-arvit').value = numList(r.shabbat.arvitMotzashOffsets);
   }
 
-  function wzFill3() {
-    renderPresetGrid('#wz-presets', (p) => { applyPreset(p); wzFill3(); });
-    const fr = qs('#wz-fonts');
-    fr.innerHTML = '';
-    for (const f of P.FONTS) {
-      const chip = el('button', {
-        class: `chip${f.id === design().font ? ' active' : ''}`, type: 'button',
-        onclick: () => { tune(x => { x.font = f.id; }); wzFill3(); },
-      }, f.name);
-      chip.style.fontFamily = f.sample;
-      fr.appendChild(chip);
-    }
+  // התצוגה המקדימה של האשף — נטענת פעם אחת, משותפת לשלבים 3 ו-4
+  function ensureWzPreview() {
     const pv = qs('#wz-preview');
     if (pv && state.me && pv.dataset.loadedFor !== state.me.shul.slug) {
       pv.dataset.loadedFor = state.me.shul.slug;
-      pv.addEventListener('load', () => pushDesignPreview());
+      pv.addEventListener('load', () => { pushDesignPreview(); pushScreensPreview(); });
       pv.src = state.me.urls.display;
     }
     scalePreview();
+  }
+
+  function wzFill3() {
+    const d = design();
+    renderPresetGrid('#wz-presets', (p) => { applyPreset(p); wzFill3(); });
+    renderCommunity('#wz-community');
+    renderThemeRow('#wz-themes', wzFill3);
+    renderFontRow('#wz-fonts', wzFill3);
+
+    const themeAccent = (P.byId(P.THEMES, d.theme) || P.THEMES[0]).swatch.accent;
+    qs('#wz-accent').value = d.accent || themeAccent;
+    qs('#wz-accent-reset').disabled = !d.accent;
+    const pct = Math.round((d.scale || 1) * 100);
+    qs('#wz-scale').value = pct;
+    qs('#wz-scale-val').textContent = pct + '%';
+
+    // לוגו
+    const lp = qs('#wz-logo-preview');
+    const url = d.logo?.url || '';
+    lp.innerHTML = '';
+    if (url) lp.appendChild(el('img', { src: url, alt: 'לוגו' }));
+    else lp.textContent = 'אין לוגו';
+    qs('#wz-logo-remove').hidden = !url;
+
+    // רקע
+    renderBgGrid('#wz-bg-grid', wzFill3);
+    const ov = Math.round((d.backgroundOverlay ?? 0.45) * 100);
+    qs('#wz-overlay').value = ov;
+    qs('#wz-overlay-val').textContent = ov + '%';
+
+    ensureWzPreview();
+  }
+
+  // שלב 4: פריסה — תבניות מסך, עם "קלאסי" שמכבה את מצב המסכים
+  function wzFill4() {
+    const sc = scData();
+    qs('#wz-aspect').value = sc.aspect || '16:9';
+    qs('#wz-show-upcoming').checked = state.data.config.display?.showUpcoming !== false;
+    qs('#wz-header-logo').checked = !!state.data.config.display?.headerLogo;
+
+    const grid = qs('#wz-templates');
+    grid.innerHTML = '';
+    const active = sc.enabled ? matchBuiltinTemplate() : 'classic';
+    const classic = el('button', {
+      class: `tpl-card${active === 'classic' ? ' active' : ''}`, type: 'button',
+      onclick: () => { sc.enabled = false; markDirty(); wzFill4(); pushScreensPreview(); },
+    }, el('div', { class: 'tpl-thumb classic' }, 'זמנים · תפילות · הנצחות'),
+       el('div', { class: 'tpl-name' }, 'קלאסי'), el('div', { class: 'tpl-desc' }, 'שלושת הלוחות לפי הפריסה שבחרתם במראה'));
+    grid.appendChild(classic);
+    for (const t of P.SCREEN_TEMPLATES) {
+      grid.appendChild(templateCard(t, active === t.id, () => {
+        applyTemplateSilent(t);
+        wzFill4();
+      }));
+    }
+    ensureWzPreview();
+  }
+
+  // איזו תבנית מובנית תואמת את המסך הראשון (לסימון הכרטיס הפעיל)
+  function matchBuiltinTemplate() {
+    const blocks = scData().screens[0]?.blocks || [];
+    const sig = (bs) => bs.map(b => `${b.type}:${b.x},${b.y},${b.w},${b.h}`).sort().join('|');
+    const cur = sig(blocks);
+    const t = P.SCREEN_TEMPLATES.find(t => sig(t.blocks) === cur);
+    return t ? t.id : '';
+  }
+
+  function wzFill5() {
+    const pub = qs('#wz-publish');
+    if (pub) pub.hidden = !isCustomLook();
   }
 
   async function wzSave(section, data) {
@@ -728,10 +984,16 @@
       } else if (wzStep === 3) {
         c.setup.step = 4;
         await wzSave('config', c);
+      } else if (wzStep === 4) {
+        c.setup.step = 5;
+        await wzSave('screens', state.data.screens);
+        await wzSave('config', c);
       } else {
         await wizardFinish();
         return;
       }
+      // האשף שומר כל מה שהוא נוגע בו — אחרי שמירה מוצלחת אין שינויים תלויים
+      markClean();
       wzStep += 1;
       wzRender();
       renderAll();
@@ -745,12 +1007,17 @@
 
   async function wizardFinish() {
     const c = state.data.config;
-    c.setup = { done: true, step: 4 };
-    try { await wzSave('config', c); } catch (e) { status(`שגיאה בשמירה: ${e.message}`, 'error'); return; }
+    c.setup = { done: true, step: 5 };
+    try {
+      // האשף שומר כל שלב בנפרד; כאן נשמר גם מה שאולי השתנה בלי "המשך" (למשל תבנית מהקהילה)
+      await wzSave('screens', state.data.screens);
+      await wzSave('config', c);
+    } catch (e) { status(`שגיאה בשמירה: ${e.message}`, 'error'); return; }
     markClean();
     renderAll();
     showApp();
     status('ההקמה הושלמה — הצג באוויר ✓', 'success');
+    maybeAutoTour();
   }
 
   function setupWizard() {
@@ -764,6 +1031,49 @@
     qs('#home-copy').addEventListener('click', () => copyText(qs('#home-url').textContent));
     qs('#link-display-copy').addEventListener('click', () => copyText(qs('#link-display-text').textContent));
     qs('#home-wizard').addEventListener('click', () => showWizard(1));
+
+    // שלב 3: התאמה אישית
+    qs('#wz-accent').addEventListener('input', (e) => {
+      design().accent = e.target.value; qs('#wz-accent-reset').disabled = false; markDirty(); pushDesignPreview();
+    });
+    qs('#wz-accent-reset').addEventListener('click', () => { design().accent = ''; markDirty(); wzFill3(); pushDesignPreview(); });
+    qs('#wz-scale').addEventListener('input', (e) => {
+      design().scale = parseInt(e.target.value, 10) / 100; qs('#wz-scale-val').textContent = e.target.value + '%';
+      markDirty(); pushDesignPreview();
+    });
+    qs('#wz-overlay').addEventListener('input', (e) => {
+      design().backgroundOverlay = (parseInt(e.target.value, 10) || 0) / 100; qs('#wz-overlay-val').textContent = e.target.value + '%';
+      markDirty(); pushDesignPreview();
+    });
+    qs('#wz-logo-file').addEventListener('change', (e) => {
+      // העלאת לוגו מהאשף = רוצים לראות אותו, גם בכותרת
+      uploadAndUse(e.target.files[0], (url) => {
+        design().logo = { url };
+        state.data.config.display = { ...(state.data.config.display || {}), headerLogo: true };
+        markDirty(); wzFill3(); renderLogoPicker(); renderDesign(); pushDesignPreview();
+      }, 'הלוגו');
+      e.target.value = '';
+    });
+    qs('#wz-logo-remove').addEventListener('click', () => { design().logo = { url: '' }; markDirty(); wzFill3(); renderLogoPicker(); pushDesignPreview(); });
+    qs('#wz-bg-file').addEventListener('change', (e) => {
+      uploadAndUse(e.target.files[0], (url) => { design().backgroundImage = url; markDirty(); wzFill3(); renderDesign(); pushDesignPreview(); }, 'הרקע');
+      e.target.value = '';
+    });
+
+    // שלב 4: פריסה
+    qs('#wz-aspect').addEventListener('change', (e) => { scData().aspect = e.target.value; markDirty(); scalePreview(); pushScreensPreview(); });
+    qs('#wz-show-upcoming').addEventListener('change', (e) => {
+      state.data.config.display = { ...(state.data.config.display || {}), showUpcoming: e.target.checked };
+      markDirty(); pushDesignPreview();
+    });
+    qs('#wz-header-logo').addEventListener('change', (e) => {
+      state.data.config.display = { ...(state.data.config.display || {}), headerLogo: e.target.checked };
+      markDirty(); pushDesignPreview();
+    });
+
+    // שלב 5: פרסום לקהילה
+    qs('#wz-pub-btn').addEventListener('click', () => publishLook('#wz-pub-name', null, '#wz-pub-msg', '#wz-pub-btn'));
+    qs('#pub-btn').addEventListener('click', () => publishLook('#pub-name', '#pub-desc', '#pub-msg', '#pub-btn'));
     // הורדת המתקין נחשבת כ"הופעל על המסך" בצ'ק-ליסט
     for (const sel of ['#link-installer', '#link-bat', '#wz-link-installer', '#wz-link-bat']) {
       const a = qs(sel);
@@ -1635,7 +1945,8 @@
       if (!w) continue;
       // ה-iframe מרונדר ברוחב וירטואלי קבוע, והגובה נגזר מהיחס שנבחר,
       // כך שהצג נראה בדיוק כמו על המסך האמיתי.
-      const r = sel === '#design-preview' ? ratio : 16 / 9;
+      const r = sel === '#design-preview' ? ratio : (ASPECT_RATIO[state.data.screens?.aspect] || 16 / 9);
+      if (sel === '#wz-preview') box.style.aspectRatio = `${r}`;
       const vw = 1920;
       const vh = Math.round(vw / r);
       pv.style.width = vw + 'px';
@@ -1735,36 +2046,44 @@
   }
 
   // תבניות מוכנות — סידור קוביות בלחיצה אחת (js/presets.js)
+  function templateCard(t, active, onClick) {
+    const thumb = el('div', { class: 'tpl-thumb', 'data-aspect': t.aspect || '16:9' });
+    for (const b of t.blocks) {
+      const i = el('i', { 'data-type': b.type });
+      i.style.left = `${(b.x / GRID.cols) * 100}%`;
+      i.style.top = `${(b.y / GRID.rows) * 100}%`;
+      i.style.width = `${(b.w / GRID.cols) * 100}%`;
+      i.style.height = `${(b.h / GRID.rows) * 100}%`;
+      thumb.appendChild(i);
+    }
+    return el('button', { class: `tpl-card${active ? ' active' : ''}`, type: 'button', onclick: onClick },
+      thumb, el('div', { class: 'tpl-name' }, t.name), el('div', { class: 'tpl-desc' }, t.desc));
+  }
+
   function renderTemplates() {
     const grid = qs('#sc-templates');
     if (!grid) return;
     grid.innerHTML = '';
-    for (const t of P.SCREEN_TEMPLATES) {
-      const thumb = el('div', { class: 'tpl-thumb', 'data-aspect': t.aspect || '16:9' });
-      for (const b of t.blocks) {
-        const i = el('i', { 'data-type': b.type });
-        i.style.left = `${(b.x / GRID.cols) * 100}%`;
-        i.style.top = `${(b.y / GRID.rows) * 100}%`;
-        i.style.width = `${(b.w / GRID.cols) * 100}%`;
-        i.style.height = `${(b.h / GRID.rows) * 100}%`;
-        thumb.appendChild(i);
-      }
-      grid.appendChild(el('button', { class: 'tpl-card', type: 'button', onclick: () => applyTemplate(t) },
-        thumb, el('div', { class: 'tpl-name' }, t.name), el('div', { class: 'tpl-desc' }, t.desc)));
-    }
+    for (const t of P.SCREEN_TEMPLATES) grid.appendChild(templateCard(t, false, () => applyTemplate(t)));
   }
 
-  function applyTemplate(t) {
+  // מחיל תבנית על המסך הנוכחי ומדליק את מצב המסכים
+  function applyTemplateSilent(t) {
     const data = scData();
     const s = scScreen();
-    if (s.blocks.length > 1 && !confirm(`להחליף את הפריסה של "${s.name}" בתבנית "${t.name}"?`)) return;
     s.blocks = t.blocks.map(b => ({ ...b, id: `b-${b.type}-${Math.random().toString(36).slice(2, 7)}` }));
     if (t.aspect) data.aspect = t.aspect;
-    // בחירת תבנית = רוצים לראות אותה על הצג. הכיבוי נשאר זמין בתיבת הסימון.
     data.enabled = true;
     scSelected = null;
     markDirty();
-    renderScreens();
+    if (qs('#sc-editor')) renderScreens();
+    pushScreensPreview();
+  }
+
+  function applyTemplate(t) {
+    const s = scScreen();
+    if (s.blocks.length > 1 && !confirm(`להחליף את הפריסה של "${s.name}" בתבנית "${t.name}"?`)) return;
+    applyTemplateSilent(t);
     status(`התבנית "${t.name}" הוחלה על "${s.name}"`, 'success');
   }
 
@@ -1996,6 +2315,7 @@
     wrap.innerHTML = '';
     renderLogoPicker();
     renderBgGrid();
+    if (qs('#wizard-view').style.display !== 'none' && wzStep === 3) renderBgGrid('#wz-bg-grid', wzFill3);
     if (!state.media.length) {
       wrap.appendChild(el('p', { class: 'desc' }, 'עדיין לא הועלו קבצים.'));
       return;
@@ -2210,6 +2530,7 @@
     bindGeneral();
     bindDesign();
     setupWizard();
+    setupTour();
     setupTabs();
     setupCSV();
     setupScreens();

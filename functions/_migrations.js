@@ -16,8 +16,8 @@
 
 import { DEFAULTS, SECTIONS, GRID } from './_shared.js';
 
-export const SCHEMA_VERSION = 2;
-export const APP_VERSION = '2.1.2';
+export const SCHEMA_VERSION = 3;
+export const APP_VERSION = '2.2.1';
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -41,6 +41,15 @@ const MIGRATIONS = {
   2: (data) => {
     if (isObj(data.config) && !isObj(data.config.setup)) {
       data.config.setup = { done: true, step: 1 };
+    }
+    return data;
+  },
+  // 2 → 3: הלוגו בכותרת הצג הקלאסי הוא תכונה חדשה. בית כנסת שבחר לוגו לפני כן
+  // התכוון לקוביית לוגו במצב מסכים — לא מדליקים לו את הכותרת בלי שביקש.
+  3: (data) => {
+    if (isObj(data.config)) {
+      const disp = isObj(data.config.display) ? data.config.display : {};
+      if (disp.headerLogo === undefined) data.config.display = { ...disp, headerLogo: false };
     }
     return data;
   },
@@ -93,6 +102,8 @@ const NORMALIZERS = {
   config: (d) => {
     const c = deepDefaults(d, DEFAULTS.config);
     if (!isObj(c.zmanimOverrides)) c.zmanimOverrides = {};
+    // אילו זמנים מוצגים — בדיוק כפי שנשמר. השלמה מברירת המחדל הייתה מוסיפה שורות לצג.
+    if (isObj(d?.displayedZmanim)) c.displayedZmanim = { ...d.displayedZmanim };
     return c;
   },
   rooms: (d) => ({

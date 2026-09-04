@@ -74,5 +74,11 @@ window.Api = (() => {
       });
     },
     deleteMedia: (id) => call(`/api/media/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+    // ---- תבניות מהקהילה ----
+    listTemplates: () => call('/api/templates'),
+    publishTemplate: (payload) => call('/api/templates', { method: 'POST', body: j(payload) }),
+    useTemplate: (id) => call(`/api/templates/${encodeURIComponent(id)}`, { method: 'POST' }),
+    deleteTemplate: (id) => call(`/api/templates/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   };
 })();
