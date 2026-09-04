@@ -199,7 +199,7 @@ export const DEFAULTS = {
       accent: '', scale: 1, backgroundImage: '', backgroundOverlay: 0.45, logo: { url: '' },
     },
     // מה מוצג על הלוח מעבר לקוביות עצמן
-    display: { showUpcoming: true },
+    display: { showUpcoming: true, headerLogo: true },
     // אשף ההקמה מוצג עד שהגבאי מסיים אותו (או מדלג עליו).
     setup: { done: false, step: 1 },
   },

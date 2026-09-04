@@ -125,7 +125,7 @@
     if (!state.data.config.displayedZmanim) state.data.config.displayedZmanim = { ...DEFAULT_CONFIG.displayedZmanim };
     if (!state.data.config.zmanimOverrides) state.data.config.zmanimOverrides = {};
     state.data.config.design = normalizeDesign(state.data.config.design);
-    if (!state.data.config.display || typeof state.data.config.display !== 'object') state.data.config.display = { showUpcoming: true };
+    if (!state.data.config.display || typeof state.data.config.display !== 'object') state.data.config.display = { showUpcoming: true, headerLogo: false };
     // בתי כנסת שנפתחו לפני האשף לא מקבלים אותו בכפייה — רק הרשמות חדשות
     if (!state.data.config.setup || typeof state.data.config.setup !== 'object') {
       state.data.config.setup = { done: true, step: 1 };
@@ -474,6 +474,8 @@
 
     const up = qs('#d-show-upcoming');
     if (up) up.checked = state.data.config.display?.showUpcoming !== false;
+    const hl = qs('#d-header-logo');
+    if (hl) hl.checked = !!state.data.config.display?.headerLogo;
 
     renderBgGrid();
     renderLogoPicker();
@@ -734,6 +736,11 @@
       state.data.config.display = { ...(state.data.config.display || {}), showUpcoming: up.checked };
       markDirty(); pushDesignPreview();
     });
+    const hl = qs('#d-header-logo');
+    if (hl) hl.addEventListener('change', () => {
+      state.data.config.display = { ...(state.data.config.display || {}), headerLogo: hl.checked };
+      markDirty(); pushDesignPreview();
+    });
     // כשהצג בתצוגה המקדימה נטען — דוחפים את המצב שטרם נשמר
     const pv = qs('#design-preview');
     if (pv) pv.addEventListener('load', () => { pushDesignPreview(); pushScreensPreview(); });
@@ -908,6 +915,7 @@
     const sc = scData();
     qs('#wz-aspect').value = sc.aspect || '16:9';
     qs('#wz-show-upcoming').checked = state.data.config.display?.showUpcoming !== false;
+    qs('#wz-header-logo').checked = !!state.data.config.display?.headerLogo;
 
     const grid = qs('#wz-templates');
     grid.innerHTML = '';
@@ -1038,7 +1046,12 @@
       markDirty(); pushDesignPreview();
     });
     qs('#wz-logo-file').addEventListener('change', (e) => {
-      uploadAndUse(e.target.files[0], (url) => { design().logo = { url }; markDirty(); wzFill3(); renderLogoPicker(); pushDesignPreview(); }, 'הלוגו');
+      // העלאת לוגו מהאשף = רוצים לראות אותו, גם בכותרת
+      uploadAndUse(e.target.files[0], (url) => {
+        design().logo = { url };
+        state.data.config.display = { ...(state.data.config.display || {}), headerLogo: true };
+        markDirty(); wzFill3(); renderLogoPicker(); renderDesign(); pushDesignPreview();
+      }, 'הלוגו');
       e.target.value = '';
     });
     qs('#wz-logo-remove').addEventListener('click', () => { design().logo = { url: '' }; markDirty(); wzFill3(); renderLogoPicker(); pushDesignPreview(); });
@@ -1051,6 +1064,10 @@
     qs('#wz-aspect').addEventListener('change', (e) => { scData().aspect = e.target.value; markDirty(); scalePreview(); pushScreensPreview(); });
     qs('#wz-show-upcoming').addEventListener('change', (e) => {
       state.data.config.display = { ...(state.data.config.display || {}), showUpcoming: e.target.checked };
+      markDirty(); pushDesignPreview();
+    });
+    qs('#wz-header-logo').addEventListener('change', (e) => {
+      state.data.config.display = { ...(state.data.config.display || {}), headerLogo: e.target.checked };
       markDirty(); pushDesignPreview();
     });
 

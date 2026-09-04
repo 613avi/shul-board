@@ -724,8 +724,9 @@
     const logoEl = qs('#header-logo');
     if (logoEl) {
       const url = (d.logo && d.logo.url || '').trim();
-      if (url && logoEl.getAttribute('src') !== url) logoEl.src = url;
-      logoEl.hidden = !url;
+      const wanted = !!url && !!(state.config.display && state.config.display.headerLogo);
+      if (wanted && logoEl.getAttribute('src') !== url) logoEl.src = url;
+      logoEl.hidden = !wanted;
     }
 
     // צבע הדגשה מותאם: inline על ה-html גובר על הערכה, ריק = צבע הערכה
