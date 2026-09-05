@@ -1015,3 +1015,126 @@ body.no-upcoming .display-footer { display: none !important; }
 
 /* ===== שכבת עזר לצילום/תצוגה מקדימה ===== */
 body[data-preview] { cursor: default; }
+
+/* ===== ערכות צבע — גל שלישי ===== */
+html[data-theme="royal"], body[data-theme="royal"] {
+    --bg: #1d1033; --bg-card: rgba(255,255,255,0.07); --bg-card-hover: rgba(255,255,255,0.11);
+    --text: #f3eeff; --text-dim: #b9a9d9; --accent: #f0c75e; --accent-2: #c9a6ff; --border: rgba(240,199,94,0.22);
+}
+body[data-theme="royal"] .display-body { background: radial-gradient(ellipse at top, #34205c 0%, var(--bg) 62%); }
+
+html[data-theme="ocean"], body[data-theme="ocean"] {
+    --bg: #062a3a; --bg-card: rgba(255,255,255,0.07); --bg-card-hover: rgba(255,255,255,0.11);
+    --text: #e8f6fb; --text-dim: #9cc6d6; --accent: #ffd166; --accent-2: #6fe3d9; --border: rgba(255,209,102,0.22);
+}
+body[data-theme="ocean"] .display-body { background: radial-gradient(ellipse at top, #0c4a63 0%, var(--bg) 62%); }
+
+html[data-theme="charcoal"], body[data-theme="charcoal"] {
+    --bg: #111214; --bg-card: rgba(255,255,255,0.06); --bg-card-hover: rgba(255,255,255,0.1);
+    --text: #fafafa; --text-dim: #a3a3a3; --accent: #ffffff; --accent-2: #ffd60a; --border: rgba(255,255,255,0.14);
+}
+body[data-theme="charcoal"] .display-body { background: linear-gradient(180deg, #1a1b1e 0%, var(--bg) 60%); }
+body[data-theme="charcoal"] .announcements-container { color: #111214; }
+
+html[data-theme="olive"], body[data-theme="olive"] {
+    --bg: #eef0e3; --bg-card: rgba(60,80,30,0.08); --bg-card-hover: rgba(60,80,30,0.14);
+    --text: #24301a; --text-dim: #5d6b4c; --accent: #5c7a2a; --accent-2: #a0561f; --border: rgba(60,80,30,0.2);
+}
+body[data-theme="olive"] .display-body { background: radial-gradient(ellipse at top, #f8f9f1 0%, var(--bg) 65%); }
+body[data-theme="olive"] .announcements-container { color: #fff; }
+
+html[data-theme="sunset"], body[data-theme="sunset"] {
+    --bg: #2b1620; --bg-card: rgba(0,0,0,0.3); --bg-card-hover: rgba(0,0,0,0.4);
+    --text: #fff1e6; --text-dim: #e0b8a8; --accent: #ff9f43; --accent-2: #ffd166; --border: rgba(255,159,67,0.25);
+}
+body[data-theme="sunset"] .display-body { background: linear-gradient(160deg, #5a2a3a 0%, #3b1a2a 45%, var(--bg) 100%); }
+
+/* ===== סגנון זכוכית ===== */
+#display-root[data-style="glass"] .card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 18px;
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+#display-root[data-style="glass"] .card h2 { border-bottom-color: rgba(255,255,255,0.25); }
+#display-root[data-style="glass"] .mentions-bar,
+#display-root[data-style="glass"] .announcements-container { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+body[data-theme="light"] #display-root[data-style="glass"] .card,
+body[data-theme="sky"] #display-root[data-style="glass"] .card,
+body[data-theme="sand"] #display-root[data-style="glass"] .card,
+body[data-theme="olive"] #display-root[data-style="glass"] .card,
+body[data-theme="marble"] #display-root[data-style="glass"] .card,
+body[data-theme="parchment"] #display-root[data-style="glass"] .card {
+    background: rgba(255, 255, 255, 0.55); border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ===== סגנון נועז ===== */
+#display-root[data-style="bold"] .card {
+    border: 0; border-radius: 6px;
+    border-top: 0.7vmin solid var(--accent);
+    background: var(--bg-card);
+}
+#display-root[data-style="bold"] .card h2 {
+    font-size: calc(var(--fs, 1) * clamp(1.7rem, 2.6vw, 2.8rem));
+    border-bottom: 0; letter-spacing: 0.02em; margin-bottom: 0.6rem;
+}
+#display-root[data-style="bold"] .zmanim-card table,
+#display-root[data-style="bold"] .tefillot-card table { font-size: calc(var(--fs, 1) * clamp(1.15rem, 1.7vw, 1.9rem)); }
+#display-root[data-style="bold"] .display-header h1 { font-size: calc(var(--fs, 1) * clamp(2.4rem, 4.2vw, 4.4rem)); }
+#display-root[data-style="bold"] #current-time { font-weight: 900; }
+#display-root[data-style="bold"] .announcements-container { border-radius: 4px; }
+
+/* ===== גופנים — גל שני ===== */
+#display-root[data-font="secular"],
+#display-root[data-font="secular"] h1, #display-root[data-font="secular"] h2, #display-root[data-font="secular"] h3,
+#display-root[data-font="secular"] .clock, #display-root[data-font="secular"] table { font-family: 'Secular One', 'Heebo', sans-serif; }
+#display-root[data-font="alef"],
+#display-root[data-font="alef"] h1, #display-root[data-font="alef"] h2, #display-root[data-font="alef"] h3,
+#display-root[data-font="alef"] .clock, #display-root[data-font="alef"] table { font-family: 'Alef', 'Assistant', sans-serif; }
+#display-root[data-font="varela"],
+#display-root[data-font="varela"] h1, #display-root[data-font="varela"] h2, #display-root[data-font="varela"] h3,
+#display-root[data-font="varela"] .clock, #display-root[data-font="varela"] table { font-family: 'Varela Round', 'Rubik', sans-serif; }
+
+/* ===== פריסה: עמודה אחת ===== */
+#display-root[data-layout="stacked"] .display-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1.2fr 0.8fr;
+}
+#display-root[data-layout="stacked"] .display-header { grid-template-columns: 1fr; text-align: center; gap: 0.5vh; }
+#display-root[data-layout="stacked"] .display-header .brand { justify-content: center; }
+#display-root[data-layout="stacked"] .clock { justify-content: center; }
+
+/* ===== שורת "היום" בכותרת ===== */
+.display-header .sub.today-line {
+    color: var(--accent);
+    font-weight: 600;
+    margin-top: 0.25rem;
+    display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem;
+}
+.display-header .sub.today-line span + span::before { content: '•'; opacity: 0.5; margin-inline-end: 0.9rem; }
+
+/* ===== התפילה הבאה ===== */
+.tefillot-card tr.next-minyan td { color: var(--accent-2); }
+.tefillot-card tr.next-minyan td.ptime {
+    color: var(--accent);
+    text-shadow: 0 0 1.2vmin color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.tefillot-card .next-in {
+    display: inline-block; margin-inline-start: 0.6rem;
+    font-size: 0.72em; font-weight: 700; color: var(--accent-2);
+    background: color-mix(in srgb, var(--accent-2) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-2) 40%, transparent);
+    border-radius: 999px; padding: 0.05em 0.6em; vertical-align: middle; white-space: nowrap;
+}
+.tefillot-card tr.past-minyan td { opacity: 0.45; }
+.tefillot-card .fast-line { color: var(--accent-2); }
+
+/* ===== מצב שינה ===== */
+#sleep-overlay {
+    position: fixed; inset: 0; z-index: 90; background: #000; color: #333;
+    display: none; align-items: center; justify-content: center;
+    font-size: 4vmin; font-variant-numeric: tabular-nums; direction: ltr;
+}
+body.sleeping #sleep-overlay { display: flex; }

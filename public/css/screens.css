@@ -183,3 +183,111 @@ body[data-screens] #display-root {
 .tm-days label.on { background: #0e1320; color: #fff; border-color: #0e1320; }
 .tm-days input { display: none; }
 .tm-result { font-size: 12px; color: #6b7280; }
+
+/* ---------- קוביות חדשות ----------
+   כולן בנויות כ-.card כדי שערכת הצבע והסגנון (מסורתי, זכוכית, נועז...) יחולו עליהן. */
+.blk { display: flex; flex-direction: column; min-height: 0; }
+.blk h2 { flex: 0 0 auto; }
+.blk .blk-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+.blk-empty { color: var(--text-dim); text-align: center; font-size: calc(var(--fs, 1) * 1.6vmin); padding: 1vmin; }
+
+/* שעון גדול */
+.blk-clock { align-items: center; justify-content: center; text-align: center; padding: 1vmin; }
+.blk-clock .big-time { font-size: 1px; font-weight: 800; font-variant-numeric: tabular-nums; direction: ltr; line-height: 1; color: var(--text); }
+.blk-clock .big-time small { font-size: 0.42em; color: var(--text-dim); font-weight: 600; margin-inline-start: 0.15em; }
+.blk-clock svg { width: 100%; height: 100%; max-height: 100%; }
+.blk-clock .hand { stroke: var(--text); stroke-linecap: round; }
+.blk-clock .hand-sec { stroke: var(--accent); }
+.blk-clock .tick { stroke: var(--text-dim); }
+.blk-clock .tick-big { stroke: var(--accent); }
+.blk-clock .face { fill: var(--bg-card); stroke: var(--border); }
+
+/* תאריך גדול */
+.blk-date { align-items: center; justify-content: center; text-align: center; padding: 1vmin; gap: 0.6vmin; }
+.blk-date .d-heb { font-size: 1px; font-weight: 800; color: var(--accent); line-height: 1.1; }
+.blk-date .d-greg { font-size: 1px; color: var(--text-dim); }
+.blk-date .d-parasha { font-size: 1px; color: var(--accent-2); font-weight: 600; }
+
+/* לוח שבת */
+.blk-shabbat .sh-row { display: flex; justify-content: space-between; align-items: baseline; gap: 1vmin;
+    padding: 0.6vmin 0; border-bottom: 1px solid var(--border); font-size: calc(var(--fs, 1) * clamp(1rem, 1.5vw, 1.7rem)); }
+.blk-shabbat .sh-row:last-child { border-bottom: 0; }
+.blk-shabbat .sh-row b { color: var(--accent); direction: ltr; font-variant-numeric: tabular-nums; }
+.blk-shabbat .sh-parasha { text-align: center; color: var(--accent-2); font-weight: 700; margin-bottom: 0.6vmin;
+    font-size: calc(var(--fs, 1) * clamp(1.1rem, 1.7vw, 2rem)); }
+
+/* היום */
+.blk-today .blk-body { justify-content: center; gap: 0.5vmin; }
+.blk-today .td-item { font-size: calc(var(--fs, 1) * clamp(1rem, 1.5vw, 1.8rem)); color: var(--text); padding: 0.3vmin 0; }
+.blk-today .td-item b { color: var(--accent); }
+.blk-today.blk-inline .blk-body { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 0.4vmin 2vmin; }
+
+/* לימוד יומי */
+.blk-learning .ln-row { display: flex; justify-content: space-between; gap: 1vmin; padding: 0.5vmin 0; border-bottom: 1px dashed var(--border);
+    font-size: calc(var(--fs, 1) * clamp(0.95rem, 1.35vw, 1.6rem)); }
+.blk-learning .ln-row:last-child { border-bottom: 0; }
+.blk-learning .ln-name { color: var(--text-dim); white-space: nowrap; }
+.blk-learning .ln-val { color: var(--text); font-weight: 700; text-align: left; }
+
+/* הקדשות וברכות */
+.blk-dedications .blk-body { align-items: center; text-align: center; justify-content: center; }
+.blk-dedications .dd-type { color: var(--accent); font-weight: 700; font-size: calc(var(--fs, 1) * clamp(1.1rem, 1.6vw, 1.9rem)); }
+.blk-dedications .dd-text { font-size: calc(var(--fs, 1) * clamp(1.3rem, 2.2vw, 2.8rem)); font-weight: 800; line-height: 1.25; margin: 0.6vmin 0; }
+.blk-dedications .dd-by { color: var(--text-dim); font-size: calc(var(--fs, 1) * clamp(0.95rem, 1.3vw, 1.5rem)); }
+.blk-dedications .dd-dots { display: flex; gap: 0.5vmin; justify-content: center; margin-top: 0.8vmin; }
+.blk-dedications .dd-dots i { width: 0.9vmin; height: 0.9vmin; border-radius: 50%; background: var(--border); }
+.blk-dedications .dd-dots i.on { background: var(--accent); }
+.dd-fade { animation: dd-in .6s ease both; }
+@keyframes dd-in { from { opacity: 0; transform: translateY(0.6vmin); } to { opacity: 1; transform: none; } }
+
+/* שיעורים */
+.blk-shiurim .sr-row { display: grid; grid-template-columns: auto 1fr; gap: 0 1.2vmin; align-items: baseline; padding: 0.5vmin 0; border-bottom: 1px solid var(--border);
+    font-size: calc(var(--fs, 1) * clamp(0.95rem, 1.35vw, 1.6rem)); }
+.blk-shiurim .sr-row:last-child { border-bottom: 0; }
+.blk-shiurim .sr-time { color: var(--accent); font-weight: 700; direction: ltr; font-variant-numeric: tabular-nums; }
+.blk-shiurim .sr-title { font-weight: 700; }
+.blk-shiurim .sr-meta { grid-column: 2; color: var(--text-dim); font-size: 0.85em; }
+.blk-shiurim .sr-day { grid-column: 1 / -1; color: var(--accent-2); font-weight: 700; margin-top: 0.6vmin; font-size: 0.9em; }
+
+/* טקסט מתחלף */
+.blk-text .blk-body { justify-content: center; }
+.blk-text .tx-title { color: var(--accent); font-weight: 700; margin-bottom: 0.6vmin; font-size: calc(var(--fs, 1) * clamp(1.1rem, 1.6vw, 1.9rem)); }
+.blk-text .tx-body { font-size: calc(var(--fs, 1) * clamp(1.05rem, 1.55vw, 1.85rem)); line-height: 1.5; white-space: pre-wrap; }
+
+/* ספירת העומר */
+.blk-omer { align-items: center; justify-content: center; text-align: center; }
+.blk-omer .om-big { font-size: 1px; font-weight: 900; color: var(--accent); line-height: 1; }
+.blk-omer .om-text { font-size: 1px; color: var(--text); margin-top: 1vmin; }
+.blk-omer .om-sefira { font-size: 1px; color: var(--text-dim); margin-top: 0.5vmin; }
+
+/* מזג אוויר */
+.blk-weather .wx-now { display: flex; align-items: center; justify-content: center; gap: 1.5vmin; }
+.blk-weather .wx-icon { font-size: calc(var(--fs, 1) * clamp(2rem, 4vw, 5rem)); line-height: 1; }
+.blk-weather .wx-temp { font-size: calc(var(--fs, 1) * clamp(2rem, 3.6vw, 4.5rem)); font-weight: 800; direction: ltr; }
+.blk-weather .wx-desc { color: var(--text-dim); text-align: center; font-size: calc(var(--fs, 1) * clamp(0.9rem, 1.2vw, 1.4rem)); }
+.blk-weather .wx-days { display: flex; justify-content: space-around; margin-top: 1vmin; gap: 0.5vmin; }
+.blk-weather .wx-day { text-align: center; font-size: calc(var(--fs, 1) * clamp(0.85rem, 1.1vw, 1.3rem)); color: var(--text-dim); }
+.blk-weather .wx-day .ic { font-size: 1.6em; line-height: 1.2; }
+.blk-weather .wx-day b { color: var(--text); direction: ltr; display: block; }
+
+/* התפילה הבאה — ספירה לאחור */
+.blk-countdown { align-items: center; justify-content: center; text-align: center; }
+.blk-countdown .cd-label { color: var(--text-dim); font-size: calc(var(--fs, 1) * clamp(1rem, 1.5vw, 1.8rem)); }
+.blk-countdown .cd-name { color: var(--accent); font-weight: 800; font-size: calc(var(--fs, 1) * clamp(1.4rem, 2.4vw, 3rem)); margin: 0.4vmin 0; }
+.blk-countdown .cd-time { font-size: 1px; font-weight: 900; direction: ltr; font-variant-numeric: tabular-nums; line-height: 1; }
+.blk-countdown .cd-at { color: var(--text-dim); font-size: calc(var(--fs, 1) * clamp(0.95rem, 1.3vw, 1.5rem)); margin-top: 0.6vmin; direction: ltr; }
+
+/* אלמנטים של הפריסה הקלאסית שלא במסך הנוכחי — מוסתרים באמת
+   (ה-CSS של .card/.display-header דורס את hidden של הדפדפן) */
+body[data-screens] #display-root [hidden] { display: none !important; }
+
+/* קוביות קטנות: פחות ריפוד, בלי גלישה */
+.screen-block .card.blk { padding: clamp(0.6rem, 1.2vw, 1.4rem); }
+.blk .blk-body { overflow: hidden; }
+.blk-inline { padding: 0.4vmin 1.5vmin !important; }
+.blk-shabbat .blk-body, .blk-learning .blk-body, .blk-shiurim .blk-body { justify-content: flex-start; }
+.blk-shabbat .sh-row { padding: 0.35vmin 0; font-size: calc(var(--fs, 1) * clamp(0.9rem, 1.3vw, 1.55rem)); }
+.blk-weather .wx-icon { font-size: calc(var(--fs, 1) * clamp(1.6rem, 3vw, 3.8rem)); }
+.blk-weather .wx-temp { font-size: calc(var(--fs, 1) * clamp(1.6rem, 3vw, 3.6rem)); }
+.blk-weather .wx-day { font-size: calc(var(--fs, 1) * clamp(0.75rem, 1vw, 1.15rem)); }
+.blk-weather .wx-day .ic { font-size: 1.4em; }

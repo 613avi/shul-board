@@ -2,7 +2,9 @@
 // Loads data/*.json, renders a kiosk-style synagogue board (always all-rooms).
 
 (() => {
-  const { HDate, GeoLocation, Zmanim, HebrewCalendar, flags, Locale, gematriya } = window.hebcal;
+  const { HDate, GeoLocation, Zmanim, HebrewCalendar, flags, Locale, gematriya, Molad, Location } = window.hebcal;
+  const P = window.SB_PRESETS || null;
+  const stripNikud = (t) => String(t || '').replace(/[\u0591-\u05BD\u05BF-\u05C7]/g, '');
   const FLAG_PARSHA = (flags && flags.PARSHA_HASHAVUA) || 1024;
   const FLAG_CHAG = (flags && flags.CHAG) || 1;
 
@@ -33,6 +35,15 @@
     announcements: [],
     specialEvents: [],
     zmanimCalendar: {}, // { "YYYY-MM-DD": { key: "HH:MM" } }
+    dedications: [],
+    shiurim: [],
+    texts: [],
+  };
+
+  // דגלי תצוגה (config.display). ברירת המחדל כאן היא לבתי כנסת שאין להם את השדה בכלל.
+  const flag = (key, def = false) => {
+    const d = state.config && state.config.display;
+    return d && d[key] !== undefined ? !!d[key] : def;
   };
 
   // ---------- helpers ----------
@@ -171,6 +182,9 @@
     const zmanimCal = d['zmanim-calendar'] || { entries: {} };
     state.screens = d['screens'] || null;
     state.mediaPlaylist = d['media-playlist'] || { seconds: 12, entries: [] };
+    state.dedications = Array.isArray(d.dedications?.entries) ? d.dedications.entries : [];
+    state.shiurim = Array.isArray(d.shiurim?.entries) ? d.shiurim.entries : [];
+    state.texts = Array.isArray(d.texts?.entries) ? d.texts.entries : [];
     if (!config) throw new Error('config missing');
     if (!config.synagogueName && bundle.name) config.synagogueName = bundle.name;
     state.config = config;
@@ -231,6 +245,85 @@
     }
 
     renderMentions(hdate);
+    renderTodayLine(hdate);
+  }
+
+  // ---------- "היום": חגים, ראש חודש, חנוכה, צום, שבת מברכים ומולד ----------
+  const MODERN_KEEP = /Yom HaShoah|Yom HaZikaron|Yom HaAtzma|Yom Yerushalayim/;
+  const SKIP_DESC = /^(Shabbat Mevarchim|Molad|Havdalah|Candle lighting|Fast begins|Fast ends)/;
+
+  function todayEvents(hdate) {
+    try {
+      return HebrewCalendar.calendar({
+        start: hdate, end: hdate, il: true, locale: 'he',
+        sedrot: false, omer: false, candlelighting: false, molad: false, shabbatMevarchim: true,
+        noMinorFast: false, noModern: false, noSpecialShabbat: false,
+      });
+    } catch { return []; }
+  }
+
+  // מונחים: מחרוזות מוכנות להצגה
+  function computeTodayItems(hdate) {
+    const items = [];
+    const evs = todayEvents(hdate);
+    let mevarchim = null;
+    for (const ev of evs) {
+      const f = ev.getFlags();
+      const desc = ev.getDesc ? ev.getDesc() : '';
+      if (f & (flags.PARSHA_HASHAVUA | flags.OMER_COUNT | flags.HEBREW_DATE | flags.DAILY_LEARNING | flags.MOLAD)) continue;
+      if ((f & flags.MODERN_HOLIDAY) && !MODERN_KEEP.test(desc)) continue;
+      if (f & flags.SHABBAT_MEVARCHIM) { mevarchim = ev; continue; }
+      if (SKIP_DESC.test(desc)) continue;
+      const text = stripNikud(ev.render('he')).replace(/\b5\d{3}\b/, y => hebDay(Number(y) % 1000)).trim();
+      if (text) items.push({ text, fast: !!(f & (flags.MINOR_FAST | flags.MAJOR_FAST)), ev });
+    }
+    if (mevarchim) {
+      items.push({ text: stripNikud(mevarchim.render('he')) });
+      try {
+        // המולד של החודש הבא
+        const m = hdate.getMonth(), y = hdate.getFullYear();
+        const months = HDate.monthsInYear(y);
+        const nm = m === months ? 1 : m + 1;
+        const ny = m === months ? y + 1 : y;
+        const molad = new Molad(ny, nm);
+        const dow = HEB_DOW[molad.getDow()];
+        const hh = String(molad.getHour()).padStart(2, '0'), mm = String(molad.getMinutes()).padStart(2, '0');
+        items.push({ text: `המולד: יום ${dow}, ${hh}:${mm} ו-${molad.getChalakim()} חלקים` });
+      } catch {}
+    }
+    return items;
+  }
+
+  // תחילת/סיום הצום להיום, אם היום תענית
+  function fastTimesToday(hdate, force = false) {
+    if (!force && !flag('fastTimes')) return null;
+    try {
+      const { latitude, longitude, timezone } = state.config.location;
+      const loc = new Location(Number(latitude), Number(longitude), true, timezone || 'Asia/Jerusalem');
+      const evs = HebrewCalendar.calendar({ start: hdate, end: hdate, il: true, locale: 'he', location: loc, candlelighting: true });
+      const fast = evs.find(e => e.getFlags() & (flags.MINOR_FAST | flags.MAJOR_FAST));
+      if (!fast) return null;
+      const t = (e) => e && e.eventTime ? fmtTime(e.eventTime) : '';
+      const start = t(fast.startEvent), end = t(fast.endEvent);
+      if (!start && !end) return null;
+      return { name: stripNikud(fast.render('he')), start, end };
+    } catch { return null; }
+  }
+
+  function renderTodayLine(hdate) {
+    const line = qs('#today-line');
+    if (!line) return;
+    if (!flag('todayLine')) { line.style.display = 'none'; return; }
+    try {
+      const items = computeTodayItems(hdate).map(i => i.text);
+      const fast = fastTimesToday(hdate);
+      if (fast && (fast.start || fast.end)) {
+        items.push(`${fast.start ? 'תחילת הצום ' + fast.start : ''}${fast.start && fast.end ? ' · ' : ''}${fast.end ? 'סיום הצום ' + fast.end : ''}`);
+      }
+      line.innerHTML = '';
+      for (const t of items) line.appendChild(Object.assign(document.createElement('span'), { textContent: t }));
+      line.style.display = items.length ? '' : 'none';
+    } catch { line.style.display = 'none'; }
   }
 
   // ---------- tefilla mentions (winter/summer, rain request, ya'aleh v'yavo, al hanisim) ----------
@@ -280,6 +373,37 @@
     if (m === lastAdar && (d === 14 || d === 15)) alHanisim = true; // Purim + Shushan Purim
     if (alHanisim) out.push('על הניסים');
 
+    if (flag('extendedMentions')) {
+      const leap = (() => { try { return HDate.isLeapYear(hdate.getFullYear()); } catch { return false; } })();
+      const lastAdar = leap ? 13 : 12;
+      const isChanukah = (m === 9 && d >= 25) || (m === 10 && d <= 2) ||
+        (m === 10 && d === 3 && (() => { try { return HDate.daysInMonth(9, hdate.getFullYear()) === 29; } catch { return false; } })());
+      const rc = d === 1 || (d === 30);
+      // הלל
+      let hallel = '';
+      if (m === 1 && d === 15) hallel = 'הלל שלם';
+      else if (m === 1 && d >= 16 && d <= 21) hallel = 'חצי הלל';
+      else if (m === 3 && d === 6) hallel = 'הלל שלם';
+      else if (m === 7 && d >= 15 && d <= 22) hallel = 'הלל שלם';
+      else if (isChanukah) hallel = 'הלל שלם';
+      else if (rc) hallel = 'חצי הלל';
+      if (hallel) out.push(hallel);
+      // תחנון — ימים שבהם לא אומרים
+      const noTachanun =
+        rc || m === 1 ||
+        (m === 2 && (d === 14 || d === 18)) ||
+        (m === 3 && d <= 12) ||
+        (m === 5 && (d === 9 || d === 15)) ||
+        (m === 6 && d === 29) ||
+        (m === 7 && d >= 9) ||
+        isChanukah ||
+        (m === 11 && d === 15) ||
+        (m === lastAdar && (d === 14 || d === 15)) ||
+        (leap && m === 12 && (d === 14 || d === 15)) ||
+        hdate.getDay() === 6;
+      if (noTachanun) out.push('אין תחנון');
+    }
+
     return out;
   }
 
@@ -320,6 +444,8 @@
     { key: 'plagHaMincha',     label: 'פלג המנחה',                    fn: z => z.plagHaMincha() },
     { key: 'sunset',           label: 'שקיעת החמה',                   fn: z => z.sunset() },
     { key: 'tzeit',            label: 'צאת הכוכבים',                  fn: z => z.tzeit() },
+    { key: 'tzeit72',          label: 'צאת הכוכבים (ר״ת)',            fn: z => z.sunsetOffset(72) },
+    { key: 'chatzotNight',     label: 'חצות הלילה',                   fn: z => z.chatzotNight() },
   ];
 
   function computeZmanim() {
@@ -436,7 +562,9 @@
     const candleMinutes = Number(state.config.location.candleLightingMinutes) || 18;
     const candle = addMinutes(zFri.sunset(), -candleMinutes);
     const havdalah = zSat.tzeit(8.5);
-    return { candle, havdalah };
+    let havdalahRT = null;
+    try { havdalahRT = zSat.sunsetOffset(72); } catch {}
+    return { candle, havdalah, havdalahRT, friday, saturday };
   }
 
   // ---------- פתרון זמן תפילה ----------
@@ -545,10 +673,11 @@
     return rows;
   }
 
+  // סדר הקבוצות בלוח התפילות — לפי סדר היום: ערב שבת קודם לשבת עצמה
   const PRAYER_ORDER = [
-    'קבלת שבת',
+    'מנחה ערב שבת', 'קבלת שבת',
     'שחרית', 'שחרית שבת',
-    'מנחה ערב שבת', 'מנחה', 'מנחה שבת',
+    'מנחה', 'מנחה שבת',
     'ערבית', 'ערבית מוצ״ש',
   ];
   const prayerOrderIdx = (name) => {
@@ -605,20 +734,73 @@
       }
     }
 
+    // צום היום — שורה משותפת כמו הדלקת נרות
+    const fast = fastTimesToday(getEffectiveHDate());
+    if (fast) {
+      const shared = document.createElement('div');
+      shared.className = 'shabbat-shared fast-line';
+      shared.innerHTML =
+        (fast.start ? `<div><span>תחילת הצום</span><b>${fast.start}</b></div>` : '') +
+        (fast.end ? `<div><span>סיום הצום</span><b>${fast.end}</b></div>` : '');
+      container.appendChild(shared);
+    }
+
     const groups = [...byGroup.entries()].sort((a, b) => prayerOrderIdx(a[0]) - prayerOrderIdx(b[0]));
     const showRoomCol = state.rooms.length > 1;
+    const next = flag('nextHighlight') ? nextMinyan() : null;
+    const hidePast = flag('hidePast');
+    const nowMin = now.getHours() * 60 + now.getMinutes();
     for (const [group, minyans] of groups) {
       minyans.sort((a, b) => parseTime(a.time) - parseTime(b.time));
+      const visible = hidePast ? minyans.filter(m => !(parseTime(m.time) < nowMin)) : minyans;
+      if (!visible.length) continue;
       const block = document.createElement('div');
       block.className = 'prayer-block';
-      const rowsHtml = minyans.map(m =>
-        `<tr><td class="ptime">${m.time || '—'}</td>${showRoomCol ? `<td class="proom">${m.roomName}</td>` : ''}</tr>`
-      ).join('');
+      const rowsHtml = visible.map(m => {
+        const mins = parseTime(m.time);
+        const isNext = next && next.group === group && next.time === m.time && next.roomName === m.roomName;
+        const isPast = flag('nextHighlight') && !isNaN(mins) && mins < nowMin;
+        const badge = isNext ? `<span class="next-in">${untilText(next.minutes)}</span>` : '';
+        return `<tr class="${isNext ? 'next-minyan' : isPast ? 'past-minyan' : ''}"><td class="ptime">${m.time || '—'}${badge}</td>${showRoomCol ? `<td class="proom">${m.roomName}</td>` : ''}</tr>`;
+      }).join('');
       block.innerHTML = `<h3>${group}</h3><table><tbody>${rowsHtml}</tbody></table>`;
       container.appendChild(block);
     }
+    if (!container.querySelector('.prayer-block')) {
+      container.insertAdjacentHTML('beforeend', '<div class="empty-state">אין עוד תפילות היום</div>');
+    }
 
     updateAutoScroll(qs('.tefillot-card'));
+  }
+
+  // כל המניינים של היום, שטוחים — לחישוב "התפילה הבאה"
+  function allMinyansToday() {
+    const now = new Date();
+    const dow = now.getDay();
+    const shabbat = dow === 6 || dow === 5;
+    const ctx = shabbat ? computeShabbatContext() : null;
+    const out = [];
+    for (const room of state.rooms) {
+      const raw = shabbat ? buildShabbatRows(room, ctx) : buildWeekdayRows(room);
+      applySpecialEventsToRoom(raw, room);
+      for (const r of raw) if (!isNaN(parseTime(r.time))) out.push({ ...r, roomName: room.name });
+    }
+    return out.sort((a, b) => parseTime(a.time) - parseTime(b.time));
+  }
+
+  function nextMinyan() {
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const m = allMinyansToday().find(r => parseTime(r.time) >= nowMin);
+    if (!m) return null;
+    return { ...m, minutes: parseTime(m.time) - nowMin };
+  }
+
+  function untilText(minutes) {
+    if (minutes <= 0) return 'עכשיו';
+    if (minutes < 60) return `בעוד ${minutes} דק׳`;
+    const h = Math.floor(minutes / 60), mm = minutes % 60;
+    return mm ? `בעוד ${h} שע׳ ו-${mm} דק׳` : `בעוד ${h} שע׳`;
   }
 
   // ---------- memorial ----------
@@ -746,6 +928,326 @@
     }
   }
 
+  // ================= קוביות חדשות =================
+  // נבנות מחדש בכל ציור מסך. renderDynamicBlocks() מעדכן אותן כל דקה,
+  // tickClocks() כל שנייה, והסבב (הקדשות/טקסטים) לפי display.textsSeconds.
+
+  const blockTitle = (type) => (P && P.BLOCKS.find(b => b.type === type)?.name) || type;
+
+  function mkCard(type, title, extraClass = '') {
+    const card = document.createElement('section');
+    card.className = `card blk blk-${type} ${extraClass}`.trim();
+    if (title) { const h = document.createElement('h2'); h.textContent = title; card.appendChild(h); }
+    const body = document.createElement('div');
+    body.className = 'blk-body';
+    card.appendChild(body);
+    return { card, body };
+  }
+
+  // גודל טקסט לפי ממדי הקובייה — לשעונים ותאריכים שצריכים למלא את המקום
+  function fitFont(el, wrap, wFrac, hFrac) {
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    if (!w || !h) return;
+    el.style.fontSize = `${Math.max(12, Math.min(w * wFrac, h * hFrac))}px`;
+  }
+
+  const _blockRenderers = {
+    clock(block, wrap) {
+      const analog = block.variant === 'analog';
+      const { card, body } = mkCard('clock', '');
+      if (analog) {
+        body.innerHTML = `<svg viewBox="0 0 100 100" aria-label="שעון">
+          <circle class="face" cx="50" cy="50" r="47" stroke-width="1.5"/>
+          ${[...Array(12)].map((_, i) => { const a = i * Math.PI / 6; const big = i % 3 === 0;
+            const r1 = big ? 39 : 42, r2 = 45;
+            return `<line class="tick ${big ? 'tick-big' : ''}" x1="${50 + r1 * Math.sin(a)}" y1="${50 - r1 * Math.cos(a)}" x2="${50 + r2 * Math.sin(a)}" y2="${50 - r2 * Math.cos(a)}" stroke-width="${big ? 2.2 : 1}"/>`; }).join('')}
+          <line class="hand hand-h" x1="50" y1="50" x2="50" y2="26" stroke-width="4"/>
+          <line class="hand hand-m" x1="50" y1="50" x2="50" y2="16" stroke-width="2.6"/>
+          <line class="hand hand-sec" x1="50" y1="56" x2="50" y2="12" stroke-width="1"/>
+          <circle cx="50" cy="50" r="2.2" fill="currentColor"/>
+        </svg>`;
+      } else {
+        body.innerHTML = '<div class="big-time"><span class="bt-hm">00:00</span><small class="bt-s">00</small></div>';
+      }
+      wrap.appendChild(card);
+      if (!analog) fitFont(body.querySelector('.big-time'), wrap, 0.3, 0.62);
+      tickClocks();
+    },
+    date(block, wrap) {
+      const { card, body } = mkCard('date', '');
+      const hdate = getEffectiveHDate();
+      const now = new Date();
+      const par = findParashaText(hdate, now);
+      body.innerHTML = `<div class="d-heb">${hdate.renderGematriya()}</div>
+        <div class="d-greg">יום ${HEB_DOW[now.getDay()]}, ${now.toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        ${par ? `<div class="d-parasha">${stripNikud(par)}</div>` : ''}`;
+      wrap.appendChild(card);
+      fitFont(body.querySelector('.d-heb'), wrap, 0.085, 0.3);
+      fitFont(body.querySelector('.d-greg'), wrap, 0.045, 0.16);
+      const p = body.querySelector('.d-parasha'); if (p) fitFont(p, wrap, 0.05, 0.18);
+    },
+    shabbat(block, wrap) {
+      const { card, body } = mkCard('shabbat', 'שבת קודש');
+      try {
+        const ctx = computeShabbatContext();
+        const shabbatHd = new HDate(ctx.saturday);
+        const par = findParashaText(shabbatHd, ctx.saturday);
+        const special = todayEvents(shabbatHd).filter(e => e.getFlags() & (flags.SPECIAL_SHABBAT | flags.CHAG | flags.ROSH_CHODESH))
+          .map(e => stripNikud(e.render('he'))).slice(0, 2);
+        const room = state.rooms[0];
+        const rows = [];
+        if (room && room.shabbat.minchaErevOffsets.length) rows.push(['מנחה ערב שבת', fmtTime(addMinutes(ctx.candle, room.shabbat.minchaErevOffsets[0]))]);
+        rows.push(['הדלקת נרות', fmtTime(ctx.candle)]);
+        if (room && room.shabbat.shacharit.length) { const r = resolveTimeEntry(room.shabbat.shacharit[0], 6); if (r) rows.push(['שחרית', r.time]); }
+        if (room && room.shabbat.mincha.length) { const r = resolveTimeEntry(room.shabbat.mincha[0], 6); if (r) rows.push(['מנחה', r.time]); }
+        rows.push(['צאת השבת', fmtTime(ctx.havdalah)]);
+        if (ctx.havdalahRT) rows.push(['צאת השבת (ר״ת)', fmtTime(ctx.havdalahRT)]);
+        if (room && room.shabbat.arvitMotzashOffsets.length) rows.push(['ערבית מוצ״ש', fmtTime(addMinutes(ctx.havdalah, room.shabbat.arvitMotzashOffsets[0]))]);
+        body.innerHTML = `${par ? `<div class="sh-parasha">${stripNikud(par)}${special.length ? ' · ' + special.join(' · ') : ''}</div>` : ''}` +
+          rows.map(([k, v]) => `<div class="sh-row"><span>${k}</span><b>${v}</b></div>`).join('');
+      } catch { body.innerHTML = '<div class="blk-empty">—</div>'; }
+      wrap.appendChild(card);
+    },
+    today(block, wrap) {
+      const inline = block.h <= 2;
+      const { card, body } = mkCard('today', inline ? '' : 'היום', inline ? 'blk-inline' : '');
+      const hdate = getEffectiveHDate();
+      const items = computeTodayItems(hdate).map(i => i.text);
+      const fast = fastTimesToday(hdate, true);
+      if (fast) items.push(`${fast.start ? 'תחילת הצום ' + fast.start : ''}${fast.start && fast.end ? ' · ' : ''}${fast.end ? 'סיום הצום ' + fast.end : ''}`);
+      const omer = findOmerText(hdate);
+      if (omer) items.push(omer);
+      body.innerHTML = items.length
+        ? items.map(t => `<div class="td-item">${t}</div>`).join('')
+        : `<div class="td-item">${stripNikud(hdate.renderGematriya())} · יום רגיל</div>`;
+      wrap.appendChild(card);
+    },
+    learning(block, wrap) {
+      const { card, body } = mkCard('learning', 'לימוד יומי');
+      const ids = (state.config.display && Array.isArray(state.config.display.learning) && state.config.display.learning.length)
+        ? state.config.display.learning : ['dafyomi'];
+      if (!window.hebcal.DailyLearning || !window.hebcal.DailyLearning.getCalendars().length) {
+        body.innerHTML = '<div class="blk-empty">טוען…</div>';
+        ensureLearning().then(() => renderDynamicBlocks());
+      } else {
+        const hdate = getEffectiveHDate();
+        const rows = [];
+        for (const id of ids) {
+          const name = (P && P.LEARNING.find(l => l.id === id)?.name) || id;
+          try {
+            const ev = window.hebcal.DailyLearning.lookup(id, hdate, true);
+            if (!ev) continue;
+            let text = stripNikud(ev.render('he'));
+            if (id === 'dafyomi') text = text.replace(/^[^:\d]{2,20}:\s*/, '');
+            rows.push(`<div class="ln-row"><span class="ln-name">${name}</span><span class="ln-val">${text}</span></div>`);
+          } catch {}
+        }
+        body.innerHTML = rows.join('') || '<div class="blk-empty">אין לימוד להיום</div>';
+      }
+      wrap.appendChild(card);
+    },
+    dedications(block, wrap) {
+      const { card, body } = mkCard('dedications', 'הקדשות וברכות');
+      const items = activeDedications();
+      if (!items.length) body.innerHTML = '<div class="blk-empty">אין הקדשות פעילות</div>';
+      else {
+        const i = _rotIndex % items.length;
+        const it = items[i];
+        const type = (P && P.DEDICATION_TYPES.find(t => t.id === it.type)) || { name: it.type || '', icon: '' };
+        body.innerHTML = `<div class="dd-fade">
+          <div class="dd-type">${type.icon} ${type.name}</div>
+          <div class="dd-text">${escapeText(it.text)}</div>
+          ${it.from ? `<div class="dd-by">${escapeText(it.from)}</div>` : ''}
+          ${items.length > 1 ? `<div class="dd-dots">${items.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+        </div>`;
+      }
+      wrap.appendChild(card);
+    },
+    shiurim(block, wrap) {
+      const { card, body } = mkCard('shiurim', 'שיעורים');
+      const now = new Date();
+      const dow = now.getDay();
+      const list = (dayIdx) => state.shiurim
+        .filter(s => s && s.title && (!Array.isArray(s.days) || !s.days.length || s.days.includes(dayIdx)))
+        .sort((a, b) => parseTime(a.time) - parseTime(b.time));
+      const row = (s) => `<div class="sr-row"><span class="sr-time">${s.time || ''}</span><span class="sr-title">${escapeText(s.title)}</span>
+        ${(s.lecturer || s.place) ? `<span class="sr-meta">${[s.lecturer, s.place].filter(Boolean).map(escapeText).join(' · ')}</span>` : ''}</div>`;
+      const today = list(dow), tomorrow = list((dow + 1) % 7);
+      let html = '';
+      if (today.length) html += `<div class="sr-day">היום</div>` + today.map(row).join('');
+      if (tomorrow.length && (block.h >= 5 || !today.length)) html += `<div class="sr-day">מחר</div>` + tomorrow.map(row).join('');
+      body.innerHTML = html || '<div class="blk-empty">אין שיעורים היום</div>';
+      wrap.appendChild(card);
+    },
+    text(block, wrap) {
+      const items = state.texts.filter(t => t && (t.body || t.title));
+      const { card, body } = mkCard('text', '');
+      if (!items.length) body.innerHTML = '<div class="blk-empty">לא הוזנו טקסטים</div>';
+      else {
+        const it = items[_rotIndex % items.length];
+        body.innerHTML = `<div class="dd-fade">${it.title ? `<div class="tx-title">${escapeText(it.title)}</div>` : ''}<div class="tx-body">${escapeText(it.body || '')}</div></div>`;
+      }
+      wrap.appendChild(card);
+    },
+    omer(block, wrap) {
+      const { card, body } = mkCard('omer', '');
+      const hdate = getEffectiveHDate();
+      let ev = null;
+      try {
+        ev = HebrewCalendar.calendar({ start: hdate, end: hdate, omer: true, locale: 'he', il: true })
+          .find(e => e.getFlags() & flags.OMER_COUNT);
+      } catch {}
+      if (!ev) body.innerHTML = '<div class="blk-empty">ספירת העומר — לא בימי הספירה</div>';
+      else {
+        const n = typeof ev.omer === 'number' ? ev.omer : (ev.getOmerDay ? ev.getOmerDay() : 0);
+        const sefira = typeof ev.sefira === 'function' ? ev.sefira('he') : '';
+        body.innerHTML = `<div class="om-big">${hebDay(n)}</div><div class="om-text">${stripNikud(ev.getTodayIs ? ev.getTodayIs('he') : ev.render('he'))}</div>${sefira ? `<div class="om-sefira">${stripNikud(sefira)}</div>` : ''}`;
+        wrap.appendChild(card);
+        fitFont(body.querySelector('.om-big'), wrap, 0.35, 0.42);
+        fitFont(body.querySelector('.om-text'), wrap, 0.05, 0.12);
+        const sf = body.querySelector('.om-sefira'); if (sf) fitFont(sf, wrap, 0.04, 0.1);
+        return;
+      }
+      wrap.appendChild(card);
+    },
+    weather(block, wrap) {
+      const { card, body } = mkCard('weather', 'מזג אוויר');
+      const w = _weather;
+      if (!w) { body.innerHTML = '<div class="blk-empty">טוען…</div>'; fetchWeather(); }
+      else {
+        body.innerHTML = `<div class="wx-now"><span class="wx-icon">${wmoIcon(w.code)}</span><span class="wx-temp">${Math.round(w.temp)}°</span></div>
+          <div class="wx-desc">${wmoText(w.code)}</div>
+          ${block.h >= 4 && w.days.length ? `<div class="wx-days">${w.days.map(d => `<div class="wx-day"><div>${d.name}</div><div class="ic">${wmoIcon(d.code)}</div><b>${Math.round(d.max)}° / ${Math.round(d.min)}°</b></div>`).join('')}</div>` : ''}`;
+      }
+      wrap.appendChild(card);
+    },
+    countdown(block, wrap) {
+      const { card, body } = mkCard('countdown', '');
+      body.innerHTML = '<div class="cd-label"></div><div class="cd-name"></div><div class="cd-time"></div><div class="cd-at"></div>';
+      wrap.appendChild(card);
+      fitFont(body.querySelector('.cd-time'), wrap, 0.22, 0.4);
+      tickClocks();
+    },
+  };
+
+  const escapeText = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function activeDedications() {
+    const today = new Date().toISOString().slice(0, 10);
+    return state.dedications.filter(d => d && d.text &&
+      (!d.startDate || d.startDate <= today) && (!d.endDate || d.endDate >= today));
+  }
+
+  // ---------- שעונים וספירה לאחור — כל שנייה ----------
+  function tickClocks() {
+    const now = new Date();
+    const hm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    document.querySelectorAll('.blk-clock .bt-hm').forEach(e => { e.textContent = hm; });
+    document.querySelectorAll('.blk-clock .bt-s').forEach(e => { e.textContent = ss; });
+    document.querySelectorAll('.blk-clock svg').forEach(svg => {
+      const h = now.getHours() % 12 + now.getMinutes() / 60, m = now.getMinutes() + now.getSeconds() / 60, s = now.getSeconds();
+      svg.querySelector('.hand-h').setAttribute('transform', `rotate(${h * 30} 50 50)`);
+      svg.querySelector('.hand-m').setAttribute('transform', `rotate(${m * 6} 50 50)`);
+      svg.querySelector('.hand-sec').setAttribute('transform', `rotate(${s * 6} 50 50)`);
+    });
+    const cds = document.querySelectorAll('.blk-countdown');
+    if (cds.length) {
+      const next = nextMinyan();
+      cds.forEach(c => {
+        const label = c.querySelector('.cd-label'), name = c.querySelector('.cd-name'), time = c.querySelector('.cd-time'), at = c.querySelector('.cd-at');
+        if (!next) { label.textContent = 'התפילה הבאה'; name.textContent = 'אין עוד תפילות היום'; time.textContent = ''; at.textContent = ''; return; }
+        const target = parseHM(next.time);
+        const diff = Math.max(0, Math.floor((target - now) / 1000));
+        const hh = Math.floor(diff / 3600), mm = Math.floor((diff % 3600) / 60), sec = diff % 60;
+        label.textContent = 'התפילה הבאה';
+        name.textContent = `${next.group}${state.rooms.length > 1 ? ' · ' + next.roomName : ''}`;
+        time.textContent = hh ? `${hh}:${String(mm).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${String(mm).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+        at.textContent = `בשעה ${next.time}`;
+      });
+    }
+    checkSleep(now);
+  }
+
+  // ---------- סבב הקדשות/טקסטים ----------
+  let _rotIndex = 0;
+  let _rotTimer = null;
+  function startRotation() {
+    clearInterval(_rotTimer);
+    if (!document.querySelector('.blk-dedications, .blk-text')) return;
+    const secs = Math.max(4, Number(state.config?.display?.textsSeconds) || 15);
+    _rotTimer = setInterval(() => {
+      _rotIndex += 1;
+      rerenderBlocks(['dedications', 'text']);
+    }, secs * 1000);
+  }
+
+  // ---------- ציור מחדש של קוביות דינמיות ----------
+  function rerenderBlocks(types) {
+    if (!_stage) return;
+    for (const wrap of _stage.querySelectorAll('.screen-block')) {
+      const type = wrap.dataset.type;
+      if (!_blockRenderers[type] || (types && !types.includes(type))) continue;
+      const block = wrap._block || { type, h: 5 };
+      wrap.innerHTML = '';
+      try { _blockRenderers[type](block, wrap); } catch (e) { console.error('block', type, e); }
+    }
+  }
+  function renderDynamicBlocks() {
+    rerenderBlocks(['date', 'shabbat', 'today', 'learning', 'shiurim', 'omer', 'weather']);
+  }
+
+  // ---------- לימוד יומי: הספרייה נטענת רק כשצריך ----------
+  let _learningPromise = null;
+  function ensureLearning() {
+    if (window.hebcal.DailyLearning && window.hebcal.DailyLearning.getCalendars().length) return Promise.resolve();
+    if (_learningPromise) return _learningPromise;
+    _learningPromise = new Promise((resolve) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdn.jsdelivr.net/npm/@hebcal/learning@6.6.1/dist/bundle.min.js';
+      sc.onload = resolve; sc.onerror = resolve;
+      document.head.appendChild(sc);
+    });
+    return _learningPromise;
+  }
+
+  // ---------- מזג אוויר (Open-Meteo, בלי מפתח) ----------
+  let _weather = null, _weatherAt = 0;
+  async function fetchWeather() {
+    if (Date.now() - _weatherAt < 30 * 60 * 1000) return;
+    _weatherAt = Date.now();
+    try {
+      const { latitude, longitude } = state.config.location;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${Number(latitude)}&longitude=${Number(longitude)}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=4`;
+      const res = await fetch(url);
+      const j = await res.json();
+      const days = (j.daily?.time || []).slice(1, 4).map((t, i) => ({
+        name: HEB_DOW[new Date(t + 'T12:00:00').getDay()],
+        code: j.daily.weather_code[i + 1], max: j.daily.temperature_2m_max[i + 1], min: j.daily.temperature_2m_min[i + 1],
+      }));
+      _weather = { temp: j.current?.temperature_2m, code: j.current?.weather_code, days };
+      rerenderBlocks(['weather']);
+    } catch (e) { console.error('weather', e); }
+  }
+  const wmoIcon = (c) => c === 0 ? '☀️' : c <= 2 ? '🌤️' : c === 3 ? '☁️' : c <= 49 ? '🌫️' : c <= 59 ? '🌦️' : c <= 69 ? '🌧️' : c <= 79 ? '🌨️' : c <= 84 ? '🌦️' : c <= 94 ? '⛈️' : '⛈️';
+  const wmoText = (c) => c === 0 ? 'בהיר' : c <= 2 ? 'מעונן חלקית' : c === 3 ? 'מעונן' : c <= 49 ? 'ערפל' : c <= 59 ? 'טפטוף' : c <= 69 ? 'גשם' : c <= 79 ? 'שלג' : c <= 84 ? 'ממטרים' : 'סופת רעמים';
+
+  // ---------- מצב שינה ----------
+  function checkSleep(now = new Date()) {
+    const s = state.config?.display?.sleep;
+    let sleeping = false;
+    if (s && s.enabled && !_previewMode) {
+      const cur = now.getHours() * 60 + now.getMinutes();
+      const from = parseTime(s.from), to = parseTime(s.to);
+      if (!isNaN(from) && !isNaN(to)) sleeping = from <= to ? (cur >= from && cur < to) : (cur >= from || cur < to);
+    }
+    document.body.classList.toggle('sleeping', sleeping);
+    if (sleeping) {
+      const c = qs('#sleep-clock');
+      if (c) c.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    }
+  }
+
   // ================= מסכים מתחלפים =================
   // כל קובייה עוטפת אלמנט קיים בדף, כך שכל פונקציות הרינדור ממשיכות
   // למצוא את היעדים שלהן לפי id — רק המיקום משתנה.
@@ -788,6 +1290,7 @@
     if (_stage) { _stage.remove(); _stage = null; }
     clearInterval(_screenTimer); _screenTimer = null;
     clearInterval(_mediaTimer); _mediaTimer = null;
+    clearInterval(_rotTimer); _rotTimer = null;
     document.body.removeAttribute('data-screens');
     document.body.classList.remove('logo-block');
   }
@@ -856,11 +1359,15 @@
       if (typeof block.opacity === 'number') wrap.style.opacity = String(block.opacity);
       if (block.floating) { wrap.style.zIndex = '5'; wrap.style.pointerEvents = 'none'; }
 
-      if (block.type === 'media') {
+      wrap._block = block;
+      _stage.appendChild(wrap);
+      if (_blockRenderers[block.type]) {
+        try { _blockRenderers[block.type](block, wrap); } catch (e) { console.error('block', block.type, e); }
+      } else if (block.type === 'media') {
         wrap.appendChild(buildMediaWindow());
       } else if (block.type === 'logo') {
         const url = (state.config?.design?.logo?.url || '').trim();
-        if (!url) continue;
+        if (!url) { wrap.remove(); continue; }
         const img = document.createElement('img');
         img.className = 'logo-img';
         img.src = url;
@@ -873,10 +1380,10 @@
         home.el.style.cssText = 'width:100%;height:100%;margin:0;';
         wrap.appendChild(home.el);
       }
-      _stage.appendChild(wrap);
     }
 
     startMediaRotation();
+    startRotation();
   }
 
   // ---------- חלון המודעות ----------
@@ -956,6 +1463,8 @@
     safe('zmanim', renderZmanim);
     safe('tefillot', renderTefillot);
     safe('memorial', renderMemorial);
+    safe('blocks', renderDynamicBlocks);
+    safe('sleep', checkSleep);
   }
 
   // ---------- auto-reload on new commit ----------
@@ -987,7 +1496,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     await refreshAll();
     renderClock();
-    setInterval(renderClock, 1000);
+    setInterval(() => { renderClock(); try { tickClocks(); } catch {} }, 1000);
     setInterval(lightRefresh, 60 * 1000);
     setInterval(refreshAll, 5 * 60 * 1000);
     // בדיקת שינויים כל 3 דקות. השעון והזמנים מחושבים מקומית,

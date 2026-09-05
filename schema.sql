@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS gabbaim (
 CREATE INDEX IF NOT EXISTS idx_gabbaim_shul ON gabbaim(shul_id);
 
 -- כל מקטע הגדרות נשמר כ-JSON, בדיוק במבנה שהצג כבר יודע לקרוא.
--- section ∈ config | rooms | memorial | announcements | special-times | zmanim-calendar | media-playlist
+-- section ∈ config | rooms | memorial | announcements | special-times | zmanim-calendar | media-playlist | screens | dedications | shiurim | texts
 CREATE TABLE IF NOT EXISTS settings (
   shul_id       TEXT NOT NULL REFERENCES shuls(id) ON DELETE CASCADE,
   section       TEXT NOT NULL,
