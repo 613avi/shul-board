@@ -141,6 +141,75 @@
   let _appVersion = null;     // גרסת הקוד בשרת — שינוי בה = טעינה מחדש של הדף
   let _previewMode = false;   // נדלק כשהצג רץ בתוך ה-iframe של הניהול
 
+  // ---------- זהות המסך — ל"מסכים בלייב" בניהול ----------
+  // בתוך iframe (התצוגה המקדימה של הניהול) הצג לא נספר כמסך.
+  const _embedded = (() => { try { return window.self !== window.top; } catch { return true; } })();
+  const LS_SCREEN = 'sb_screen_id';
+
+  const hashStr = (s) => {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = (Math.imul(h, 33) ^ s.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  };
+
+  // שם שניתן בכתובת: /s/<slug>?screen=שם — המתקין שם שם את שם המחשב
+  function screenLabel() {
+    try { return (new URLSearchParams(location.search).get('screen') || '').trim().slice(0, 60); }
+    catch { return ''; }
+  }
+
+  // טביעת אצבע של המכשיר: מאחדת בניהול מסך שהופעל מחדש במצב "גלישה בסתר",
+  // שבו המזהה השמור בדפדפן אובד בכל הפעלה.
+  function fingerprint() {
+    try {
+      const n = navigator;
+      return hashStr([
+        n.userAgent, screen.width, screen.height, screen.colorDepth, window.devicePixelRatio,
+        n.hardwareConcurrency, n.language, Intl.DateTimeFormat().resolvedOptions().timeZone,
+      ].join('|'));
+    } catch { return ''; }
+  }
+
+  let _screenId = null;
+  function screenId() {
+    if (_screenId) return _screenId;
+    const label = screenLabel();
+    if (label) return (_screenId = `n:${hashStr(label)}`);
+    let stored = null;
+    try { stored = localStorage.getItem(LS_SCREEN); } catch {}
+    if (!stored || stored.length < 4) {
+      stored = `d:${fingerprint()}-${Math.random().toString(36).slice(2, 8)}`;
+      try { localStorage.setItem(LS_SCREEN, stored); } catch {}
+    }
+    return (_screenId = stored);
+  }
+
+  // דופק לשרת: "אני כאן, וזה מה שאני מציג". התשובה כוללת את חותמת הגרסה
+  // הנוכחית, כך שהדופק הוא גם בדיקת העדכונים — בלי בקשה נוספת.
+  async function sendHeartbeat() {
+    const slug = currentSlug();
+    if (!slug) throw new Error('לא זוהה בית כנסת');
+    const res = await fetch(`/api/heartbeat/${encodeURIComponent(slug)}`, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        id: screenId(),
+        fp: fingerprint(),
+        label: screenLabel(),
+        width: screen.width,
+        height: screen.height,
+        appVersion: _appVersion,
+        dataVersion: _version,
+      }),
+    });
+    if (!res.ok) throw new Error(`heartbeat: ${res.status}`);
+    if (!(res.headers.get('content-type') || '').includes('application/json')) throw new Error('תשובה לא צפויה מהשרת');
+    const body = await res.json();
+    if (!body.ok) throw new Error(body.error || 'heartbeat');
+    return body;
+  }
+
   async function fetchBundle() {
     const slug = currentSlug();
     if (!slug) throw new Error('לא זוהה בית כנסת');
@@ -1480,14 +1549,25 @@
 
   // בדיקת עדכונים: משווים את חותמת הגרסה של המנה הציבורית.
   // כשגבאי שומר שינוי, ה-version עולה והצג מרענן את עצמו תוך דקות.
+  // בדרך כלל הבדיקה היא הדופק ל"מסכים בלייב"; בתוך iframe או בלשונית מוסתרת
+  // (מישהו פתח את הצג ברקע בטלפון) לא נשלח דופק — רק הבדיקה הישנה מול המנה הציבורית.
   async function checkForUpdates() {
     // בתוך התצוגה המקדימה של הניהול: ריענון היה מוחק שינויי עיצוב שטרם נשמרו
     if (_previewMode) return;
     try {
-      const bundle = await fetchBundle();
-      if (_version == null) { _version = bundle.version; return; }
-      if (bundle.version !== _version) {
-        _version = bundle.version;
+      let version;
+      let viaHeartbeat = !_embedded && !document.hidden && _version != null;
+      if (viaHeartbeat) {
+        try {
+          const hb = await sendHeartbeat();
+          if (hb.appVersion && _appVersion && hb.appVersion !== _appVersion) { location.reload(); return; }
+          version = hb.version;
+        } catch { viaHeartbeat = false; }
+      }
+      if (!viaHeartbeat) version = (await fetchBundle()).version;
+      if (_version == null) { _version = version; return; }
+      if (version !== _version) {
+        _version = version;
         await refreshAll();
       }
     } catch { /* הצג ממשיך להציג את מה שכבר טעון */ }
@@ -1502,6 +1582,8 @@
     // בדיקת שינויים כל 3 דקות. השעון והזמנים מחושבים מקומית,
     // כך שגם הקצב הזה שומר את הפלטפורמה בתוך המכסה החינמית.
     setInterval(checkForUpdates, 3 * 60 * 1000);
+    // דופק ראשון מיד אחרי הטעינה, כדי שהמסך יופיע בניהול בלי לחכות 3 דקות
+    checkForUpdates();
 
     // Listen for design preview updates from admin page
     window.addEventListener('message', (event) => {

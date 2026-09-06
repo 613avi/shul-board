@@ -1,5 +1,6 @@
 import { json } from '../../_shared.js';
 import { requireAdmin } from '../../_admin.js';
+import { ensureScreensTable, liveCounts } from '../../_screens.js';
 
 // כל מה שהדשבורד צריך בבקשה אחת.
 export async function onRequestGet({ request, env }) {
@@ -9,7 +10,8 @@ export async function onRequestGet({ request, env }) {
   const DAY = 86_400_000;
   const t = Date.now();
 
-  const [totals, shuls, audit, byDay] = await Promise.all([
+  await ensureScreensTable(env);
+  const [totals, shuls, audit, byDay, screens] = await Promise.all([
     env.DB.prepare(`
       SELECT
         (SELECT COUNT(*) FROM shuls)                          AS shuls,
@@ -41,7 +43,17 @@ export async function onRequestGet({ request, env }) {
     env.DB.prepare(
       'SELECT created_at FROM shuls WHERE created_at >= ? ORDER BY created_at'
     ).bind(t - 30 * DAY).all(),
+
+    liveCounts(env, t).catch(() => ({})),
   ]);
+
+  // מסכים בלייב לכל בית כנסת (דופק ב-7 הדקות האחרונות) + סך הכל
+  let screensLive = 0, screensTotal = 0;
+  const shulRows = (shuls.results || []).map(s => {
+    const sc = screens[s.id] || { live: 0, total: 0 };
+    screensLive += sc.live; screensTotal += sc.total;
+    return { ...s, screens_live: sc.live, screens_total: sc.total };
+  });
 
   // הרשמות לפי יום ב-30 הימים האחרונים
   const signups = {};
@@ -50,12 +62,12 @@ export async function onRequestGet({ request, env }) {
     signups[key] = (signups[key] || 0) + 1;
   }
 
-  const activeToday = (shuls.results || [])
+  const activeToday = shulRows
     .filter(s => s.last_active && t - s.last_active < DAY).length;
 
   return json({
     ok: true,
-    totals: { ...totals, activeToday },
+    totals: { ...totals, activeToday, screensLive, screensTotal },
     // מכסות המסלול החינמי, כדי לראות כמה מרווח נשאר
     limits: {
       kvStorageBytes: 1024 ** 3,
@@ -63,7 +75,7 @@ export async function onRequestGet({ request, env }) {
       functionRequestsPerDay: 100_000,
       d1Bytes: 5 * 1024 ** 3,
     },
-    shuls: shuls.results || [],
+    shuls: shulRows,
     audit: audit.results || [],
     signups,
     serverTime: t,

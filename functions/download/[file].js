@@ -71,6 +71,8 @@ function batchScript(displayUrl, name) {
     `title ${name} - צג בית הכנסת`,
     'setlocal',
     `set "BOARD_URL=${displayUrl}"`,
+    'rem שם המחשב מזהה את המסך ברשימת "מסכים בלייב" בניהול',
+    'if defined COMPUTERNAME set "BOARD_URL=%BOARD_URL%?screen=%COMPUTERNAME%"',
     '',
     'rem מאתר דפדפן מותקן',
     'set "BROWSER="',

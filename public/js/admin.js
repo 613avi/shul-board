@@ -193,6 +193,7 @@
     qs('#app-view').style.display = '';
     qs('#tour-btn').hidden = false;
     renderHome();
+    startScreensPolling();
     scalePreview();
   }
 
@@ -280,6 +281,7 @@
 
   async function logout() {
     try { await Api.logout(); } catch {}
+    stopScreensPolling();
     localStorage.removeItem(LS_GABBAI);
     qs('#login-password').value = '';
     qs('#app-view').style.display = 'none';
@@ -296,7 +298,7 @@
     qsa('#admin-nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     qsa('.tab-content').forEach(c => c.classList.toggle('active', c.dataset.tab === name));
     qs('#admin-shell').classList.toggle('with-preview', PREVIEW_TABS.has(name));
-    if (name === 'home') renderHome();
+    if (name === 'home') { renderHome(); renderLiveScreens(true); }
     if (name === 'design') { renderDesign(); scalePreview(); pushDesignPreview(); }
     if (name === 'screens') { renderScreens(); scalePreview(); }
     window.scrollTo({ top: 0 });
@@ -940,7 +942,7 @@
       { ok: !!String(c.location?.address || '').trim(), text: 'מיקום בית הכנסת', tab: 'general' },
       { ok: hasTimes, text: 'זמני תפילות', tab: 'rooms' },
       { ok: !!(c.design?.preset) || c.setup?.done === true, text: 'מראה הצג', tab: 'design' },
-      { ok: installed, text: 'הפעלה על המסך בבית הכנסת', tab: 'installer' },
+      { ok: installed || (state.screens?.total || 0) > 0, text: 'הפעלה על המסך בבית הכנסת', tab: 'installer' },
       { ok: (state.data.memorial.entries || []).length > 0, text: 'לוח הנצחות (רשות)', tab: 'memorial' },
       { ok: (state.data.announcements.entries || []).length > 0, text: 'הודעה ראשונה לציבור (רשות)', tab: 'announcements' },
     ];
@@ -952,6 +954,103 @@
         el('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => switchTab(it.tab) }, it.ok ? 'עריכה' : 'הגדרה'),
       ));
     });
+  }
+
+  // ================= מסכים בלייב =================
+  // כל צג שולח דופק כל 3 דקות; השרת מחזיר מי דיווח ב-7 הדקות האחרונות.
+  // הרשימה מתרעננת כל חצי דקה כל עוד לוח הבית פתוח.
+  let _screensTimer = null;
+
+  function fmtAgo(ms) {
+    const d = Math.max(0, Date.now() - ms);
+    const sec = Math.round(d / 1000);
+    if (sec < 45) return 'לפני רגע';
+    const min = Math.round(sec / 60);
+    if (min < 60) return `לפני ${min} דק׳`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `לפני ${hr} שע׳`;
+    const days = Math.floor(hr / 24);
+    return days === 1 ? 'אתמול' : `לפני ${days} ימים`;
+  }
+
+  // "Chrome · Windows" מתוך ה-user agent — מספיק כדי לזהות איזה מכשיר זה
+  function describeDevice(ua) {
+    ua = String(ua || '');
+    const os = /Tizen|SMART-TV|WebOS|web0s|BRAVIA|VIDAA/i.test(ua) ? 'טלוויזיה חכמה'
+      : /Windows/i.test(ua) ? 'Windows' : /Android/i.test(ua) ? 'Android'
+      : /iPhone|iPad/i.test(ua) ? 'iOS' : /CrOS/i.test(ua) ? 'ChromeOS'
+      : /Mac OS/i.test(ua) ? 'Mac' : /Linux/i.test(ua) ? 'Linux' : '';
+    const br = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox'
+      : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : '';
+    return [br, os].filter(Boolean).join(' · ');
+  }
+
+  function screenName(s, i) {
+    if (s.label) return s.label;
+    const tail = String(s.id).replace(/^[a-z]:/, '').slice(-4).toUpperCase();
+    return `מסך ${tail || i + 1}`;
+  }
+
+  async function renderLiveScreens(silent) {
+    const list = qs('#live-list');
+    if (!list || !state.me) return;
+    let r;
+    try { r = await Api.screens(); }
+    catch (e) {
+      if (e.status === 401) return;
+      if (!silent) status(e.message, 'error');
+      return;
+    }
+    const hadScreens = (state.screens?.total || 0) > 0;
+    state.screens = r;
+
+    const live = r.live || 0;
+    qs('#live-count').textContent = String(live);
+    qs('#live-dot').classList.toggle('on', live > 0);
+    qs('#live-lbl').textContent = live === 1 ? 'מסך מקרין כרגע' : 'מסכים מקרינים כרגע';
+
+    list.innerHTML = '';
+    const screens = r.screens || [];
+    if (!screens.length) {
+      list.appendChild(el('li', { class: 'live-empty' },
+        'עדיין לא זוהה מסך. פתחו את כתובת הצג על המסך בבית הכנסת — הוא יופיע כאן תוך רגע.'));
+    }
+    screens.forEach((s, i) => {
+      const device = [describeDevice(s.userAgent), s.width && s.height ? `${s.width}×${s.height}` : ''].filter(Boolean).join(' · ');
+      const when = s.live ? `דיווח ${fmtAgo(s.lastSeen)}` : `נראה לאחרונה ${fmtAgo(s.lastSeen)}`;
+      let pill = null;
+      if (s.live) {
+        const fresh = !r.version || s.dataVersion >= r.version;
+        pill = el('span', { class: `live-pill ${fresh ? 'ok' : 'warn'}`, title: fresh ? 'מציג את מה שנשמר לאחרונה' : 'עדיין לא קיבל את השמירה האחרונה — מתעדכן תוך 3 דקות' },
+          fresh ? 'מעודכן' : 'מתעדכן…');
+      } else {
+        pill = el('span', { class: 'live-pill' }, 'כבוי');
+      }
+      list.appendChild(el('li', { class: s.live ? 'on' : 'off' },
+        el('span', { class: `live-dot ${s.live ? 'on' : ''}` }),
+        el('span', { class: 'nm' },
+          el('b', {}, screenName(s, i)),
+          el('span', {}, [device, when].filter(Boolean).join(' · '))),
+        pill,
+      ));
+    });
+
+    // הצ'ק-ליסט: מסך שנראה פעם אחת = "הופעל על המסך"
+    if (hadScreens !== screens.length > 0) renderHome();
+  }
+
+  function startScreensPolling() {
+    stopScreensPolling();
+    renderLiveScreens(true);
+    _screensTimer = setInterval(() => {
+      if (document.hidden) return;
+      const home = qs('.tab-content[data-tab="home"]');
+      if (home && home.classList.contains('active')) renderLiveScreens(true);
+    }, 30 * 1000);
+  }
+  function stopScreensPolling() {
+    clearInterval(_screensTimer);
+    _screensTimer = null;
   }
 
   // ================= אשף ההקמה =================
@@ -1196,6 +1295,7 @@
     qs('#home-copy').addEventListener('click', () => copyText(qs('#home-url').textContent));
     qs('#link-display-copy').addEventListener('click', () => copyText(qs('#link-display-text').textContent));
     qs('#home-wizard').addEventListener('click', () => showWizard(1));
+    qs('#live-refresh').addEventListener('click', () => renderLiveScreens(false));
 
     // שלב 3: התאמה אישית
     qs('#wz-accent').addEventListener('input', (e) => {

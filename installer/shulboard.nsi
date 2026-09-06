@@ -87,7 +87,8 @@ Section "ShulBoard" SecMain
   ; קובץ הפעלה שפותח את הצג במסך מלא
   FileOpen $9 "$INSTDIR\board.cmd" w
   FileWrite $9 "@echo off$\r$\n"
-  FileWrite $9 'start "" "$Browser" --kiosk --start-fullscreen --noerrdialogs --disable-infobars --disable-session-crashed-bubble --incognito "$BoardUrl"$\r$\n'
+  ; שם המחשב מזהה את המסך ברשימת "מסכים בלייב" בניהול
+  FileWrite $9 'start "" "$Browser" --kiosk --start-fullscreen --noerrdialogs --disable-infobars --disable-session-crashed-bubble --incognito "$BoardUrl?screen=%COMPUTERNAME%"$\r$\n'
   FileClose $9
 
   FileOpen $9 "$INSTDIR\board-url.txt" w

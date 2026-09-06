@@ -112,8 +112,9 @@
     const t = data.totals;
     const lim = data.limits;
 
-    // הערכת עומס: כל מסך פונה כ-480 פעם ביום, בהנחת מסך אחד לבית כנסת
-    const estReq = t.active * 480;
+    // הערכת עומס: כל מסך פונה כ-480 פעם ביום. סופרים את המסכים שבאמת מקרינים,
+    // ולפחות מסך אחד לכל בית כנסת פעיל.
+    const estReq = Math.max(t.active, t.screensLive || 0) * 480;
     const reqPct = Math.min(100, Math.round((estReq / lim.functionRequestsPerDay) * 100));
     const kvPct = Math.min(100, Math.round((t.media_bytes / lim.kvStorageBytes) * 100));
     const level = (p) => p < 60 ? '' : p < 85 ? 'warn' : 'hot';
@@ -133,6 +134,11 @@
         <div class="k">פעילים היום</div>
         <div class="v">${t.activeToday}</div>
         <div class="sub">בתי כנסת עם פעולה ב-24 שעות</div>
+      </div>
+      <div class="mg-tile ${t.screensLive ? 'live' : ''}">
+        <div class="k">מסכים בלייב</div>
+        <div class="v">${t.screensLive || 0}</div>
+        <div class="sub">מקרינים כרגע · ${t.screensTotal || 0} נראו בשבוע האחרון</div>
       </div>
       <div class="mg-tile">
         <div class="k">קבצי מדיה</div>
@@ -165,6 +171,7 @@
         <td class="mg-name">${esc(s.name)}</td>
         <td><a class="mono" href="/s/${esc(s.slug)}" target="_blank">/s/${esc(s.slug)}</a></td>
         <td><span class="mg-pill ${s.status}">${s.status === 'active' ? 'פעיל' : 'מושהה'}</span></td>
+        <td class="mg-live ${s.screens_live ? 'on' : ''}">${s.screens_live ? `● ${s.screens_live}` : '—'}${(s.screens_total || 0) > (s.screens_live || 0) ? `<span class="dim"> / ${s.screens_total}</span>` : ''}</td>
         <td>${s.gabbaim}</td>
         <td>${s.media_files ? `${s.media_files} · ${fmtBytes(s.media_bytes)}` : '—'}</td>
         <td>${fmtDate(s.created_at)}</td>

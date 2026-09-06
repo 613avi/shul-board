@@ -1,5 +1,6 @@
 import { json, bad, now } from '../../../_shared.js';
 import { requireAdmin } from '../../../_admin.js';
+import { ensureScreensTable } from '../../../_screens.js';
 
 async function loadShul(env, id) {
   return env.DB.prepare('SELECT * FROM shuls WHERE id = ?').bind(id).first();
@@ -52,7 +53,9 @@ export async function onRequestDelete({ request, env, params }) {
     await env.MEDIA.delete(row.blob_key).catch(() => {});
   }
 
+  await ensureScreensTable(env);
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM screens  WHERE shul_id = ?').bind(shul.id),
     env.DB.prepare('DELETE FROM media    WHERE shul_id = ?').bind(shul.id),
     env.DB.prepare('DELETE FROM settings WHERE shul_id = ?').bind(shul.id),
     env.DB.prepare('DELETE FROM gabbaim  WHERE shul_id = ?').bind(shul.id),
