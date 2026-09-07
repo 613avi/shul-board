@@ -3,6 +3,8 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   let data = null;
+  let contact = { items: [], topics: {} };
+  let onlyNew = false;
   let filter = '';
 
   // ---------- עזרים ----------
@@ -78,6 +80,7 @@
 
   async function enter() {
     data = await call('/api/admin/overview');
+    contact = await call('/api/admin/contact').catch(() => ({ items: [], topics: {} }));
     $('mg-login').hidden = true;
     $('mg-app').hidden = false;
     render();
@@ -91,6 +94,7 @@
   async function refresh() {
     try {
       data = await call('/api/admin/overview');
+      contact = await call('/api/admin/contact').catch(() => contact);
       render();
       toast('הנתונים עודכנו', 'ok');
     } catch (e) {
@@ -102,6 +106,7 @@
   // ---------- תצוגה ----------
   function render() {
     renderTiles();
+    renderContact();
     renderShuls();
     renderSpark();
     renderAudit();
@@ -152,11 +157,70 @@
         <div class="sub">~${estReq.toLocaleString('he-IL')} מ-100k בקשות ליום</div>
         <div class="mg-meter ${level(reqPct)}"><i style="width:${Math.max(reqPct, 1)}%"></i></div>
       </div>
+      <div class="mg-tile ${t.contactNew ? 'live' : ''}">
+        <div class="k">פניות חדשות</div>
+        <div class="v">${t.contactNew || 0}</div>
+        <div class="sub">${(contact.items || []).length} פניות בסך הכל</div>
+      </div>
       <div class="mg-tile">
         <div class="k">רשומות יומן</div>
         <div class="v">${t.audit_rows}</div>
         <div class="sub">כל הפעולות מאז ההקמה</div>
       </div>`;
+  }
+
+  // ---------- פניות ----------
+  function renderContact() {
+    const box = $('mg-contact');
+    const all = contact.items || [];
+    const items = onlyNew ? all.filter(m => m.status === 'new') : all;
+    if (!items.length) {
+      box.innerHTML = `<p class="desc">${all.length ? 'אין פניות חדשות.' : 'עדיין לא התקבלו פניות.'}</p>`;
+      return;
+    }
+    box.innerHTML = items.map(m => `
+      <div class="mg-msg is-${esc(m.status)}" data-id="${esc(m.id)}">
+        <div class="mg-msg-head">
+          <b>${esc(m.name)}</b>
+          <span class="mg-topic">${esc(contact.topics?.[m.topic] || m.topic || 'אחר')}</span>
+          ${m.shul ? `<a class="mono" href="/s/${esc(m.shul)}" target="_blank">/s/${esc(m.shul)}</a>` : ''}
+          <span class="when">${new Date(m.created_at).toLocaleString('he-IL')}</span>
+        </div>
+        <div class="who">${esc(m.contact || '—')}</div>
+        <div class="body">${esc(m.message)}</div>
+        <div class="mg-actions">
+          ${m.status !== 'done' ? '<button class="btn btn-ghost" data-act="done">סימון כטופל</button>' : '<button class="btn btn-ghost" data-act="new">החזרה לחדשות</button>'}
+          <button class="btn btn-ghost btn-danger" data-act="delete">מחיקה</button>
+        </div>
+      </div>`).join('');
+
+    box.querySelectorAll('button[data-act]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.closest('.mg-msg').dataset.id;
+        btn.dataset.act === 'delete' ? deleteMsg(id) : setMsgStatus(id, btn.dataset.act);
+      });
+    });
+  }
+
+  async function setMsgStatus(id, status) {
+    try {
+      await call(`/api/admin/contact/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      const m = (contact.items || []).find(x => x.id === id);
+      if (m) m.status = status;
+      if (data?.totals) data.totals.contactNew = (contact.items || []).filter(x => x.status === 'new').length;
+      render();
+    } catch (e) { toast(e.message, 'bad'); }
+  }
+
+  async function deleteMsg(id) {
+    if (!confirm('למחוק את הפנייה?')) return;
+    try {
+      await call(`/api/admin/contact/${id}`, { method: 'DELETE' });
+      contact.items = (contact.items || []).filter(x => x.id !== id);
+      if (data?.totals) data.totals.contactNew = contact.items.filter(x => x.status === 'new').length;
+      render();
+      toast('נמחק', 'ok');
+    } catch (e) { toast(e.message, 'bad'); }
   }
 
   function renderShuls() {
@@ -265,6 +329,7 @@
     $('mg-refresh').addEventListener('click', refresh);
     $('mg-logout').addEventListener('click', logout);
     $('mg-search').addEventListener('input', e => { filter = e.target.value; renderShuls(); });
+    $('mg-contact-new').addEventListener('change', e => { onlyNew = e.target.checked; renderContact(); });
 
     // אם כבר יש סשן מנהל פעיל — נכנסים ישר
     enter().catch(() => {});

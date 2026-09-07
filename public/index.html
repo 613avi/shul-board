@@ -123,23 +123,49 @@
   <section id="contact" class="contact">
     <h2>יצירת קשר</h2>
     <p class="lead">
-      שאלה, תקלה, רעיון לשיפור או בקשה לעזרה בהקמת הצג — נשמח לשמוע.
-      התשובה בדרך כלל תוך יום־יומיים.
+      שאלה, תקלה, רעיון לשיפור או בקשה לעזרה בהקמת הצג — כתבו כאן ונחזור אליכם.
+      אפשר גם בלי חשבון.
     </p>
-    <div class="contact-cards">
-      <a class="contact-card" href="https://mitmachim.top/post/1239834" target="_blank" rel="noopener">
-        <span class="ico">💬</span>
-        <b>השרשור בפורום מתמחים</b>
-        <span>המקום הכי מהיר — שאלות, תקלות ורעיונות, וגם גבאים אחרים שכבר הקימו צג</span>
-      </a>
-      <a class="contact-card" href="https://github.com/613avi/shul-board/issues/new" target="_blank" rel="noopener">
-        <span class="ico">🐞</span>
-        <b>דיווח תקלה ב-GitHub</b>
-        <span>לתקלות מסודרות ולבקשות פיתוח — הקוד פתוח וכל אחד יכול לעקוב</span>
-      </a>
+
+    <div class="form-card contact-form">
+      <div class="c-row">
+        <div class="field">
+          <label for="c-name">השם שלכם</label>
+          <input type="text" id="c-name" placeholder="לדוגמה: משה כהן" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="c-contact">טלפון או מייל לחזרה</label>
+          <input type="text" id="c-contact" placeholder="050-0000000" autocomplete="tel">
+        </div>
+      </div>
+      <div class="c-row">
+        <div class="field">
+          <label for="c-topic">נושא</label>
+          <select id="c-topic">
+            <option value="help">עזרה בהקמה</option>
+            <option value="bug">תקלה</option>
+            <option value="idea">רעיון לשיפור</option>
+            <option value="other">אחר</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="c-shul">כתובת בית הכנסת (רשות)</label>
+          <input type="text" id="c-shul" placeholder="beit-yaakov" dir="ltr" autocomplete="off">
+        </div>
+      </div>
+      <div class="field">
+        <label for="c-message">הפנייה</label>
+        <textarea id="c-message" rows="5" placeholder="כתבו כאן במילים שלכם&#8230;"></textarea>
+      </div>
+      <!-- מלכודת בוטים: שדה נסתר שאדם לא ממלא -->
+      <input type="text" id="c-website" tabindex="-1" autocomplete="off" aria-hidden="true" class="c-trap">
+      <button class="btn btn-primary" id="c-submit" style="width:100%;margin-top:6px;">שליחת הפנייה</button>
+      <div class="msg" id="c-msg"></div>
     </div>
+
     <p class="contact-note">
-      גבאים רשומים: אפשר גם להשאיר טלפון בלשונית "חשבון" בניהול, וניצור קשר.
+      מעדיפים פורום? <a href="https://mitmachim.top/post/1239834" target="_blank" rel="noopener">השרשור במתמחים</a>
+      &#183; תקלה מסודרת: <a href="https://github.com/613avi/shul-board/issues/new" target="_blank" rel="noopener">Issue ב-GitHub</a>
     </p>
   </section>
 

@@ -139,3 +139,22 @@
   .mg-tile .v { font-size: 23px; }
   .mg-panel { padding: 15px; }
 }
+
+/* ---------- פניות מדף הבית ---------- */
+.mg-only-new { font-size: 13px; color: var(--sb-dim); display: flex; align-items: center; gap: 6px; }
+.mg-msg {
+  border: 1px solid var(--sb-line); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 10px; background: rgba(255,255,255,.02);
+}
+.mg-msg.is-new { border-color: rgba(212,175,55,.5); background: rgba(212,175,55,.07); }
+.mg-msg.is-done { opacity: .6; }
+.mg-msg-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.mg-msg-head b { font-size: 15px; }
+.mg-msg-head .mg-topic {
+  font-size: 12px; padding: 2px 9px; border-radius: 999px;
+  border: 1px solid var(--sb-line); color: var(--sb-dim);
+}
+.mg-msg-head .when { font-size: 12px; color: var(--sb-dim); margin-inline-start: auto; }
+.mg-msg .who { font-size: 13.5px; color: var(--sb-gold-soft); direction: ltr; text-align: right; unicode-bidi: plaintext; }
+.mg-msg .body { margin: 8px 0 10px; white-space: pre-wrap; line-height: 1.65; font-size: 14.5px; }
+.mg-msg .mg-actions { display: flex; gap: 6px; flex-wrap: wrap; }

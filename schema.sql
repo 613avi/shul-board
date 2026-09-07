@@ -94,3 +94,19 @@ CREATE TABLE IF NOT EXISTS screens (
   PRIMARY KEY (shul_id, screen_id)
 );
 CREATE INDEX IF NOT EXISTS idx_screens_seen ON screens(shul_id, last_seen DESC);
+
+-- פניות מטופס "יצירת קשר" בדף הבית. מוצגות בדשבורד מנהל המערכת.
+-- הטבלה נוצרת גם בעצלנות מהקוד (functions/_contact.js).
+CREATE TABLE IF NOT EXISTS contact (
+  id            TEXT PRIMARY KEY,
+  name          TEXT NOT NULL,
+  contact       TEXT,                        -- טלפון או מייל לחזרה
+  shul          TEXT,                        -- כתובת בית הכנסת, אם יש
+  topic         TEXT,                        -- help | bug | idea | other
+  message       TEXT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'new', -- new | read | done
+  ip            TEXT,
+  user_agent    TEXT,
+  created_at    INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_contact_new ON contact(status, created_at DESC);

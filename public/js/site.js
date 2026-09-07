@@ -127,9 +127,44 @@
     });
   }
 
+  // ---------- טופס יצירת קשר ----------
+  async function sendContact() {
+    const msg = $('c-msg');
+    const btn = $('c-submit');
+    msg.textContent = '';
+    msg.className = 'msg';
+
+    const payload = {
+      name: $('c-name').value.trim(),
+      contact: $('c-contact').value.trim(),
+      topic: $('c-topic').value,
+      shul: $('c-shul').value.trim(),
+      message: $('c-message').value.trim(),
+      website: $('c-website').value,
+    };
+    const fail = (text) => { msg.textContent = text; msg.className = 'msg bad'; };
+    if (payload.name.length < 2) return fail('נא למלא שם');
+    if (!payload.contact) return fail('נא להשאיר טלפון או מייל, אחרת לא נוכל לחזור אליכם');
+    if (payload.message.length < 5) return fail('נא לכתוב את תוכן הפנייה');
+
+    btn.disabled = true;
+    try {
+      await Api.contact(payload);
+      $('c-message').value = '';
+      msg.textContent = 'הפנייה נשלחה. נחזור אליכם בהקדם — תודה!';
+      msg.className = 'msg ok';
+    } catch (e) {
+      fail(e.message || 'שליחה נכשלה. נסו שוב, או כתבו בשרשור בפורום');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     setupBanner();
     renderPreview();
+
+    if ($('c-submit')) $('c-submit').addEventListener('click', sendContact);
 
     $('r-name').addEventListener('input', () => {
       if (!slugTouched) { $('r-slug').value = slugify($('r-name').value); scheduleCheck(); }

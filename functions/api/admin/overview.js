@@ -1,6 +1,7 @@
 import { json } from '../../_shared.js';
 import { requireAdmin } from '../../_admin.js';
 import { ensureScreensTable, liveCounts } from '../../_screens.js';
+import { newContactCount } from '../../_contact.js';
 
 // כל מה שהדשבורד צריך בבקשה אחת.
 export async function onRequestGet({ request, env }) {
@@ -11,7 +12,7 @@ export async function onRequestGet({ request, env }) {
   const t = Date.now();
 
   await ensureScreensTable(env);
-  const [totals, shuls, audit, byDay, screens] = await Promise.all([
+  const [totals, shuls, audit, byDay, screens, contactNew] = await Promise.all([
     env.DB.prepare(`
       SELECT
         (SELECT COUNT(*) FROM shuls)                          AS shuls,
@@ -45,6 +46,7 @@ export async function onRequestGet({ request, env }) {
     ).bind(t - 30 * DAY).all(),
 
     liveCounts(env, t).catch(() => ({})),
+    newContactCount(env),
   ]);
 
   // מסכים בלייב לכל בית כנסת (דופק ב-7 הדקות האחרונות) + סך הכל
@@ -67,7 +69,7 @@ export async function onRequestGet({ request, env }) {
 
   return json({
     ok: true,
-    totals: { ...totals, activeToday, screensLive, screensTotal },
+    totals: { ...totals, activeToday, screensLive, screensTotal, contactNew },
     // מכסות המסלול החינמי, כדי לראות כמה מרווח נשאר
     limits: {
       kvStorageBytes: 1024 ** 3,
