@@ -1095,6 +1095,22 @@
   }
 
   const _blockRenderers = {
+    // אלמנט גרפי: ציור מהספרייה (js/decor.js) או תמונה שהועלתה. בלי לוח ובלי מסגרת.
+    decor(block, wrap) {
+      const cls = `${block.flip ? 'flip' : ''} ${block.anchor ? `anchor-${block.anchor}` : ''}`.trim();
+      const { card, body } = mkCard('decor', '', cls);
+      const url = String(block.url || '').trim();
+      if (url) {
+        const img = document.createElement('img');
+        img.src = url; img.alt = ''; img.draggable = false;
+        body.appendChild(img);
+      } else {
+        const asset = window.ShulDecor?.get(block.asset || 'menorah');
+        if (!asset) { wrap.remove(); return; }
+        body.innerHTML = asset.svg;
+      }
+      wrap.appendChild(card);
+    },
     clock(block, wrap) {
       const analog = block.variant === 'analog';
       const showSec = block.seconds !== false;
@@ -1113,13 +1129,13 @@
       }
       wrap.appendChild(card);
       if (!analog) {
-        const hFrac = block.showDate ? 0.48 : 0.62;
+        const hFrac = block.showDate ? 0.42 : 0.62;
         const bt = body.querySelector('.big-time');
         fitFont(bt, wrap, face === 'flip' ? (showSec ? 0.16 : 0.24) : (showSec ? 0.3 : 0.38), hFrac);
         // גופנים רחבים (לד, קלפים) וקוביות צרות: מכווצים עד שהשעה נכנסת ברוחב
         const avail = wrap.clientWidth * 0.9;
         if (avail && bt.scrollWidth > avail) bt.style.fontSize = `${Math.max(12, parseFloat(bt.style.fontSize) * avail / bt.scrollWidth)}px`;
-        const d = body.querySelector('.bt-date'); if (d) fitFont(d, wrap, 0.075, 0.14);
+        const d = body.querySelector('.bt-date'); if (d) fitFont(d, wrap, 0.065, 0.12);
       }
       tickClocks();
     },

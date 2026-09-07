@@ -17,7 +17,7 @@
 import { DEFAULTS, SECTIONS, GRID } from './_shared.js';
 
 export const SCHEMA_VERSION = 4;
-export const APP_VERSION = '3.3.0';
+export const APP_VERSION = '3.4.0';
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -70,7 +70,7 @@ const MIGRATIONS = {
 // ---------- ניקוי לכל מקטע ----------
 const KNOWN_BLOCKS = new Set([
   'header', 'zmanim', 'tefillot', 'memorial', 'mentions', 'announcements', 'upcoming', 'media', 'logo',
-  'clock', 'date', 'shabbat', 'today', 'learning', 'dedications', 'shiurim', 'text', 'omer', 'weather', 'countdown',
+  'clock', 'date', 'shabbat', 'today', 'learning', 'dedications', 'shiurim', 'text', 'omer', 'weather', 'countdown', 'decor',
 ]);
 const num = (v, fallback) => (Number.isFinite(Number(v)) ? Number(v) : fallback);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));

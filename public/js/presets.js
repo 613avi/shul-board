@@ -36,6 +36,7 @@ window.SB_PRESETS = (() => {
     { id: 'ornate',      name: 'מעוטר',        desc: 'מסגרת כפולה וכותרות במרכז' },
     { id: 'glass',       name: 'זכוכית',       desc: 'לוחות שקופים עם טשטוש רקע' },
     { id: 'bold',        name: 'נועז',         desc: 'כותרות גדולות, פס עבה, ניגודיות גבוהה' },
+    { id: 'elements',    name: 'אלמנטים מעוטרים', desc: 'מסגרות זהב מגולפות, כותרות על סרטי קלף, ואלמנטים גרפיים חופשיים' },
   ];
 
   // ---------- פריסת הצג הקלאסי (data-layout) ----------
@@ -66,6 +67,7 @@ window.SB_PRESETS = (() => {
   // accent ריק = צבע הערכה; ערך = דריסה.
   const DESIGN_PRESETS = [
     { id: 'jerusalem',   name: 'ירושלים',        desc: 'אבן ירושלמית עם עיטורים מסורתיים', theme: 'stone',     style: 'traditional', layout: '3col',       font: 'classic' },
+    { id: 'palace',      name: 'ארמון',          desc: 'קלף, זהב ומסגרות מגולפות — עם אלמנטים גרפיים', theme: 'parchment', style: 'elements',    layout: '3col',       font: 'classic' },
     { id: 'classic',     name: 'קלאסי כהה',      desc: 'הלוח המוכר — כהה, זהב ונקי',        theme: 'dark',      style: 'classic',     layout: '3col',       font: 'classic' },
     { id: 'midnight',    name: 'חצות',           desc: 'כחול לילה עמוק וזהב חם',            theme: 'midnight',  style: 'modern',      layout: '3col',       font: 'classic' },
     { id: 'royal',       name: 'כחול מלכותי',    desc: 'כחול עמוק עם טורקיז',               theme: 'blue',      style: 'modern',      layout: '2col',       font: 'sans' },
@@ -91,6 +93,17 @@ window.SB_PRESETS = (() => {
   // כל תבנית מחליפה את הקוביות של המסך הנוכחי בלחיצה אחת.
   const B = (type, x, y, w, h, extra = {}) => ({ type, x, y, w, h, ...extra });
   const SCREEN_TEMPLATES = [
+    {
+      id: 'ornate', name: 'לוח מעוטר', desc: 'סרט כותרת, שעון ולוגו בקלף, שני לוחות גדולים ואלמנטים גרפיים בפינות — הכי יפה בסגנון "אלמנטים מעוטרים"',
+      blocks: [
+        B('clock', 0, 0, 5, 3, { variant: 'digital', face: 'plain', seconds: false, showDate: true }),
+        B('header', 5, 0, 14, 3), B('logo', 19, 0, 5, 3),
+        B('tefillot', 12, 4, 11, 10), B('shiurim', 1, 4, 11, 10),
+        B('decor', 0, 14, 5, 4, { asset: 'book', floating: true, anchor: 'bottom' }),
+        B('decor', 19, 13, 5, 5, { asset: 'menorah', floating: true, anchor: 'bottom' }),
+        B('mentions', 5, 15, 14, 1), B('announcements', 5, 16, 14, 2),
+      ],
+    },
     {
       id: 'classic3', name: 'קלאסי — 3 עמודות', desc: 'זמנים, תפילות והנצחות זו לצד זו',
       blocks: [
@@ -227,6 +240,7 @@ window.SB_PRESETS = (() => {
     { type: 'omer',          name: 'ספירת העומר',     desc: 'הספירה בגדול, בימי הספירה' },
     { type: 'weather',       name: 'מזג אוויר',       desc: 'טמפרטורה ותחזית (Open-Meteo)' },
     { type: 'countdown',     name: 'התפילה הבאה',     desc: 'ספירה לאחור למניין הקרוב' },
+    { type: 'decor',         name: 'אלמנט גרפי',      desc: 'מנורה, ספר, כתר, נרות, מסגרת, סרט — או תמונה שהעליתם; מונח בחופשיות' },
   ];
 
   // ---------- לימוד יומי (hebcal/learning) ----------
