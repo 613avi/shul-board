@@ -17,7 +17,7 @@
 import { DEFAULTS, SECTIONS, GRID } from './_shared.js';
 
 export const SCHEMA_VERSION = 4;
-export const APP_VERSION = '3.1.0';
+export const APP_VERSION = '3.2.0';
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -78,7 +78,11 @@ const entriesArray = (data, key = 'entries') =>
   ({ ...(isObj(data) ? data : {}), [key]: Array.isArray(data?.[key]) ? data[key].filter(isObj) : [] });
 
 const timeList = (v) => (Array.isArray(v) ? v : v ? [v] : []).filter(e => e !== '' && e != null);
-const numList = (v) => (Array.isArray(v) ? v : v != null && v !== '' ? [v] : []).map(Number).filter(Number.isFinite);
+// מנחה ערב שבת וערבית מוצ״ש נשמרו פעם כמספרים (דקות מהדלקת נרות / מצאת השבת).
+// היום הן רשומות זמן רגילות; מספר ישן הופך לרשומה יחסית לאותו בסיס.
+const offsetList = (v, base) => timeList(v)
+  .map(e => (isObj(e) ? e : { type: 'relative', base, offset: num(e, 0), round: 0, days: [] }))
+  .filter(e => e.type !== 'relative' || Number.isFinite(Number(e.offset)));
 
 function normalizeRoom(room, i) {
   const wk = isObj(room.weekday) ? room.weekday : {};
@@ -94,10 +98,10 @@ function normalizeRoom(room, i) {
     },
     shabbat: {
       kabbalat: timeList(sh.kabbalat),
-      minchaErevOffsets: numList(sh.minchaErevOffsets ?? sh.minchaErevOffset),
+      minchaErevOffsets: offsetList(sh.minchaErevOffsets ?? sh.minchaErevOffset, 'candle'),
       shacharit: timeList(sh.shacharit),
       mincha: timeList(sh.mincha),
-      arvitMotzashOffsets: numList(sh.arvitMotzashOffsets ?? sh.arvitMotzashOffset),
+      arvitMotzashOffsets: offsetList(sh.arvitMotzashOffsets ?? sh.arvitMotzashOffset, 'havdalah'),
     },
   };
 }

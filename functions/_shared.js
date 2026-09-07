@@ -222,8 +222,11 @@ export const DEFAULTS = {
       id: 'main', name: 'היכל מרכזי',
       weekday: { shacharit: ['06:30'], mincha: [], arvit: ['20:00'] },
       shabbat: {
-        kabbalat: [], minchaErevOffsets: [-15], shacharit: ['08:30'],
-        mincha: [], arvitMotzashOffsets: [30],
+        kabbalat: [],
+        minchaErevOffsets: [{ type: 'relative', base: 'candle', offset: -15, round: 0, days: [] }],
+        shacharit: ['08:30'],
+        mincha: [],
+        arvitMotzashOffsets: [{ type: 'relative', base: 'havdalah', offset: 30, round: 0, days: [] }],
       },
       notes: '',
     }],

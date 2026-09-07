@@ -76,6 +76,9 @@
   // רשומת זמן היא מחרוזת פשוטה או אובייקט (זמן יחסי / מוגבל לימים).
   // חשוב לא להמיר למחרוזת — זה היה מוחק את ההגדרות המורכבות.
   const keepEntry = (v) => (v && typeof v === 'object') ? v : String(v);
+  // מנחה ערב שבת וערבית מוצ״ש נשמרו פעם כמספרים (דקות מהדלקת נרות / מצאת השבת)
+  const offsetEntry = (base) => (v) => (v && typeof v === 'object')
+    ? v : { type: 'relative', base, offset: Number(v) || 0, round: 0, days: [] };
 
   function normalizeRoom(room) {
     const wk = room.weekday || {};
@@ -87,10 +90,10 @@
     };
     room.shabbat = {
       kabbalat:            asArr(sh.kabbalat).map(keepEntry),
-      minchaErevOffsets:   asArr(sh.minchaErevOffsets ?? sh.minchaErevOffset).map(Number).filter(n => !isNaN(n)),
+      minchaErevOffsets:   asArr(sh.minchaErevOffsets ?? sh.minchaErevOffset).map(offsetEntry('candle')),
       shacharit:           asArr(sh.shacharit).map(keepEntry),
       mincha:              asArr(sh.mincha).map(keepEntry),
-      arvitMotzashOffsets: asArr(sh.arvitMotzashOffsets ?? sh.arvitMotzashOffset).map(Number).filter(n => !isNaN(n)),
+      arvitMotzashOffsets: asArr(sh.arvitMotzashOffsets ?? sh.arvitMotzashOffset).map(offsetEntry('havdalah')),
     };
     return room;
   }
@@ -666,7 +669,34 @@
     return new Date(Math.round(date.getTime() / ms) * ms);
   }
 
-  function resolveTimeEntry(entry, dow) {
+  // שמות הזמנים כפי שמופיעים בטקסט "45 דק׳ לפני הנץ החמה"
+  const BASE_LABELS = Object.assign(
+    Object.fromEntries(ZMANIM_DEFS.map(d => [d.key, d.label])),
+    { sunset: 'השקיעה', candle: 'הדלקת נרות', havdalah: 'צאת השבת' }
+  );
+
+  // הזמן הבסיסי של רשומה יחסית. הדלקת נרות וצאת השבת מגיעות מהקשר השבת,
+  // כל השאר מזמני היום (כולל דריסות של הגבאי).
+  function baseTimeOf(base, ctx) {
+    if (base === 'candle' || base === 'havdalah') {
+      const c = ctx || computeShabbatContext();
+      const d = base === 'candle' ? c.candle : c.havdalah;
+      return d instanceof Date && !isNaN(d) ? parseHM(fmtTime(d)) : null;
+    }
+    return parseHM(zmanimToday()[base]?.time);
+  }
+
+  // הטקסט הגולמי של רשומה יחסית: "45 דק׳ לפני הנץ החמה", "שעה אחרי צאת השבת"
+  function relativeText(entry) {
+    const label = BASE_LABELS[entry.base] || entry.base || '';
+    const off = Number(entry.offset) || 0;
+    if (!off) return label;
+    const abs = Math.abs(off);
+    const amount = abs === 60 ? 'שעה' : abs % 60 === 0 ? `${abs / 60} שע׳` : `${abs} דק׳`;
+    return `${amount} ${off < 0 ? 'לפני' : 'אחרי'} ${label}`;
+  }
+
+  function resolveTimeEntry(entry, dow, ctx) {
     if (entry == null) return null;
     if (typeof entry === 'string') return entry.trim() ? { time: entry.trim() } : null;
     if (typeof entry !== 'object') return null;
@@ -674,19 +704,21 @@
     if (Array.isArray(entry.days) && entry.days.length && !entry.days.includes(dow)) return null;
 
     if (entry.type === 'relative') {
-      const base = zmanimToday()[entry.base]?.time;
-      const d = parseHM(base);
+      const d = baseTimeOf(entry.base, ctx);
       if (!d) return null;
       const shifted = roundToNearest(addMinutes(d, Number(entry.offset) || 0), Number(entry.round) || 0);
-      return { time: fmtTime(shifted), relative: true };
+      const out = { time: fmtTime(shifted), relative: true };
+      // show:'text' — על הלוח מופיע הטקסט הגולמי; השעה המחושבת משמשת רק למיון ול"התפילה הבאה"
+      if (entry.show === 'text') out.label = relativeText(entry);
+      return out;
     }
     return entry.time ? { time: String(entry.time).trim() } : null;
   }
 
-  function pushEntries(rows, list, group, dow) {
+  function pushEntries(rows, list, group, dow, ctx) {
     for (const entry of (list || [])) {
-      const r = resolveTimeEntry(entry, dow);
-      if (r) rows.push({ group, time: r.time, relative: r.relative });
+      const r = resolveTimeEntry(entry, dow, ctx);
+      if (r) rows.push({ group, time: r.time, relative: r.relative, label: r.label });
     }
   }
 
@@ -702,11 +734,11 @@
   function buildShabbatRows(room, ctx) {
     const rows = [];
     const dow = new Date().getDay();
-    pushEntries(rows, room.shabbat.kabbalat, 'קבלת שבת', dow);
-    for (const off of room.shabbat.minchaErevOffsets) rows.push({ group: 'מנחה ערב שבת', time: fmtTime(addMinutes(ctx.candle, off)) });
-    pushEntries(rows, room.shabbat.shacharit, 'שחרית שבת', dow);
-    pushEntries(rows, room.shabbat.mincha,    'מנחה שבת',  dow);
-    for (const off of room.shabbat.arvitMotzashOffsets) rows.push({ group: 'ערבית מוצ״ש', time: fmtTime(addMinutes(ctx.havdalah, off)) });
+    pushEntries(rows, room.shabbat.kabbalat,            'קבלת שבת',      dow, ctx);
+    pushEntries(rows, room.shabbat.minchaErevOffsets,   'מנחה ערב שבת',  dow, ctx);
+    pushEntries(rows, room.shabbat.shacharit,           'שחרית שבת',     dow, ctx);
+    pushEntries(rows, room.shabbat.mincha,              'מנחה שבת',      dow, ctx);
+    pushEntries(rows, room.shabbat.arvitMotzashOffsets, 'ערבית מוצ״ש',   dow, ctx);
     return rows;
   }
 
@@ -733,7 +765,7 @@
         if (t.roomId && t.roomId !== '*' && t.roomId !== room.id) continue;
         const matches = rows.filter(r => r.group === t.label);
         if (matches.length) {
-          rows.forEach(r => { if (r.group === t.label) r.time = t.time; });
+          rows.forEach(r => { if (r.group === t.label) { r.time = t.time; delete r.label; } });
         } else {
           rows.push({ group: t.label, time: t.time, eventName: ev.name });
         }
@@ -830,7 +862,8 @@
         const isNext = next && next.group === group && next.time === m.time && next.roomName === m.roomName;
         const isPast = flag('nextHighlight') && !isNaN(mins) && mins < nowMin;
         const badge = isNext ? `<span class="next-in">${untilText(next.minutes)}</span>` : '';
-        return `<tr class="${isNext ? 'next-minyan' : isPast ? 'past-minyan' : ''}"><td class="ptime">${m.time || '—'}${badge}</td>${showRoomCol ? `<td class="proom">${m.roomName}</td>` : ''}</tr>`;
+        const shown = m.label ? `<span class="ptime-text">${m.label}</span>` : (m.time || '—');
+        return `<tr class="${isNext ? 'next-minyan' : isPast ? 'past-minyan' : ''}"><td class="ptime">${shown}${badge}</td>${showRoomCol ? `<td class="proom">${m.roomName}</td>` : ''}</tr>`;
       }).join('');
       block.innerHTML = `<h3>${group}</h3><table><tbody>${rowsHtml}</tbody></table>`;
       container.appendChild(block);
@@ -1065,13 +1098,19 @@
           .map(e => stripNikud(e.render('he'))).slice(0, 2);
         const room = state.rooms[0];
         const rows = [];
-        if (room && room.shabbat.minchaErevOffsets.length) rows.push(['מנחה ערב שבת', fmtTime(addMinutes(ctx.candle, room.shabbat.minchaErevOffsets[0]))]);
+        // הרשומה הראשונה שחלה ביום המבוקש; טקסט גולמי מוצג כמו שהוא
+        const first = (list, dow) => {
+          for (const e of (list || [])) { const r = resolveTimeEntry(e, dow, ctx); if (r) return r.label || r.time; }
+          return null;
+        };
+        const erev = room && first(room.shabbat.minchaErevOffsets, 5);
+        if (erev) rows.push(['מנחה ערב שבת', erev]);
         rows.push(['הדלקת נרות', fmtTime(ctx.candle)]);
-        if (room && room.shabbat.shacharit.length) { const r = resolveTimeEntry(room.shabbat.shacharit[0], 6); if (r) rows.push(['שחרית', r.time]); }
-        if (room && room.shabbat.mincha.length) { const r = resolveTimeEntry(room.shabbat.mincha[0], 6); if (r) rows.push(['מנחה', r.time]); }
+        const shach = room && first(room.shabbat.shacharit, 6); if (shach) rows.push(['שחרית', shach]);
+        const minch = room && first(room.shabbat.mincha, 6);    if (minch) rows.push(['מנחה', minch]);
         rows.push(['צאת השבת', fmtTime(ctx.havdalah)]);
         if (ctx.havdalahRT) rows.push(['צאת השבת (ר״ת)', fmtTime(ctx.havdalahRT)]);
-        if (room && room.shabbat.arvitMotzashOffsets.length) rows.push(['ערבית מוצ״ש', fmtTime(addMinutes(ctx.havdalah, room.shabbat.arvitMotzashOffsets[0]))]);
+        const motz = room && first(room.shabbat.arvitMotzashOffsets, 6); if (motz) rows.push(['ערבית מוצ״ש', motz]);
         body.innerHTML = `${par ? `<div class="sh-parasha">${stripNikud(par)}${special.length ? ' · ' + special.join(' · ') : ''}</div>` : ''}` +
           rows.map(([k, v]) => `<div class="sh-row"><span>${k}</span><b>${v}</b></div>`).join('');
       } catch { body.innerHTML = '<div class="blk-empty">—</div>'; }

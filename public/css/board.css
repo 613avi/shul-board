@@ -1129,6 +1129,11 @@ body[data-theme="parchment"] #display-root[data-style="glass"] .card {
     border-radius: 999px; padding: 0.05em 0.6em; vertical-align: middle; white-space: nowrap;
 }
 .tefillot-card tr.past-minyan td { opacity: 0.45; }
+/* זמן יחסי שמוצג כטקסט ("45 דק׳ לפני הנץ החמה") במקום שעה */
+.tefillot-card td.ptime .ptime-text {
+    display: inline-block; direction: rtl; unicode-bidi: isolate;
+    font-size: 0.72em; line-height: 1.2; white-space: nowrap;
+}
 .tefillot-card .fast-line { color: var(--accent-2); }
 
 /* ===== מצב שינה ===== */

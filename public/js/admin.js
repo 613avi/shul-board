@@ -25,6 +25,9 @@
   // רשומת זמן היא מחרוזת פשוטה או אובייקט (זמן יחסי / מוגבל לימים).
   // חשוב לא להמיר למחרוזת — זה היה מוחק את ההגדרות המורכבות.
   const keepEntry = (v) => (v && typeof v === 'object') ? v : String(v);
+  // מנחה ערב שבת וערבית מוצ״ש נשמרו פעם כמספרים (דקות מהדלקת נרות / מצאת השבת)
+  const offsetEntry = (base) => (v) => (v && typeof v === 'object')
+    ? v : { type: 'relative', base, offset: Number(v) || 0, round: 0, days: [] };
 
   function normalizeRoom(room) {
     const wk = room.weekday || {};
@@ -36,10 +39,10 @@
     };
     room.shabbat = {
       kabbalat:            asArr(sh.kabbalat).map(keepEntry),
-      minchaErevOffsets:   asArr(sh.minchaErevOffsets ?? sh.minchaErevOffset).map(Number).filter(n => !isNaN(n)),
+      minchaErevOffsets:   asArr(sh.minchaErevOffsets ?? sh.minchaErevOffset).map(offsetEntry('candle')),
       shacharit:           asArr(sh.shacharit).map(keepEntry),
       mincha:              asArr(sh.mincha).map(keepEntry),
-      arvitMotzashOffsets: asArr(sh.arvitMotzashOffsets ?? sh.arvitMotzashOffset).map(Number).filter(n => !isNaN(n)),
+      arvitMotzashOffsets: asArr(sh.arvitMotzashOffsets ?? sh.arvitMotzashOffset).map(offsetEntry('havdalah')),
     };
     return room;
   }
@@ -1099,7 +1102,15 @@
   const fixedTimes = (arr) => (arr || [])
     .map(e => typeof e === 'string' ? e : (e && e.type !== 'relative' ? e.time : null))
     .filter(Boolean).join(', ');
-  const numList = (arr) => (arr || []).map(Number).filter(n => !isNaN(n)).join(', ');
+  // באשף: מנחה ערב שבת וערבית מוצ״ש הן מספרים (דקות מהדלקת נרות / מצאת השבת).
+  // רשומה "פשוטה" = יחסית לאותו בסיס, בלי עיגול ובלי תצוגת טקסט; רק אותן האשף עורך.
+  const simpleOffset = (base) => (e) => e && typeof e === 'object' && e.type === 'relative'
+    && e.base === base && !(Number(e.round) > 0) && e.show !== 'text';
+  const offsetsOf = (arr, base) => (arr || []).filter(simpleOffset(base)).map(e => Number(e.offset) || 0).join(', ');
+  const replaceOffsets = (arr, base, nums) => [
+    ...nums.map(n => ({ type: 'relative', base, offset: n, round: 0, show: 'time', days: [] })),
+    ...(arr || []).filter(e => !simpleOffset(base)(e)),
+  ];
 
   function parseTimes(str) {
     const out = [];
@@ -1126,10 +1137,10 @@
     qs('#wz-wk-mincha').value = fixedTimes(r.weekday.mincha);
     qs('#wz-wk-arvit').value = fixedTimes(r.weekday.arvit);
     qs('#wz-sh-kabbalat').value = fixedTimes(r.shabbat.kabbalat);
-    qs('#wz-sh-mincha-erev').value = numList(r.shabbat.minchaErevOffsets);
+    qs('#wz-sh-mincha-erev').value = offsetsOf(r.shabbat.minchaErevOffsets, 'candle');
     qs('#wz-sh-shacharit').value = fixedTimes(r.shabbat.shacharit);
     qs('#wz-sh-mincha').value = fixedTimes(r.shabbat.mincha);
-    qs('#wz-sh-arvit').value = numList(r.shabbat.arvitMotzashOffsets);
+    qs('#wz-sh-arvit').value = offsetsOf(r.shabbat.arvitMotzashOffsets, 'havdalah');
   }
 
   // התצוגה המקדימה של האשף — נטענת פעם אחת, משותפת לשלבים 3 ו-4
@@ -1240,8 +1251,8 @@
         r.shabbat.kabbalat  = replaceFixed(r.shabbat.kabbalat,  parseTimes(qs('#wz-sh-kabbalat').value));
         r.shabbat.shacharit = replaceFixed(r.shabbat.shacharit, parseTimes(qs('#wz-sh-shacharit').value));
         r.shabbat.mincha    = replaceFixed(r.shabbat.mincha,    parseTimes(qs('#wz-sh-mincha').value));
-        r.shabbat.minchaErevOffsets   = parseNums(qs('#wz-sh-mincha-erev').value);
-        r.shabbat.arvitMotzashOffsets = parseNums(qs('#wz-sh-arvit').value);
+        r.shabbat.minchaErevOffsets   = replaceOffsets(r.shabbat.minchaErevOffsets,   'candle',   parseNums(qs('#wz-sh-mincha-erev').value));
+        r.shabbat.arvitMotzashOffsets = replaceOffsets(r.shabbat.arvitMotzashOffsets, 'havdalah', parseNums(qs('#wz-sh-arvit').value));
         c.setup.step = 3;
         await wzSave('rooms', state.data.rooms);
         await wzSave('config', c);
@@ -1432,13 +1443,27 @@
   // רשומה היא מחרוזת "06:30" (שעה קבועה) או אובייקט:
   //   { type:'relative', base:'sunset', offset:-20, round:5, days:[0,1,2] }
 
+  //   show:'time' (ברירת מחדל) מציג את השעה המחושבת; show:'text' מציג "45 דק׳ לפני הנץ החמה"
   const ZMAN_BASES = [
     ['alotHaShachar', 'עלות השחר'], ['misheyakir', 'משיכיר'], ['sunrise', 'הנץ החמה'],
     ['sofZmanShmaMGA', 'סו״ז ק״ש (מג״א)'], ['sofZmanShma', 'סו״ז ק״ש (גר״א)'],
     ['sofZmanTfillaMGA', 'סו״ז תפילה (מג״א)'], ['sofZmanTfilla', 'סו״ז תפילה (גר״א)'],
     ['chatzot', 'חצות היום'], ['minchaGedola', 'מנחה גדולה'], ['minchaKetana', 'מנחה קטנה'],
     ['plagHaMincha', 'פלג המנחה'], ['sunset', 'שקיעה'], ['tzeit', 'צאת הכוכבים'],
+    ['tzeit72', 'צאת הכוכבים (ר״ת)'], ['chatzotNight', 'חצות הלילה'],
+    ['candle', 'הדלקת נרות (שבת)'], ['havdalah', 'צאת השבת'],
   ];
+  const BASE_LABEL = Object.fromEntries(ZMAN_BASES);
+
+  // כך הצג יציג רשומה יחסית במצב טקסט — אותה נוסחה כמו ב-display.js
+  function relativeText(entry) {
+    const label = { sunset: 'השקיעה', candle: 'הדלקת נרות' }[entry.base] || BASE_LABEL[entry.base] || '';
+    const off = Number(entry.offset) || 0;
+    if (!off) return label;
+    const abs = Math.abs(off);
+    const amount = abs === 60 ? 'שעה' : abs % 60 === 0 ? `${abs / 60} שע׳` : `${abs} דק׳`;
+    return `${amount} ${off < 0 ? 'לפני' : 'אחרי'} ${label}`;
+  }
 
   const DOW_LABELS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
 
@@ -1455,31 +1480,56 @@
     kind.value = isRel ? 'relative' : 'fixed';
     kind.addEventListener('change', () => {
       arr[idx] = kind.value === 'relative'
-        ? { type: 'relative', base: 'sunset', offset: -20, round: 0, days: entry.days || [] }
+        ? { type: 'relative', base: 'sunset', offset: -20, round: 0, show: 'time', days: entry.days || [] }
         : { type: 'fixed', time: entry.time || '', days: entry.days || [] };
       markDirty(); redraw();
     });
     row.appendChild(kind);
 
     if (isRel) {
+      // [N דקות] [לפני/אחרי] [זמן] — נשמר כ-offset חתום (שלילי = לפני)
+      const preview = el('span', { class: 'tm-result tm-preview' });
+      const refresh = () => {
+        preview.textContent = entry.show === 'text' ? `יוצג: ${relativeText(entry)}` : '';
+        arr[idx] = entry; markDirty();
+      };
+
+      const off = el('input', { type: 'number', step: '1', min: '0', title: 'דקות' });
+      off.value = String(Math.abs(Number(entry.offset) || 0));
+      row.appendChild(off);
+      row.appendChild(el('span', { class: 'tm-result' }, 'דק׳'));
+
+      const dir = el('select', {});
+      dir.appendChild(el('option', { value: '-1' }, 'לפני'));
+      dir.appendChild(el('option', { value: '1' }, 'אחרי'));
+      dir.value = (Number(entry.offset) || 0) > 0 ? '1' : '-1';
+      const setOffset = () => { entry.offset = Number(dir.value) * (parseInt(off.value, 10) || 0); refresh(); };
+      off.addEventListener('input', setOffset);
+      dir.addEventListener('change', setOffset);
+      row.appendChild(dir);
+
       const base = el('select', {});
       for (const [k, label] of ZMAN_BASES) base.appendChild(el('option', { value: k }, label));
       base.value = entry.base || 'sunset';
-      base.addEventListener('change', () => { entry.base = base.value; arr[idx] = entry; markDirty(); });
+      base.addEventListener('change', () => { entry.base = base.value; refresh(); });
       row.appendChild(base);
-
-      const off = el('input', { type: 'number', step: '1' });
-      off.value = String(entry.offset ?? 0);
-      off.addEventListener('input', () => { entry.offset = parseInt(off.value, 10) || 0; arr[idx] = entry; markDirty(); });
-      row.appendChild(off);
-      row.appendChild(el('span', { class: 'tm-result' }, 'דקות (שלילי = לפני)'));
 
       const round = el('select', {});
       [[0, 'בלי עיגול'], [5, 'לעגל ל־5 דק׳'], [10, 'לעגל ל־10 דק׳'], [15, 'לעגל ל־15 דק׳']]
         .forEach(([v, label]) => round.appendChild(el('option', { value: String(v) }, label)));
       round.value = String(entry.round || 0);
-      round.addEventListener('change', () => { entry.round = parseInt(round.value, 10) || 0; arr[idx] = entry; markDirty(); });
+      round.addEventListener('change', () => { entry.round = parseInt(round.value, 10) || 0; refresh(); });
       row.appendChild(round);
+
+      // מה מופיע על הלוח: השעה המחושבת, או הטקסט הגולמי
+      const show = el('select', {});
+      show.appendChild(el('option', { value: 'time' }, 'על הלוח: השעה'));
+      show.appendChild(el('option', { value: 'text' }, 'על הלוח: הטקסט'));
+      show.value = entry.show === 'text' ? 'text' : 'time';
+      show.addEventListener('change', () => { entry.show = show.value; refresh(); });
+      row.appendChild(show);
+      row.appendChild(preview);
+      preview.textContent = entry.show === 'text' ? `יוצג: ${relativeText(entry)}` : '';
     } else {
       const t = el('input', { type: 'time' });
       t.value = entry.time || '';
@@ -1559,23 +1609,9 @@
       const rows = el('div', { class: 'minyan-rows' });
       const draw = () => {
         rows.innerHTML = '';
-        arr.forEach((val, idx) => {
-          if (opts.numeric) {
-            const inp = document.createElement('input');
-            inp.type = 'number';
-            inp.placeholder = opts.placeholder || '';
-            inp.value = val ?? '';
-            inp.addEventListener('input', (e) => { arr[idx] = Number(e.target.value); markDirty(); });
-            const rm = el('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => {
-              arr.splice(idx, 1); markDirty(); draw();
-            }}, '×');
-            rows.appendChild(el('div', { class: 'minyan-row' }, inp, rm));
-          } else {
-            rows.appendChild(timeEntryRow(arr, idx, draw));
-          }
-        });
+        arr.forEach((val, idx) => rows.appendChild(timeEntryRow(arr, idx, draw)));
         const add = el('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => {
-          arr.push(opts.numeric ? 0 : { type: 'fixed', time: '', days: [] });
+          arr.push(opts.defaultEntry ? { ...opts.defaultEntry, days: [] } : { type: 'fixed', time: '', days: [] });
           markDirty(); draw();
         }}, '+ מניין');
         rows.appendChild(add);
@@ -1596,12 +1632,18 @@
     body.appendChild(el('h3', {}, 'שבת'));
     body.appendChild(el('div', { class: 'row-3' },
       buildList('קבלת שבת', room.shabbat.kabbalat, { hint: 'שעה קבועה (אופציונלי)' }),
-      buildList('מנחה ערב שבת (דקות מהדלקת נרות)', room.shabbat.minchaErevOffsets, { numeric: true, placeholder: '-15', hint: 'מספר שלילי = לפני הדלקת נרות' }),
+      buildList('מנחה ערב שבת', room.shabbat.minchaErevOffsets, {
+        defaultEntry: { type: 'relative', base: 'candle', offset: -15, round: 0, show: 'time' },
+        hint: 'בדרך כלל דקות לפני הדלקת נרות; אפשר גם שעה קבועה או כל זמן אחר ביום',
+      }),
       buildList('שחרית שבת', room.shabbat.shacharit),
     ));
     body.appendChild(el('div', { class: 'row-3' },
       buildList('מנחה שבת',  room.shabbat.mincha),
-      buildList('ערבית מוצ״ש (דקות אחרי צאה״כ)', room.shabbat.arvitMotzashOffsets, { numeric: true, placeholder: '30' }),
+      buildList('ערבית מוצ״ש', room.shabbat.arvitMotzashOffsets, {
+        defaultEntry: { type: 'relative', base: 'havdalah', offset: 30, round: 0, show: 'time' },
+        hint: 'בדרך כלל דקות אחרי צאת השבת',
+      }),
       el('div'),
     ));
 
