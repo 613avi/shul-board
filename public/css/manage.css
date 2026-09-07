@@ -44,6 +44,10 @@
 }
 .mg-tile .sub { font-size: 12px; color: var(--sb-dim); margin-top: 4px; }
 .mg-tile.gold .v { color: var(--sb-gold-soft); }
+.mg-tile.live .v { color: var(--sb-green); }
+.mg-live { white-space: nowrap; color: var(--sb-dim); }
+.mg-live.on { color: var(--sb-green); font-weight: 700; }
+.mg-live .dim { color: var(--sb-dim); font-weight: 400; font-size: 12px; }
 
 /* מד מילוי למכסות */
 .mg-meter {

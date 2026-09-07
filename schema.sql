@@ -75,3 +75,22 @@ CREATE TABLE IF NOT EXISTS templates (
   created_at    INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_templates_status ON templates(status, uses DESC, created_at DESC);
+
+-- מסכים בלייב: כל צג שולח דופק כל 3 דקות. מי שנראה ב-7 הדקות האחרונות נחשב "בלייב".
+-- הטבלה נוצרת גם בעצלנות מהקוד (functions/_screens.js).
+CREATE TABLE IF NOT EXISTS screens (
+  shul_id       TEXT NOT NULL,               -- בלי FK: הטבלה נוצרת בעצלנות; המחיקה מפורשת ב-admin/shul
+  screen_id     TEXT NOT NULL,               -- מזהה יציב מהצג (?screen=שם, או מזהה שמור בדפדפן)
+  fp            TEXT,                        -- טביעת אצבע של המכשיר — לאיחוד מסך שהופעל מחדש
+  label         TEXT,                        -- שם שניתן דרך ?screen= בכתובת
+  user_agent    TEXT,
+  width         INTEGER,
+  height        INTEGER,
+  app_version   TEXT,                        -- גרסת הקוד שרצה על המסך
+  data_version  INTEGER,                     -- חותמת הנתונים שהמסך מציג
+  ip            TEXT,
+  first_seen    INTEGER NOT NULL,
+  last_seen     INTEGER NOT NULL,
+  PRIMARY KEY (shul_id, screen_id)
+);
+CREATE INDEX IF NOT EXISTS idx_screens_seen ON screens(shul_id, last_seen DESC);

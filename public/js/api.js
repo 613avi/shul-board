@@ -43,6 +43,7 @@ window.Api = (() => {
     login: (payload) => call('/api/login', { method: 'POST', body: j(payload) }),
     logout: () => call('/api/logout', { method: 'POST' }),
     me: () => call('/api/me'),
+    screens: () => call('/api/screens'),   // מסכים בלייב
 
     // ---- הגדרות ----
     loadAll: () => call('/api/data'),

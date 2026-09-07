@@ -83,6 +83,34 @@
 .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .quick-actions .btn { justify-content: center; text-align: center; }
 
+/* ---------- מסכים בלייב ---------- */
+.live-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.live-count { display: flex; align-items: center; gap: 10px; }
+.live-count b { font-size: 34px; line-height: 1; font-weight: 800; color: var(--ad-navy); }
+.live-count .live-lbl { color: var(--ad-dim); font-size: 14px; }
+.live-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; display: inline-block; flex-shrink: 0;
+}
+.live-dot.on { background: var(--ad-ok); animation: live-pulse 2s ease-out infinite; }
+@keyframes live-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(22, 163, 74, .4); }
+  70%  { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+.live-list { max-height: 260px; overflow-y: auto; }
+.live-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.live-list .nm { flex: 1; min-width: 0; }
+.live-list .nm b { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-list .nm span { color: var(--ad-dim); font-size: 12.5px; }
+.live-list li.off .nm b { color: #6b7280; }
+.live-list .live-empty { color: var(--ad-dim); font-size: 13.5px; }
+.live-pill {
+  font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px;
+  background: #e5e7eb; color: #4b5563; white-space: nowrap;
+}
+.live-pill.ok { background: #dcfce7; color: var(--ad-ok); }
+.live-pill.warn { background: #fef3c7; color: var(--ad-warn); }
+
 /* ---------- גלריית מראות ---------- */
 .preset-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;

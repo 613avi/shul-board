@@ -326,6 +326,19 @@
                     <p class="small" style="margin-bottom:0;">הצג בודק שינויים כל 3 דקות ומתעדכן לבד אחרי "שמירה ופרסום".</p>
                 </div>
                 <div class="panel">
+                    <h2>מסכים בלייב</h2>
+                    <div class="live-head">
+                        <div class="live-count">
+                            <span class="live-dot" id="live-dot"></span>
+                            <b id="live-count">—</b>
+                            <span class="live-lbl" id="live-lbl">מקרינים כרגע</span>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" id="live-refresh" type="button">רענון</button>
+                    </div>
+                    <ul class="live-list plain-list" id="live-list"></ul>
+                    <p class="small" id="live-hint" style="margin:10px 0 0;">כל מסך מדווח כל 3 דקות. כדי לתת למסך שם, הוסיפו לכתובת הצג <code class="inline" dir="ltr">?screen=שם</code> (המתקין עושה זאת לבד עם שם המחשב).</p>
+                </div>
+                <div class="panel">
                     <h2>מצב ההקמה</h2>
                     <ul class="checklist" id="home-checklist"></ul>
                     <p style="margin:12px 0 0;"><button class="btn btn-ghost btn-sm" id="home-wizard" type="button">הפעלת אשף ההקמה מחדש</button></p>
