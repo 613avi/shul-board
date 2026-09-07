@@ -17,7 +17,7 @@
 import { DEFAULTS, SECTIONS, GRID } from './_shared.js';
 
 export const SCHEMA_VERSION = 4;
-export const APP_VERSION = '3.5.0';
+export const APP_VERSION = '3.6.0';
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -155,13 +155,28 @@ const NORMALIZERS = {
     s.enabled = !!s.enabled;
     s.screens = s.screens
       .filter(sc => isObj(sc) && Array.isArray(sc.blocks))
-      .map((sc, i) => ({
-        ...sc,
-        id: String(sc.id || `s-${i + 1}`),
-        name: String(sc.name || `מסך ${i + 1}`),
-        seconds: clamp(num(sc.seconds, 20), 3, 600),
-        blocks: sc.blocks.map(normalizeBlock).filter(Boolean),
-      }));
+      .map((sc, i) => {
+        const out = {
+          ...sc,
+          id: String(sc.id || `s-${i + 1}`),
+          name: String(sc.name || `מסך ${i + 1}`),
+          seconds: clamp(num(sc.seconds, 20), 3, 600),
+          blocks: sc.blocks.map(normalizeBlock).filter(Boolean),
+        };
+        // תזמון: ימים 0–6, תאריכים YYYY-MM-DD, שעות HH:MM. ערך לא תקין נזרק.
+        const days = (Array.isArray(sc.days) ? sc.days : [])
+          .map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
+        if (days.length && days.length < 7) out.days = [...new Set(days)].sort();
+        else delete out.days;
+        const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+        const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+        for (const [k, re] of [['from', DATE_RE], ['to', DATE_RE],
+                               ['fromTime', TIME_RE], ['toTime', TIME_RE]]) {
+          if (typeof sc[k] === 'string' && re.test(sc[k].trim())) out[k] = sc[k].trim();
+          else delete out[k];
+        }
+        return out;
+      });
     if (!s.screens.length) s.screens = clone(DEFAULTS.screens.screens);
     return s;
   },

@@ -810,7 +810,7 @@
     let title = isShabbat || isErevShabbat ? 'זמני תפילות שבת' : 'זמני תפילות';
     const eventName = currentEventName();
     if (eventName) title = `זמני תפילות — ${eventName}`;
-    qs('#tefillot-title').textContent = title;
+    qs('#tefillot-title').textContent = _blockTitles.get('tefillot') || title;
 
     // Shared shabbat row at top
     if (shabbatCtx) {
@@ -1036,6 +1036,13 @@
 
   const blockTitle = (type) => (P && P.BLOCKS.find(b => b.type === type)?.name) || type;
 
+  // כותרת מותאמת אישית לקובייה, אם הגבאי הגדיר אחת
+  const _blockTitles = new Map();
+  const cardTitle = (block, fallback) => {
+    const t = block && typeof block.title === 'string' ? block.title.trim() : '';
+    return t || fallback;
+  };
+
   function mkCard(type, title, extraClass = '') {
     const card = document.createElement('section');
     card.className = `card blk blk-${type} ${extraClass}`.trim();
@@ -1115,7 +1122,7 @@
       const analog = block.variant === 'analog';
       const showSec = block.seconds !== false;
       const face = String(block.face || (analog ? 'classic' : 'plain'));
-      const { card, body } = mkCard('clock', '', `clock-${analog ? 'analog' : 'digital'} face-${face}`);
+      const { card, body } = mkCard('clock', cardTitle(block, ''), `clock-${analog ? 'analog' : 'digital'} face-${face}`);
       if (analog) {
         body.innerHTML = analogClockSvg(face, showSec);
       } else {
@@ -1140,7 +1147,7 @@
       tickClocks();
     },
     date(block, wrap) {
-      const { card, body } = mkCard('date', '');
+      const { card, body } = mkCard('date', cardTitle(block, ''));
       const hdate = getEffectiveHDate();
       const now = new Date();
       const par = findParashaText(hdate, now);
@@ -1153,7 +1160,7 @@
       const p = body.querySelector('.d-parasha'); if (p) fitFont(p, wrap, 0.05, 0.18);
     },
     shabbat(block, wrap) {
-      const { card, body } = mkCard('shabbat', 'שבת קודש');
+      const { card, body } = mkCard('shabbat', cardTitle(block, 'שבת קודש'));
       try {
         const ctx = computeShabbatContext();
         const shabbatHd = new HDate(ctx.saturday);
@@ -1182,7 +1189,7 @@
     },
     today(block, wrap) {
       const inline = block.h <= 2;
-      const { card, body } = mkCard('today', inline ? '' : 'היום', inline ? 'blk-inline' : '');
+      const { card, body } = mkCard('today', inline ? '' : cardTitle(block, 'היום'), inline ? 'blk-inline' : '');
       const hdate = getEffectiveHDate();
       const items = computeTodayItems(hdate).map(i => i.text);
       const fast = fastTimesToday(hdate, true);
@@ -1195,7 +1202,7 @@
       wrap.appendChild(card);
     },
     learning(block, wrap) {
-      const { card, body } = mkCard('learning', 'לימוד יומי');
+      const { card, body } = mkCard('learning', cardTitle(block, 'לימוד יומי'));
       const ids = (state.config.display && Array.isArray(state.config.display.learning) && state.config.display.learning.length)
         ? state.config.display.learning : ['dafyomi'];
       if (!window.hebcal.DailyLearning || !window.hebcal.DailyLearning.getCalendars().length) {
@@ -1219,7 +1226,7 @@
       wrap.appendChild(card);
     },
     dedications(block, wrap) {
-      const { card, body } = mkCard('dedications', 'הקדשות וברכות');
+      const { card, body } = mkCard('dedications', cardTitle(block, 'הקדשות וברכות'));
       const items = activeDedications();
       if (!items.length) body.innerHTML = '<div class="blk-empty">אין הקדשות פעילות</div>';
       else {
@@ -1236,7 +1243,7 @@
       wrap.appendChild(card);
     },
     shiurim(block, wrap) {
-      const { card, body } = mkCard('shiurim', 'שיעורים');
+      const { card, body } = mkCard('shiurim', cardTitle(block, 'שיעורים'));
       const now = new Date();
       const dow = now.getDay();
       const list = (dayIdx) => state.shiurim
@@ -1253,7 +1260,7 @@
     },
     text(block, wrap) {
       const items = state.texts.filter(t => t && (t.body || t.title));
-      const { card, body } = mkCard('text', '');
+      const { card, body } = mkCard('text', cardTitle(block, ''));
       if (!items.length) body.innerHTML = '<div class="blk-empty">לא הוזנו טקסטים</div>';
       else {
         const it = items[_rotIndex % items.length];
@@ -1262,7 +1269,7 @@
       wrap.appendChild(card);
     },
     omer(block, wrap) {
-      const { card, body } = mkCard('omer', '');
+      const { card, body } = mkCard('omer', cardTitle(block, ''));
       const hdate = getEffectiveHDate();
       let ev = null;
       try {
@@ -1283,7 +1290,7 @@
       wrap.appendChild(card);
     },
     weather(block, wrap) {
-      const { card, body } = mkCard('weather', 'מזג אוויר');
+      const { card, body } = mkCard('weather', cardTitle(block, 'מזג אוויר'));
       const w = _weather;
       if (!w) { body.innerHTML = '<div class="blk-empty">טוען…</div>'; fetchWeather(); }
       else {
@@ -1294,7 +1301,7 @@
       wrap.appendChild(card);
     },
     countdown(block, wrap) {
-      const { card, body } = mkCard('countdown', '');
+      const { card, body } = mkCard('countdown', cardTitle(block, ''));
       body.innerHTML = '<div class="cd-label"></div><div class="cd-name"></div><div class="cd-time"></div><div class="cd-at"></div>';
       wrap.appendChild(card);
       fitFont(body.querySelector('.cd-time'), wrap, 0.22, 0.4);
@@ -1445,6 +1452,8 @@
   let _homes = null;        // איפה כל אלמנט ישב במקור, כדי שאפשר יהיה לחזור
   let _screenTimer = null;
   let _mediaTimer = null;
+  let _schedTimer = null;
+  let _activeKey = '';
   let _screenIndex = 0;
 
   function rememberHomes() {
@@ -1452,33 +1461,85 @@
     _homes = new Map();
     for (const [type, sel] of Object.entries(BLOCK_SELECTOR)) {
       const el = qs(sel);
-      if (el) _homes.set(type, { el, parent: el.parentNode, next: el.nextSibling });
+      const h2 = el && el.querySelector(':scope > h2');
+      if (el) _homes.set(type, { el, parent: el.parentNode, next: el.nextSibling, h2, h2Text: h2 ? h2.textContent : '' });
     }
   }
 
   function restoreClassic() {
     if (_homes) {
-      for (const { el, parent, next } of _homes.values()) {
+      for (const { el, parent, next, h2, h2Text } of _homes.values()) {
         el.style.cssText = '';
         el.hidden = false;
         el.classList.remove('no-clock', 'no-sub');
+        if (h2) h2.textContent = h2Text;
         parent.insertBefore(el, next);
       }
+      _blockTitles.clear();
     }
     if (_stage) { _stage.remove(); _stage = null; }
     clearInterval(_screenTimer); _screenTimer = null;
     clearInterval(_mediaTimer); _mediaTimer = null;
+    clearInterval(_schedTimer); _schedTimer = null;
     clearInterval(_rotTimer); _rotTimer = null;
+    _activeKey = '';
     document.body.removeAttribute('data-screens');
     document.body.classList.remove('logo-block');
+  }
+
+  // ---------- מתי כל מסך מוצג ----------
+  const localDateStr = (d = new Date()) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const hasSchedule = (sc) => !!(
+    (Array.isArray(sc?.days) && sc.days.length && sc.days.length < 7) ||
+    sc?.from || sc?.to || sc?.fromTime || sc?.toTime);
+
+  // היום נמדד כמו בלוח: אחרי השקיעה זה כבר היום הבא, כך ש"שבת" כולל את ליל שבת
+  function effectiveDow() {
+    try { return getEffectiveHDate().getDay(); } catch { return new Date().getDay(); }
+  }
+
+  function screenActive(sc) {
+    if (!hasSchedule(sc)) return true;
+    const days = Array.isArray(sc.days) ? sc.days.map(Number).filter(d => d >= 0 && d <= 6) : [];
+    if (days.length && days.length < 7 && !days.includes(effectiveDow())) return false;
+
+    const today = localDateStr();
+    if (sc.from && today < sc.from) return false;
+    if (sc.to && today > sc.to) return false;
+
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const toMin = (v) => {
+      const m = /^(\d{1,2}):(\d{2})$/.exec(String(v || '').trim());
+      return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+    };
+    const a = toMin(sc.fromTime), b = toMin(sc.toTime);
+    if (a != null && b != null) {
+      // טווח שחוצה חצות (למשל 22:00–06:00) נחשב פעיל בשני צדי הלילה
+      const inRange = a <= b ? (nowMin >= a && nowMin <= b) : (nowMin >= a || nowMin <= b);
+      if (!inRange) return false;
+    } else if (a != null && nowMin < a) return false;
+    else if (b != null && nowMin > b) return false;
+
+    return true;
   }
 
   function screensConfig() {
     const s = state.screens;
     if (!s || !s.enabled) return null;
     const list = Array.isArray(s.screens) ? s.screens.filter(x => x && Array.isArray(x.blocks)) : [];
-    return list.length ? { ...s, screens: list } : null;
+    if (!list.length) return null;
+    // בתצוגה מקדימה מציגים את המסך שנערך, בלי קשר לתזמון
+    if (_previewMode) return { ...s, screens: list };
+    const active = list.filter(screenActive);
+    // אם שום מסך לא מתוזמן לעכשיו — נופלים למסכים בלי תזמון, ואם אין כאלה לכולם
+    const fallback = list.filter(sc => !hasSchedule(sc));
+    return { ...s, screens: active.length ? active : (fallback.length ? fallback : list) };
   }
+
+  const activeKey = () => (screensConfig()?.screens || []).map(s => s.id).join('|');
 
   function applyScreens() {
     const cfg = screensConfig();
@@ -1495,7 +1556,16 @@
     _stage.style.setProperty('--aspect', (cfg.aspect || '16:9').replace(':', ' / '));
 
     if (_screenIndex >= cfg.screens.length) _screenIndex = 0;
+    _activeKey = cfg.screens.map(s => s.id).join('|');
     paintScreen(cfg, _screenIndex);
+
+    // מסכים מתוזמנים: בדיקה כל דקה אם קבוצת המסכים הפעילים השתנתה
+    clearInterval(_schedTimer); _schedTimer = null;
+    if ((state.screens?.screens || []).some(hasSchedule)) {
+      _schedTimer = setInterval(() => {
+        if (activeKey() !== _activeKey) { _screenIndex = 0; applyScreens(); }
+      }, 60000);
+    }
 
     clearInterval(_screenTimer);
     if (cfg.screens.length > 1) {
@@ -1521,6 +1591,11 @@
 
     // הכל מוסתר, ומה שנמצא במסך הנוכחי יוחזר לתצוגה
     for (const { el } of _homes.values()) el.hidden = true;
+    _blockTitles.clear();
+    for (const b of screen.blocks) {
+      const t = typeof b.title === 'string' ? b.title.trim() : '';
+      if (t) _blockTitles.set(b.type, t);
+    }
     document.body.classList.toggle('logo-block', screen.blocks.some(b => b.type === 'logo'));
     _stage.innerHTML = '';
 
@@ -1561,6 +1636,7 @@
           home.el.classList.toggle('no-clock', block.showClock === false);
           home.el.classList.toggle('no-sub', block.showSub === false);
         }
+        if (home.h2) home.h2.textContent = cardTitle(block, home.h2Text);
         wrap.appendChild(home.el);
       }
     }

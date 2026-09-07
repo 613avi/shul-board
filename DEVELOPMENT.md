@@ -109,6 +109,15 @@ wrangler pages secret put PLATFORM_PASSWORD --project-name shul-board
 - הסגנון דורס את משתני הצבע (`--text`, `--accent`, `--bg-card`…) בתוך `#display-root`
   לדיו על קלף, בלי תלות בערכת הצבע. המסגרות הן SVG בן 9 חלקים (`border-image-slice: 36`),
   הכותרות סרט עם `preserveAspectRatio="none"`. ב-data URI חובה לקודד `#` כ-`%23`.
+- **כותרת מותאמת**: `title` על כל קובייה שמציגה כותרת. בקוביות שמצוירות מ-`display.js`
+  היא עוברת ל-`mkCard()` דרך `cardTitle()`; בקוביות שמעבירות אלמנט קיים (זמנים, תפילות,
+  הנצחות) היא נכתבת ל-`h2` והמקור נשמר ב-`_homes` ומוחזר ב-`restoreClassic()`. הכותרת
+  הדינמית של התפילות ("זמני תפילות שבת") מכבדת את הדריסה דרך `_blockTitles`.
+- **תזמון מסך**: על המסך עצמו — `days` (0–6, ריק/שבעה = תמיד), `from`/`to` (תאריך לועזי)
+  ו-`fromTime`/`toTime` (`HH:MM`, טווח שחוצה חצות נתמך). `screenActive()` ב-`display.js`
+  מסנן, ו-`screensConfig()` מחזיר רק את המסכים הפעילים; אם אין כאלה — המסכים בלי תזמון.
+  היום נמדד לפי `getEffectiveHDate().getDay()`, כך שאחרי השקיעה זה כבר היום הבא.
+  טיימר דקתי בודק אם קבוצת המסכים הפעילים השתנתה. בתצוגה מקדימה הסינון מושבת.
 - קוביית `header`: `showClock: false` ו-`showSub: false` מוסיפים למחלקות של `.display-header`
   את `no-clock` / `no-sub` (ב-`screens.css`), כך שנשאר רק שם בית הכנסת. `restoreClassic()`
   מסיר את המחלקות בחזרה לפריסה הקלאסית.

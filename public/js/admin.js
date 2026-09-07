@@ -2317,8 +2317,9 @@
     data.screens.forEach((s, i) => {
       tabs.appendChild(el('button', {
         class: `sc-tab${i === scActive ? ' active' : ''}`,
+        title: screenHasWhen(s) ? 'למסך הזה יש תזמון' : '',
         onclick: () => { scActive = i; scSelected = null; renderScreens(); },
-      }, s.name || `מסך ${i + 1}`));
+      }, `${s.name || `מסך ${i + 1}`}${screenHasWhen(s) ? ' ⏱' : ''}`));
     });
     tabs.appendChild(el('button', {
       class: 'sc-tab', title: 'הוספת מסך',
@@ -2329,12 +2330,69 @@
     qs('#sc-name').value = screen.name || '';
     qs('#sc-seconds').value = screen.seconds || 20;
     qs('#sc-del').disabled = data.screens.length <= 1;
+    renderScreenWhen(screen);
 
     renderTemplates();
     renderPalette();
     renderCanvas();
     renderBlockProps();
     pushScreensPreview();
+  }
+
+  // ---------- מתי המסך מוצג ----------
+  const screenHasWhen = (s) => !!(
+    (Array.isArray(s?.days) && s.days.length && s.days.length < 7) ||
+    s?.from || s?.to || s?.fromTime || s?.toTime);
+
+  function renderScreenWhen(screen) {
+    const box = qs('#sc-when');
+    if (!box) return;
+    box.innerHTML = '';
+    box.appendChild(el('b', {}, 'מתי להציג:'));
+
+    // ימים — ריק או כל השבעה = תמיד
+    const active = Array.isArray(screen.days) ? screen.days.map(Number).filter(d => d >= 0 && d <= 6) : [];
+    const days = el('div', { class: 'tm-days' });
+    DOW_LABELS.forEach((label, d) => {
+      const cb = el('input', { type: 'checkbox' });
+      cb.checked = active.length === 0 || active.includes(d);
+      const lab = el('label', { class: cb.checked ? 'on' : '' }, cb, label);
+      cb.addEventListener('change', () => {
+        let list = active.length ? [...active] : [0, 1, 2, 3, 4, 5, 6];
+        list = cb.checked ? [...new Set([...list, d])] : list.filter(x => x !== d);
+        if (list.length === 7 || !list.length) delete screen.days; else screen.days = list.sort();
+        markDirty(); renderScreens();
+      });
+      days.appendChild(lab);
+    });
+    box.appendChild(days);
+
+    const field = (label, key, type) => {
+      const inp = el('input', { type });
+      inp.value = screen[key] || '';
+      inp.addEventListener('change', () => {
+        if (inp.value) screen[key] = inp.value; else delete screen[key];
+        markDirty(); renderScreens();
+      });
+      return el('label', {}, label, inp);
+    };
+    box.appendChild(field('מתאריך', 'from', 'date'));
+    box.appendChild(field('עד תאריך', 'to', 'date'));
+    box.appendChild(field('משעה', 'fromTime', 'time'));
+    box.appendChild(field('עד שעה', 'toTime', 'time'));
+
+    if (screenHasWhen(screen)) {
+      box.appendChild(el('button', {
+        class: 'btn btn-ghost btn-sm sc-clear', type: 'button',
+        onclick: () => {
+          for (const k of ['days', 'from', 'to', 'fromTime', 'toTime']) delete screen[k];
+          markDirty(); renderScreens();
+        },
+      }, 'הצגה תמיד'));
+    }
+    box.appendChild(el('div', { class: 'sc-when-hint' },
+      'ריק = תמיד. למשל: רק שבת — מסמנים "ש" בלבד; שבוע מסוים — ממלאים מתאריך ועד תאריך. ' +
+      'היום מתחלף בשקיעה, כך ש"שבת" כולל את ליל שבת. אם אף מסך לא מתוזמן לעכשיו, מוצגים המסכים שבלי תזמון.'));
   }
 
   // תבניות מוכנות — סידור קוביות בלחיצה אחת (js/presets.js)
@@ -2472,6 +2530,15 @@
     });
   }
 
+  // קוביות שמציגות כותרת — הערך הוא כותרת ברירת המחדל בצג
+  const BLOCK_DEFAULT_TITLE = {
+    zmanim: 'זמני היום', tefillot: 'זמני תפילות', memorial: 'לעילוי נשמת',
+    shabbat: 'שבת קודש', today: 'היום', learning: 'לימוד יומי',
+    dedications: 'הקדשות וברכות', shiurim: 'שיעורים', weather: 'מזג אוויר',
+    text: 'בלי כותרת', omer: 'בלי כותרת', countdown: 'בלי כותרת',
+    clock: 'בלי כותרת', date: 'בלי כותרת',
+  };
+
   // מראות של קוביית השעון — הציור עצמו ב-display.js
   const CLOCK_FACES = {
     digital: [['plain', 'רגיל'], ['thin', 'דק'], ['seven', 'לד (שעון מעורר)'], ['flip', 'קלפים מתהפכים']],
@@ -2519,6 +2586,17 @@
       markDirty(); pushScreensPreview();
     });
     box.appendChild(el('label', { class: 'sc-prop' }, 'צף מעל השאר', float));
+
+    if (BLOCK_DEFAULT_TITLE[block.type] !== undefined) {
+      const t = el('input', { type: 'text', placeholder: BLOCK_DEFAULT_TITLE[block.type] });
+      t.value = typeof block.title === 'string' ? block.title : '';
+      t.addEventListener('input', () => {
+        const v = t.value.trim();
+        if (v) block.title = t.value; else delete block.title;
+        markDirty(); pushScreensPreview();
+      });
+      box.appendChild(el('label', { class: 'sc-prop' }, 'כותרת', t));
+    }
 
     if (block.type === 'clock') {
       const analog = block.variant === 'analog';
