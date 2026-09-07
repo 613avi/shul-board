@@ -1386,6 +1386,45 @@
       const a = qs(sel);
       if (a) a.addEventListener('click', () => { try { localStorage.setItem(LS_INSTALLED(), '1'); } catch {} });
     }
+
+    const offBtn = qs('#off-export');
+    if (offBtn) offBtn.addEventListener('click', exportOffline);
+  }
+
+  // ---------- ייצוא לקובץ אופליין ----------
+  // הבנייה עצמה ב-js/export-offline.js. כאן רק הכפתור, ההתקדמות והשמירה.
+  const humanSize = (b) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.round(b / 1024)} KB`);
+
+  async function exportOffline() {
+    const btn = qs('#off-export');
+    const status = qs('#off-status');
+    if (!window.SB_OFFLINE) { status.textContent = 'רכיב הייצוא לא נטען — רעננו את הדף.'; return; }
+    if (state.dirty && !confirm('יש שינויים שטרם פורסמו. הקובץ ייכלול רק את מה שכבר פורסם. להמשיך?')) return;
+
+    btn.disabled = true;
+    status.textContent = 'מתחיל…';
+    try {
+      const r = await window.SB_OFFLINE.build({
+        slug: state.me.shul.slug,
+        name: state.me.shul.name,
+        includeMedia: qs('#off-media').checked,
+        onStep: (t) => { status.textContent = `${t}…`; },
+      });
+      const url = URL.createObjectURL(r.blob);
+      const a = el('a', { href: url, download: r.filename });
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+      const parts = [`נוצר ${r.filename} · ${humanSize(r.bytes)}`];
+      if (r.mediaCount) parts.push(`${r.mediaCount} קבצי מדיה`);
+      if (!r.fonts) parts.push('בלי גופנים מוטמעים');
+      status.textContent = parts.join(' · ');
+      try { localStorage.setItem(LS_INSTALLED(), '1'); } catch {}
+    } catch (e) {
+      status.textContent = `הייצוא נכשל: ${e.message}`;
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   // ---------- Zmanim ----------

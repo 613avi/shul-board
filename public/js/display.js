@@ -2,6 +2,7 @@
 // Loads data/*.json, renders a kiosk-style synagogue board (always all-rooms).
 
 (() => {
+  const _offline = (() => { try { return window.SHUL_OFFLINE || null; } catch { return null; } })();
   const { HDate, GeoLocation, Zmanim, HebrewCalendar, flags, Locale, gematriya, Molad, Location } = window.hebcal;
   const P = window.SB_PRESETS || null;
   const stripNikud = (t) => String(t || '').replace(/[\u0591-\u05BD\u05BF-\u05C7]/g, '');
@@ -135,9 +136,49 @@
   // מזהה בית הכנסת מוזרק על ידי ה-Function שמגיש את הדף (functions/s/[slug].js).
   // נפילה לאחור: חילוץ מהנתיב, כדי שגם פתיחה ישירה תעבוד.
   function currentSlug() {
+    if (_offline && _offline.slug) return _offline.slug;
     if (window.SHUL && window.SHUL.slug) return window.SHUL.slug;
     const m = location.pathname.match(/^\/s\/([^/]+)/);
     return m ? m[1] : '';
+  }
+
+  // ---------- מצב אופליין ----------
+  // קובץ הייצוא (js/export-offline.js) מזריק window.SHUL_OFFLINE ובו המנה הציבורית
+  // כפי שהייתה ברגע הייצוא, והמדיה כ-data URI. הצג רץ אז מ-file:// בלי שרת:
+  // אין דופק, אין בדיקת עדכונים, ואין טעינה עצלה של ספריות מ-CDN.
+  // מה שמחושב מקומית (זמנים, תאריך עברי, פרשה, יארצייט) ממשיך להיות נכון כל יום.
+
+  function dataUriToBlob(uri) {
+    const [head, b64] = String(uri).split(',');
+    const type = (head.match(/data:([^;]+)/) || [])[1] || 'application/octet-stream';
+    const bin = atob(b64 || '');
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return new Blob([buf], { type });
+  }
+
+  // המדיה נשמרה בקובץ כ-data URI. דפדפנים לא מרנדרים PDF מ-data: בתוך iframe,
+  // ולכן כל קובץ הופך ל-blob URL פעם אחת, וכל הופעה של הכתובת המקורית במנה
+  // (חלון מודעות, לוגו, תמונת רקע) מוחלפת בו.
+  let _offlineBundle = null;
+  function offlineBundle() {
+    if (_offlineBundle) return _offlineBundle;
+    const map = new Map();
+    for (const [url, uri] of Object.entries(_offline.media || {})) {
+      try { map.set(url, URL.createObjectURL(dataUriToBlob(uri))); } catch {}
+    }
+    const swap = (v) => {
+      if (typeof v === 'string') return map.get(v) || v;
+      if (Array.isArray(v)) return v.map(swap);
+      if (v && typeof v === 'object') {
+        const out = {};
+        for (const k of Object.keys(v)) out[k] = swap(v[k]);
+        return out;
+      }
+      return v;
+    };
+    _offlineBundle = swap(_offline.bundle || {});
+    return _offlineBundle;
   }
 
   let _version = null;
@@ -190,6 +231,7 @@
   // דופק לשרת: "אני כאן, וזה מה שאני מציג". התשובה כוללת את חותמת הגרסה
   // הנוכחית, כך שהדופק הוא גם בדיקת העדכונים — בלי בקשה נוספת.
   async function sendHeartbeat() {
+    if (_offline) return { ok: true, version: _version, appVersion: _appVersion };
     const slug = currentSlug();
     if (!slug) throw new Error('לא זוהה בית כנסת');
     const res = await fetch(`/api/heartbeat/${encodeURIComponent(slug)}`, {
@@ -214,6 +256,7 @@
   }
 
   async function fetchBundle() {
+    if (_offline) return offlineBundle();
     const slug = currentSlug();
     if (!slug) throw new Error('לא זוהה בית כנסת');
     // חותמת דקה: מסכים באותה דקה חולקים תשובה אחת מהקצה (חוסך במכסה),
@@ -1094,6 +1137,7 @@
 
   // גופן נוסף שנטען רק כשקובייה צריכה אותו (למשל שעון "לד")
   function ensureFont(name, query) {
+    if (_offline) return;   // הגופנים הנוספים מוטמעים בקובץ הייצוא
     const id = `font-${name}`;
     if (document.getElementById(id)) return;
     const link = document.createElement('link');
@@ -1401,6 +1445,7 @@
   let _learningPromise = null;
   function ensureLearning() {
     if (window.hebcal.DailyLearning && window.hebcal.DailyLearning.getCalendars().length) return Promise.resolve();
+    if (_offline) return Promise.resolve();   // הספרייה מוטמעת בקובץ; אין מאיפה למשוך
     if (_learningPromise) return _learningPromise;
     _learningPromise = new Promise((resolve) => {
       const sc = document.createElement('script');
@@ -1775,8 +1820,9 @@
   // בדרך כלל הבדיקה היא הדופק ל"מסכים בלייב"; בתוך iframe או בלשונית מוסתרת
   // (מישהו פתח את הצג ברקע בטלפון) לא נשלח דופק — רק הבדיקה הישנה מול המנה הציבורית.
   async function checkForUpdates() {
-    // בתוך התצוגה המקדימה של הניהול: ריענון היה מוחק שינויי עיצוב שטרם נשמרו
-    if (_previewMode) return;
+    // בתוך התצוגה המקדימה של הניהול: ריענון היה מוחק שינויי עיצוב שטרם נשמרו.
+    // באופליין אין למה להשוות — הקובץ הוא תצלום של רגע הייצוא.
+    if (_previewMode || _offline) return;
     try {
       let version;
       let viaHeartbeat = !_embedded && !document.hidden && _version != null;

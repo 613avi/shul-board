@@ -822,6 +822,31 @@
                 <div class="small">הקובץ מותאם אישית לבית הכנסת שלכם — המזהה מוטמע בשם הקובץ, אז אל תשנו אותו.</div>
             </div>
             <div class="panel">
+                <h2>הפעלה ללא אינטרנט</h2>
+                <p class="desc">
+                    מייצא את הצג כולו — העימוד, המסכים, זמני התפילות, ההנצחות, ההודעות
+                    והמודעות — לקובץ HTML אחד. מעתיקים אותו למחשב שבבית הכנסת, לוחצים עליו
+                    פעמיים ולוחצים F11. נוח לבית כנסת בלי חיבור אינטרנט יציב, וגם כגיבוי
+                    למקרה שהרשת נופלת.
+                </p>
+                <p class="small">
+                    זמני היום, התאריך העברי, הפרשה, היארצייט והשעון ממשיכים להתחשב כל יום
+                    מחדש בתוך הקובץ — הוא לא "קופא" על היום שבו יוצא. מה שכן קופא זה התוכן
+                    שאתם עורכים כאן: אחרי שינוי בזמנים, בהודעות או במודעות צריך לייצא שוב.
+                    הקובץ מכיל את מה שכבר <b>נשמר ופורסם</b>.
+                </p>
+                <p>
+                    <label class="sc-prop" style="display:inline-flex;">
+                        <input type="checkbox" id="off-media" checked>
+                        לכלול את המודעות, הלוגו ותמונת הרקע
+                    </label>
+                </p>
+                <p>
+                    <button class="btn btn-primary" id="off-export" type="button">ייצוא לקובץ אופליין</button>
+                    <span class="small" id="off-status"></span>
+                </p>
+            </div>
+            <div class="panel">
                 <h2>כתובת הצג</h2>
                 <p class="desc">טלוויזיה חכמה, טאבלט או כל דפדפן — פתחו את הכתובת ולחצו F11 למסך מלא:</p>
                 <div class="display-url">
@@ -896,6 +921,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@hebcal/core@5.10.1/dist/bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="/js/presets.js"></script>
+<script src="/js/export-offline.js"></script>
 <script src="/js/api.js"></script>
 <script src="/js/admin.js"></script>
 </body>
