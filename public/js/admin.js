@@ -1683,6 +1683,76 @@
     return card;
   }
 
+  // ---------- ימים ללא תחנון ----------
+  // ברירת מחדל: כל הכללים דולקים. הגבאי מכבה מה שלא נוהגים בו, ומוסיף ימים של הקהילה.
+  function tachanunCfg() {
+    const c = state.data.config;
+    if (!c.tachanun || typeof c.tachanun !== 'object') c.tachanun = {};
+    if (!c.tachanun.rules || typeof c.tachanun.rules !== 'object') c.tachanun.rules = {};
+    if (!Array.isArray(c.tachanun.extra)) c.tachanun.extra = [];
+    return c.tachanun;
+  }
+
+  function renderTachanun() {
+    const box = qs('#tach-rules');
+    if (!box) return;
+    const cfg = tachanunCfg();
+    box.innerHTML = '';
+    for (const rule of (P.TACHANUN_RULES || [])) {
+      const on = cfg.rules[rule.id] !== false;
+      const cb = el('input', { type: 'checkbox' });
+      cb.checked = on;
+      const lab = el('label', { class: on ? '' : 'off' }, cb, rule.name);
+      cb.addEventListener('change', () => {
+        // שומרים רק את מה שכובה, כדי שכללים חדשים בעתיד יידלקו לבד
+        if (cb.checked) delete cfg.rules[rule.id]; else cfg.rules[rule.id] = false;
+        lab.classList.toggle('off', !cb.checked);
+        markDirty();
+      });
+      box.appendChild(lab);
+    }
+
+    const tbody = qs('#tach-table').querySelector('tbody');
+    tbody.innerHTML = '';
+    for (const entry of cfg.extra) {
+      const tr = document.createElement('tr');
+
+      const tdName = document.createElement('td');
+      const name = el('input', { type: 'text' });
+      name.value = entry.label || '';
+      name.addEventListener('input', () => { entry.label = name.value; markDirty(); });
+      tdName.appendChild(name);
+      tr.appendChild(tdName);
+
+      const tdDay = document.createElement('td');
+      const day = el('input', { type: 'number', min: '1', max: '30' });
+      day.value = entry.hebrewDay || '';
+      day.addEventListener('input', () => { entry.hebrewDay = Number(day.value) || 0; markDirty(); });
+      tdDay.appendChild(day);
+      tr.appendChild(tdDay);
+
+      const tdMonth = document.createElement('td');
+      const sel = el('select', {});
+      sel.appendChild(el('option', { value: '' }, '—'));
+      for (const m of HEB_MONTHS) sel.appendChild(el('option', { value: m }, m));
+      sel.value = entry.hebrewMonth || '';
+      sel.addEventListener('change', () => { entry.hebrewMonth = sel.value; markDirty(); });
+      tdMonth.appendChild(sel);
+      tr.appendChild(tdMonth);
+
+      const tdAct = document.createElement('td');
+      tdAct.className = 'col-actions';
+      tdAct.appendChild(el('button', { class: 'btn btn-danger btn-sm', onclick: () => {
+        cfg.extra = cfg.extra.filter(e => e !== entry);
+        state.data.config.tachanun.extra = cfg.extra;
+        markDirty(); renderTachanun();
+      }}, '\u00d7'));
+      tr.appendChild(tdAct);
+
+      tbody.appendChild(tr);
+    }
+  }
+
   // ---------- Memorial ----------
   function renderMemorial() {
     const tbody = qs('#mem-table tbody');
@@ -1713,6 +1783,18 @@
     sel.addEventListener('change', () => { entry.hebrewMonth = sel.value; markDirty(); });
     tdMonth.appendChild(sel);
     tr.appendChild(tdMonth);
+
+    // "רק ביום היארצייט" — השם לא יופיע על הצג בשאר ימות השנה
+    const tdOnly = document.createElement('td');
+    const only = el('input', { type: 'checkbox' });
+    only.checked = !!entry.onlyOnDay;
+    only.addEventListener('change', () => {
+      if (only.checked) entry.onlyOnDay = true; else delete entry.onlyOnDay;
+      markDirty();
+    });
+    tdOnly.appendChild(only);
+    tr.appendChild(tdOnly);
+
     tr.appendChild(mkTd('notes'));
     const tdAct = document.createElement('td');
     tdAct.className = 'col-actions';
@@ -2010,6 +2092,8 @@
         hebrewDay: Number(r['יום'] || r['day'] || '') || 0,
         hebrewMonth: r['חודש'] || r['month'] || '',
         notes: r['הערות'] || r['notes'] || '',
+        ...(/^(1|כן|yes|true)$/i.test(String(r['רק ביום'] || r['onlyOnDay'] || '').trim())
+          ? { onlyOnDay: true } : {}),
       })).filter(e => e.name);
       if (!entries.length) { status('לא זוהו שורות', 'error'); return; }
       if (!confirm(`לטעון ${entries.length} שורות ולהחליף את הרשימה הנוכחית?`)) return;
@@ -2023,6 +2107,7 @@
         { key: 'name', label: 'שם' },
         { key: 'hebrewDay', label: 'יום' },
         { key: 'hebrewMonth', label: 'חודש' },
+        { key: 'onlyOnDay', label: 'רק ביום' },
         { key: 'notes', label: 'הערות' },
       ]);
       download('memorial.csv', csv);
@@ -2255,6 +2340,7 @@
     renderMemorial();
     renderAnnouncements();
     renderSpecial();
+    renderTachanun();
     renderDedications();
     renderShiurim();
     renderTexts();
@@ -3024,6 +3110,11 @@
       state.data.announcements.entries.push({ text: '', startDate: '', endDate: '' });
       markDirty(); renderAnnouncements();
     });
+    qs('#add-tach-btn').addEventListener('click', () => {
+      tachanunCfg().extra.push({ label: '', hebrewDay: 0, hebrewMonth: '' });
+      markDirty(); renderTachanun();
+    });
+
     qs('#add-sp-btn').addEventListener('click', () => {
       state.data.specialTimes.entries.push({
         id: String(Math.random()).slice(2),

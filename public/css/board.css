@@ -785,7 +785,9 @@ body[data-theme="carved"] .display-body::before {
 /* ===== CUSTOM BACKGROUND IMAGE (overrides theme background) ===== */
 /* .display-body הוא ה-body עצמו, ולכן התמונה יושבת ב-pseudo ולא ברקע של ה-body —
    כך ניתן לטשטש אותה עם filter, מה שאי אפשר על שכבת רקע */
-body[data-custom-bg="1"].display-body::before {
+/* על ::after ולא על ::before — ערכת "עץ מגולף" כבר משתמשת ב-::before של אותו אלמנט
+   למסגרת המגולפת, ושתי הכללים היו נדרסים זה על זה */
+body[data-custom-bg="1"].display-body::after {
     content: "";
     position: fixed;
     inset: calc(var(--bg-blur, 0px) * -2);

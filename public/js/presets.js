@@ -315,5 +315,25 @@ window.SB_PRESETS = (() => {
     };
   }
 
-  return { THEMES, STYLES, LAYOUTS, FONTS, DESIGN_PRESETS, SCREEN_TEMPLATES, CITIES, BLOCKS, LEARNING, DEDICATION_TYPES, ZMANIM, byId, resolveDesign };
+  // ---------- ימים ללא תחנון ----------
+  // המזהים משמשים גם את הצג (הכללים עצמם ב-display.js) וגם את הניהול (רשימת הסימון).
+  // כיבוי כלל = הצג יאמר תחנון באותו יום. ימים נוספים מוגדרים ב-config.tachanun.extra.
+  const TACHANUN_RULES = [
+    { id: 'rc',          name: 'ראש חודש' },
+    { id: 'nisan',       name: 'כל חודש ניסן' },
+    { id: 'pesachSheni', name: 'פסח שני — י״ד באייר' },
+    { id: 'lagBaomer',   name: 'ל״ג בעומר — י״ח באייר' },
+    { id: 'sivan',       name: 'א׳–י״ב בסיוון — שבועות וימי התשלומין' },
+    { id: 'tishaBav',    name: 'תשעה באב' },
+    { id: 'tuBav',       name: 'ט״ו באב' },
+    { id: 'erevRH',      name: 'ערב ראש השנה — כ״ט באלול' },
+    { id: 'tishrei',     name: 'מערב יום כיפור עד סוף תשרי' },
+    { id: 'chanukah',    name: 'חנוכה' },
+    { id: 'tuBishvat',   name: 'ט״ו בשבט' },
+    { id: 'purim',       name: 'פורים ושושן פורים' },
+    { id: 'purimKatan',  name: 'פורים קטן — י״ד וט״ו באדר א׳' },
+    { id: 'shabbat',     name: 'שבת' },
+  ];
+
+  return { THEMES, STYLES, LAYOUTS, FONTS, DESIGN_PRESETS, SCREEN_TEMPLATES, CITIES, BLOCKS, LEARNING, DEDICATION_TYPES, ZMANIM, TACHANUN_RULES, byId, resolveDesign };
 })();
