@@ -278,16 +278,21 @@ body { min-height: 100vh; }
     border-radius: 10px;
     display: none;
 }
+/* פס ההודעות נע משמאל לימין, ככיוון הקריאה בעברית: המילה הראשונה נכנסת
+   מהשמאל, וכל מילה חדשה מופיעה משמאל לזו שלפניה. padding-right הוא 100%
+   מרוחב המכל, ו-translateX הוא 100% מרוחב האלמנט (טקסט + אותו רוחב מכל),
+   כך שהמחזור מתחיל בדיוק כשהמילה הראשונה נוגעת בקצה השמאלי ומסתיים בדיוק
+   כשהאחרונה יוצאת מימין — בלי קפיצה בחזרה ובלי פס ריק באמצע. */
 #announcements-ticker {
     font-size: calc(var(--fs, 1) * clamp(1rem, 1.4vw, 1.6rem));
     font-weight: 700;
     display: inline-block;
     padding-right: 100%;
-    animation: ticker 60s linear infinite;
+    animation: ticker 30s linear infinite;
 }
 @keyframes ticker {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
+    0% { transform: translateX(0); }
+    100% { transform: translateX(100%); }
 }
 
 .display-footer {

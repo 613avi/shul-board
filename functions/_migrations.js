@@ -17,7 +17,7 @@
 import { DEFAULTS, SECTIONS, GRID } from './_shared.js';
 
 export const SCHEMA_VERSION = 5;
-export const APP_VERSION = '3.9.0';
+export const APP_VERSION = '3.9.1';
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const clone = (v) => JSON.parse(JSON.stringify(v));
