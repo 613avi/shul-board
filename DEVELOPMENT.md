@@ -132,6 +132,12 @@ wrangler pages secret put PLATFORM_PASSWORD --project-name shul-board
 | תבניות מסך (`SCREEN_TEMPLATES`) | סידור קוביות מוכן על רשת 24×18: לוח מחוונים, לוח שבת, לוח קהילה, לוח לימוד, אנכי ועוד | 13 |
 | קוביות (`BLOCKS`) | סוגי הקוביות שהצג יודע לצייר | |
 
+שדות נוספים על קובייה נשמרים כמו שהם (`normalizeBlock` שומר את כל המפתחות). קוביית השעון:
+`variant` (`digital`/`analog`), `face` (דיגיטלי: `plain`/`thin`/`seven`/`flip`; אנלוגי:
+`classic`/`numbers`/`roman`/`hebrew`/`minimal`/`modern`), `seconds` (ברירת מחדל true),
+`showDate` (דיגיטלי בלבד). הציור ב-`analogClockSvg()` וב-`clock()` ב-`display.js`; הרשימה
+לעורך ב-`CLOCK_FACES` ב-`admin.js`. הגופן של מראה "לד" (Orbitron) נטען בעצלנות רק כשיש קובייה כזאת.
+
 בנוסף לכוונון עדין: צבע הדגשה חופשי (`--accent`), גודל טקסט (`--fs`, 70%–150%),
 תמונת רקע מהקבצים שהועלו + החשכה, ולוגו. `config.design` שומר את כל השדות;
 `resolveDesign()` משלים ברירות מחדל כך שהגדרות ישנות ממשיכות לעבוד.

@@ -215,3 +215,20 @@ body[data-theme="slate"] #display-root[data-style="traditional"] #zmanim-table t
   color: var(--tr-ink-soft);
 }
 
+/* שעון גדול בסגנון המסורתי — דיו על קלף, לא הטקסט הבהיר של ערכת הצבע */
+#display-root[data-style="traditional"] .blk-clock .big-time { color: var(--tr-ink); }
+#display-root[data-style="traditional"] .blk-clock .big-time small,
+#display-root[data-style="traditional"] .blk-clock .bt-date,
+#display-root[data-style="traditional"] .blk-clock .flip i { color: var(--tr-ink-soft); }
+#display-root[data-style="traditional"] .blk-clock.face-seven .big-time { color: var(--tr-gold); }
+#display-root[data-style="traditional"] .blk-clock .flip .fd { background: var(--tr-panel); color: var(--tr-ink); border: 1px solid var(--tr-panel-edge); }
+#display-root[data-style="traditional"] .blk-clock .face { fill: var(--tr-panel); stroke: var(--tr-panel-edge); }
+#display-root[data-style="traditional"] .blk-clock .hand { stroke: var(--tr-ink); }
+#display-root[data-style="traditional"] .blk-clock .hand-sec,
+#display-root[data-style="traditional"] .blk-clock .tick-big,
+#display-root[data-style="traditional"] .blk-clock .dot-big,
+#display-root[data-style="traditional"] .blk-clock .pin { stroke: var(--tr-gold); fill: var(--tr-gold); }
+#display-root[data-style="traditional"] .blk-clock .hand-sec { fill: none; }
+#display-root[data-style="traditional"] .blk-clock .tick, #display-root[data-style="traditional"] .blk-clock .tick-min { stroke: var(--tr-ink-soft); }
+#display-root[data-style="traditional"] .blk-clock .dot { fill: var(--tr-ink-soft); }
+#display-root[data-style="traditional"] .blk-clock .num { fill: var(--tr-ink); }

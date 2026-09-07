@@ -1053,26 +1053,74 @@
     el.style.fontSize = `${Math.max(12, Math.min(w * wFrac, h * hFrac))}px`;
   }
 
+  // גופן נוסף שנטען רק כשקובייה צריכה אותו (למשל שעון "לד")
+  function ensureFont(name, query) {
+    const id = `font-${name}`;
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id; link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?${query}&display=swap`;
+    document.head.appendChild(link);
+  }
+
+  // לוח שעון אנלוגי: classic (שנתות), numbers, roman, hebrew (אותיות), minimal, modern (נקודות)
+  function analogClockSvg(face, showSec) {
+    const pt = (r, i, n = 12) => { const a = i * 2 * Math.PI / n; return [50 + r * Math.sin(a), 50 - r * Math.cos(a)]; };
+    const line = (cls, r1, r2, i, n, w) => { const [x1, y1] = pt(r1, i, n), [x2, y2] = pt(r2, i, n); return `<line class="${cls}" x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke-width="${w}"/>`; };
+    const NUMS = { numbers: [...Array(12)].map((_, i) => String(i + 1)),
+      roman: ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'],
+      hebrew: ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'יא', 'יב'] };
+    let marks = '';
+    if (face === 'minimal') {
+      for (let i = 0; i < 4; i++) marks += line('tick tick-big', 38, 45, i, 4, 2.4);
+    } else if (face === 'modern') {
+      for (let i = 0; i < 12; i++) { const [x, y] = pt(42, i); marks += `<circle class="dot ${i % 3 === 0 ? 'dot-big' : ''}" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${i % 3 === 0 ? 2.4 : 1.3}"/>`; }
+    } else if (NUMS[face]) {
+      for (let i = 0; i < 60; i++) if (i % 5) marks += line('tick tick-min', 44, 46, i, 60, 0.6);
+      for (let i = 0; i < 12; i++) { const [x, y] = pt(36, i + 1); marks += `<text class="num ${face === 'roman' ? 'num-roman' : ''}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" text-anchor="middle" dominant-baseline="central">${NUMS[face][i]}</text>`; }
+      for (let i = 0; i < 12; i++) marks += line('tick tick-big', 43, 46, i, 12, 1.6);
+    } else {
+      for (let i = 0; i < 60; i++) if (i % 5) marks += line('tick', 43, 45, i, 60, 0.6);
+      for (let i = 0; i < 12; i++) marks += line(`tick ${i % 3 === 0 ? 'tick-big' : ''}`, i % 3 === 0 ? 39 : 41, 45, i, 12, i % 3 === 0 ? 2.2 : 1.2);
+    }
+    const bold = face === 'modern' || face === 'minimal';
+    return `<svg viewBox="0 0 100 100" aria-label="שעון">
+      <circle class="face" cx="50" cy="50" r="47" stroke-width="${face === 'minimal' ? 0.8 : 1.5}"/>
+      ${marks}
+      <line class="hand hand-h" x1="50" y1="${bold ? 54 : 50}" x2="50" y2="${bold ? 28 : 26}" stroke-width="${bold ? 5 : 4}"/>
+      <line class="hand hand-m" x1="50" y1="${bold ? 54 : 50}" x2="50" y2="${bold ? 17 : 16}" stroke-width="${bold ? 3.4 : 2.6}"/>
+      ${showSec ? '<line class="hand hand-sec" x1="50" y1="56" x2="50" y2="12" stroke-width="1"/>' : ''}
+      <circle class="pin" cx="50" cy="50" r="${bold ? 3 : 2.2}"/>
+    </svg>`;
+  }
+
   const _blockRenderers = {
     clock(block, wrap) {
       const analog = block.variant === 'analog';
-      const { card, body } = mkCard('clock', '');
+      const showSec = block.seconds !== false;
+      const face = String(block.face || (analog ? 'classic' : 'plain'));
+      const { card, body } = mkCard('clock', '', `clock-${analog ? 'analog' : 'digital'} face-${face}`);
       if (analog) {
-        body.innerHTML = `<svg viewBox="0 0 100 100" aria-label="שעון">
-          <circle class="face" cx="50" cy="50" r="47" stroke-width="1.5"/>
-          ${[...Array(12)].map((_, i) => { const a = i * Math.PI / 6; const big = i % 3 === 0;
-            const r1 = big ? 39 : 42, r2 = 45;
-            return `<line class="tick ${big ? 'tick-big' : ''}" x1="${50 + r1 * Math.sin(a)}" y1="${50 - r1 * Math.cos(a)}" x2="${50 + r2 * Math.sin(a)}" y2="${50 - r2 * Math.cos(a)}" stroke-width="${big ? 2.2 : 1}"/>`; }).join('')}
-          <line class="hand hand-h" x1="50" y1="50" x2="50" y2="26" stroke-width="4"/>
-          <line class="hand hand-m" x1="50" y1="50" x2="50" y2="16" stroke-width="2.6"/>
-          <line class="hand hand-sec" x1="50" y1="56" x2="50" y2="12" stroke-width="1"/>
-          <circle cx="50" cy="50" r="2.2" fill="currentColor"/>
-        </svg>`;
+        body.innerHTML = analogClockSvg(face, showSec);
       } else {
-        body.innerHTML = '<div class="big-time"><span class="bt-hm">00:00</span><small class="bt-s">00</small></div>';
+        if (face === 'seven') ensureFont('Orbitron', 'family=Orbitron:wght@700');
+        const digits = face === 'flip'
+          ? `<div class="big-time flip"><span class="fd" data-d="0">0</span><span class="fd" data-d="1">0</span><i>:</i><span class="fd" data-d="2">0</span><span class="fd" data-d="3">0</span>${showSec ? '<span class="fd fd-s" data-d="4">0</span><span class="fd fd-s" data-d="5">0</span>' : ''}</div>`
+          : `<div class="big-time">${face === 'seven' ? '<span class="ghost">88:88</span>' : ''}<span class="bt-hm">00:00</span>${showSec ? '<small class="bt-s">00</small>' : ''}</div>`;
+        const dateLine = block.showDate
+          ? `<div class="bt-date">${getEffectiveHDate().renderGematriya()} · יום ${HEB_DOW[new Date().getDay()]}</div>` : '';
+        body.innerHTML = digits + dateLine;
       }
       wrap.appendChild(card);
-      if (!analog) fitFont(body.querySelector('.big-time'), wrap, 0.3, 0.62);
+      if (!analog) {
+        const hFrac = block.showDate ? 0.48 : 0.62;
+        const bt = body.querySelector('.big-time');
+        fitFont(bt, wrap, face === 'flip' ? (showSec ? 0.16 : 0.24) : (showSec ? 0.3 : 0.38), hFrac);
+        // גופנים רחבים (לד, קלפים) וקוביות צרות: מכווצים עד שהשעה נכנסת ברוחב
+        const avail = wrap.clientWidth * 0.9;
+        if (avail && bt.scrollWidth > avail) bt.style.fontSize = `${Math.max(12, parseFloat(bt.style.fontSize) * avail / bt.scrollWidth)}px`;
+        const d = body.querySelector('.bt-date'); if (d) fitFont(d, wrap, 0.075, 0.14);
+      }
       tickClocks();
     },
     date(block, wrap) {
@@ -1253,11 +1301,16 @@
     const ss = String(now.getSeconds()).padStart(2, '0');
     document.querySelectorAll('.blk-clock .bt-hm').forEach(e => { e.textContent = hm; });
     document.querySelectorAll('.blk-clock .bt-s').forEach(e => { e.textContent = ss; });
+    const flipDigits = hm.replace(':', '') + ss;
+    document.querySelectorAll('.blk-clock .flip .fd').forEach(e => {
+      const d = flipDigits[Number(e.dataset.d)] || '0';
+      if (e.textContent !== d) { e.textContent = d; e.classList.remove('tick'); void e.offsetWidth; e.classList.add('tick'); }
+    });
     document.querySelectorAll('.blk-clock svg').forEach(svg => {
       const h = now.getHours() % 12 + now.getMinutes() / 60, m = now.getMinutes() + now.getSeconds() / 60, s = now.getSeconds();
-      svg.querySelector('.hand-h').setAttribute('transform', `rotate(${h * 30} 50 50)`);
-      svg.querySelector('.hand-m').setAttribute('transform', `rotate(${m * 6} 50 50)`);
-      svg.querySelector('.hand-sec').setAttribute('transform', `rotate(${s * 6} 50 50)`);
+      svg.querySelector('.hand-h')?.setAttribute('transform', `rotate(${h * 30} 50 50)`);
+      svg.querySelector('.hand-m')?.setAttribute('transform', `rotate(${m * 6} 50 50)`);
+      svg.querySelector('.hand-sec')?.setAttribute('transform', `rotate(${s * 6} 50 50)`);
     });
     const cds = document.querySelectorAll('.blk-countdown');
     if (cds.length) {

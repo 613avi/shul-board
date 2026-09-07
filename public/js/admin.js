@@ -2471,6 +2471,12 @@
     });
   }
 
+  // מראות של קוביית השעון — הציור עצמו ב-display.js
+  const CLOCK_FACES = {
+    digital: [['plain', 'רגיל'], ['thin', 'דק'], ['seven', 'לד (שעון מעורר)'], ['flip', 'קלפים מתהפכים']],
+    analog: [['classic', 'קלאסי (שנתות)'], ['numbers', 'ספרות'], ['roman', 'ספרות רומיות'], ['hebrew', 'אותיות עבריות'], ['minimal', 'מינימלי'], ['modern', 'מודרני (נקודות)']],
+  };
+
   function renderBlockProps() {
     const box = qs('#sc-props');
     const block = scScreen().blocks.find(b => b.id === scSelected);
@@ -2514,12 +2520,35 @@
     box.appendChild(el('label', { class: 'sc-prop' }, 'צף מעל השאר', float));
 
     if (block.type === 'clock') {
+      const analog = block.variant === 'analog';
       const v = el('select', {});
       v.appendChild(el('option', { value: 'digital' }, 'דיגיטלי'));
       v.appendChild(el('option', { value: 'analog' }, 'אנלוגי (מחוגים)'));
-      v.value = block.variant === 'analog' ? 'analog' : 'digital';
-      v.addEventListener('change', () => { block.variant = v.value; markDirty(); pushScreensPreview(); });
+      v.value = analog ? 'analog' : 'digital';
+      v.addEventListener('change', () => {
+        block.variant = v.value; delete block.face;
+        markDirty(); renderBlockProps(); pushScreensPreview();
+      });
       box.appendChild(el('label', { class: 'sc-prop' }, 'סוג שעון', v));
+
+      const faces = analog ? CLOCK_FACES.analog : CLOCK_FACES.digital;
+      const f = el('select', {});
+      for (const [k, label] of faces) f.appendChild(el('option', { value: k }, label));
+      f.value = faces.some(([k]) => k === block.face) ? block.face : faces[0][0];
+      f.addEventListener('change', () => { block.face = f.value; markDirty(); pushScreensPreview(); });
+      box.appendChild(el('label', { class: 'sc-prop' }, 'מראה', f));
+
+      const sec = el('input', { type: 'checkbox' });
+      sec.checked = block.seconds !== false;
+      sec.addEventListener('change', () => { block.seconds = sec.checked; markDirty(); pushScreensPreview(); });
+      box.appendChild(el('label', { class: 'sc-prop' }, analog ? 'מחוג שניות' : 'שניות', sec));
+
+      if (!analog) {
+        const dt = el('input', { type: 'checkbox' });
+        dt.checked = !!block.showDate;
+        dt.addEventListener('change', () => { block.showDate = dt.checked; markDirty(); pushScreensPreview(); });
+        box.appendChild(el('label', { class: 'sc-prop' }, 'תאריך עברי מתחת', dt));
+      }
     }
 
     box.appendChild(el('button', {
