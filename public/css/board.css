@@ -783,10 +783,22 @@ body[data-theme="carved"] .display-body::before {
 }
 
 /* ===== CUSTOM BACKGROUND IMAGE (overrides theme background) ===== */
-body[data-custom-bg="1"] .display-body {
+/* .display-body הוא ה-body עצמו, ולכן התמונה יושבת ב-pseudo ולא ברקע של ה-body —
+   כך ניתן לטשטש אותה עם filter, מה שאי אפשר על שכבת רקע */
+body[data-custom-bg="1"].display-body::before {
+    content: "";
+    position: fixed;
+    inset: calc(var(--bg-blur, 0px) * -2);
     background:
         linear-gradient(rgba(0, 0, 0, var(--bg-overlay, 0.45)), rgba(0, 0, 0, var(--bg-overlay, 0.45))),
-        var(--custom-bg-url, none) center/cover no-repeat;
+        var(--custom-bg-url, none) var(--bg-pos, center) / var(--bg-size, cover) var(--bg-repeat, no-repeat);
+    filter: blur(var(--bg-blur, 0px));
+    z-index: 0;
+    pointer-events: none;
+}
+body[data-custom-bg="1"] #display-root {
+    position: relative;
+    z-index: 1;
 }
 
 /* ===== STYLES ===== */

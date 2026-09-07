@@ -588,6 +588,9 @@
     const ov = Math.round((d.backgroundOverlay ?? 0.45) * 100);
     qs('#d-bg-overlay').value = ov;
     qs('#d-bg-overlay-val').textContent = ov + '%';
+    qs('#d-bg-fit').value = d.backgroundFit || 'cover';
+    qs('#d-bg-blur').value = d.backgroundBlur || 0;
+    qs('#d-bg-blur-val').textContent = String(d.backgroundBlur || 0);
 
     const up = qs('#d-show-upcoming');
     if (up) up.checked = state.data.config.display?.showUpcoming !== false;
@@ -812,7 +815,7 @@
     { tab: 'design', sel: '#preset-grid', title: 'מראה מוכן', text: 'לחיצה על כרטיס מחליפה צבעים, סגנון, פריסה וגופן בבת אחת. התצוגה המקדימה בצד מתעדכנת מיד.' },
     { tab: 'design', sel: '#community-panel', title: 'תבניות מהקהילה', text: 'מראות שבתי כנסת אחרים בנו ופרסמו. לחיצה מעתיקה את המראה והפריסה; הלוגו והתוכן שלכם נשארים.' },
     { tab: 'design', sel: '#d-theme-row', title: 'כוונון עדין', text: 'ערכת צבע, גופן, צבע הדגשה וגודל טקסט. כך הצג שלכם נראה משלכם ולא כמו כולם.' },
-    { tab: 'design', sel: '#d-bg-grid', title: 'רקע ולוגו', text: 'תמונה של בית הכנסת או נוף כרקע, עם החשכה לקריאות. הלוגו מופיע ליד שם בית הכנסת בכותרת.' },
+    { tab: 'design', sel: '#d-bg-grid', title: 'רקע ולוגו', text: 'העלו תמונה של בית הכנסת או נוף כרקע, עם התאמה, החשכה וטשטוש לקריאות. הלוגו מופיע ליד שם בית הכנסת בכותרת.' },
     { tab: 'design', sel: '#features-panel', title: 'מה מוצג על הלוח', text: 'התכונות החכמות: שורת "היום" עם חגים ומולד, הדגשת התפילה הבאה, תחנון והלל, לימוד יומי, מזג אוויר ומצב שינה בלילה.' },
     { tab: 'design', sel: '#publish-panel', title: 'שיתוף המראה', text: 'יצרתם מראה יפה? פרסמו אותו כתבנית, ובתי כנסת אחרים יוכלו לבחור בו.' },
     { tab: 'screens', sel: '#sc-templates', title: 'פריסת המסך', text: 'תבניות לסידור הקוביות: עם חלון מודעות, עם לוגו, מסך אנכי. לחיצה מסדרת, ואחר כך אפשר לגרור.' },
@@ -899,6 +902,22 @@
       const pct = parseInt(e.target.value, 10) || 0;
       design().backgroundOverlay = pct / 100;
       qs('#d-bg-overlay-val').textContent = pct + '%';
+      markDirty(); pushDesignPreview();
+    });
+    qs('#d-bg-file').addEventListener('change', (e) => {
+      uploadAndUse(e.target.files[0], (url) => {
+        design().backgroundImage = url;
+        markDirty(); renderBgGrid(); renderDesign(); pushDesignPreview();
+      }, 'הרקע');
+      e.target.value = '';
+    });
+    qs('#d-bg-fit').addEventListener('change', (e) => {
+      design().backgroundFit = e.target.value;
+      markDirty(); pushDesignPreview();
+    });
+    qs('#d-bg-blur').addEventListener('input', (e) => {
+      design().backgroundBlur = parseInt(e.target.value, 10) || 0;
+      qs('#d-bg-blur-val').textContent = e.target.value;
       markDirty(); pushDesignPreview();
     });
     const up = qs('#d-show-upcoming');
@@ -1181,6 +1200,9 @@
     const ov = Math.round((d.backgroundOverlay ?? 0.45) * 100);
     qs('#wz-overlay').value = ov;
     qs('#wz-overlay-val').textContent = ov + '%';
+    qs('#wz-fit').value = d.backgroundFit || 'cover';
+    qs('#wz-blur').value = d.backgroundBlur || 0;
+    qs('#wz-blur-val').textContent = String(d.backgroundBlur || 0);
 
     ensureWzPreview();
   }
@@ -1319,6 +1341,15 @@
     });
     qs('#wz-overlay').addEventListener('input', (e) => {
       design().backgroundOverlay = (parseInt(e.target.value, 10) || 0) / 100; qs('#wz-overlay-val').textContent = e.target.value + '%';
+      markDirty(); pushDesignPreview();
+    });
+    qs('#wz-fit').addEventListener('change', (e) => {
+      design().backgroundFit = e.target.value;
+      markDirty(); pushDesignPreview();
+    });
+    qs('#wz-blur').addEventListener('input', (e) => {
+      design().backgroundBlur = parseInt(e.target.value, 10) || 0;
+      qs('#wz-blur-val').textContent = e.target.value;
       markDirty(); pushDesignPreview();
     });
     qs('#wz-logo-file').addEventListener('change', (e) => {

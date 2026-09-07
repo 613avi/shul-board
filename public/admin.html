@@ -181,6 +181,18 @@
                                         <span class="desc" style="margin:0;">החשכה</span>
                                         <input type="range" id="wz-overlay" min="0" max="90" step="5" value="45">
                                         <span class="range-val" id="wz-overlay-val">45%</span>
+                                        <span class="desc" style="margin:0 8px 0 0;">טשטוש</span>
+                                        <input type="range" id="wz-blur" min="0" max="20" step="1" value="0" style="width:80px;">
+                                        <span class="range-val" id="wz-blur-val">0</span>
+                                    </div>
+                                    <div class="inline-controls" style="margin-top:8px;">
+                                        <span class="desc" style="margin:0;">התאמה</span>
+                                        <select id="wz-fit">
+                                            <option value="cover">מילוי המסך</option>
+                                            <option value="contain">תמונה שלמה</option>
+                                            <option value="stretch">מתיחה לפי המסך</option>
+                                            <option value="tile">אריחים</option>
+                                        </select>
                                     </div>
                                     <div class="desc">תמונה של בית הכנסת, ארון הקודש או נוף ירושלמי. ההחשכה שומרת על קריאות.</div>
                                 </div>
@@ -650,14 +662,29 @@
                 <h2>רקע ולוגו</h2>
                 <div class="field">
                     <label>תמונת רקע</label>
-                    <div class="bg-grid" id="d-bg-grid"></div>
-                    <div class="desc">התמונות שהעליתם בלשונית "קבצים ומדיה". אפשר גם להדביק כתובת תמונה:</div>
+                    <label class="btn btn-ghost btn-sm file-btn">העלאת תמונה <input type="file" id="d-bg-file" accept="image/*" hidden></label>
+                    <div class="bg-grid" id="d-bg-grid" style="margin-top:8px;"></div>
+                    <div class="desc">התמונות שהעליתם בלשונית "קבצים ומדיה", או העלאה ישירה מהמחשב. אפשר גם להדביק כתובת תמונה:</div>
                     <input type="text" id="d-bg-image" placeholder="https://..." dir="ltr" style="margin-top:6px;">
+                </div>
+                <div class="field">
+                    <label for="d-bg-fit">התאמת התמונה</label>
+                    <select id="d-bg-fit">
+                        <option value="cover">מילוי המסך — התמונה מכסה הכל (עלולה להיחתך)</option>
+                        <option value="contain">תמונה שלמה — כל התמונה נראית (עם שוליים)</option>
+                        <option value="stretch">מתיחה לפי המסך — עלולה להתעוות</option>
+                        <option value="tile">אריחים — חזרה של התמונה</option>
+                    </select>
                 </div>
                 <div class="field">
                     <label for="d-bg-overlay">החשכת הרקע (<span id="d-bg-overlay-val">45%</span>)</label>
                     <input type="range" id="d-bg-overlay" min="0" max="90" step="5" value="45">
                     <div class="desc">שכבה כהה מעל תמונת הרקע כדי שהטקסט יישאר קריא.</div>
+                </div>
+                <div class="field">
+                    <label for="d-bg-blur">טשטוש הרקע (<span id="d-bg-blur-val">0</span>)</label>
+                    <input type="range" id="d-bg-blur" min="0" max="20" step="1" value="0">
+                    <div class="desc">טשטוש עדין מרכך תמונות עמוסות ומדגיש את הטקסט.</div>
                 </div>
                 <div class="field">
                     <label for="d-logo">לוגו</label>

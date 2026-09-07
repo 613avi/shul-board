@@ -193,7 +193,8 @@ wrangler pages secret put PLATFORM_PASSWORD --project-name shul-board
 לעורך ב-`CLOCK_FACES` ב-`admin.js`. הגופן של מראה "לד" (Orbitron) נטען בעצלנות רק כשיש קובייה כזאת.
 
 בנוסף לכוונון עדין: צבע הדגשה חופשי (`--accent`), גודל טקסט (`--fs`, 70%–150%),
-תמונת רקע מהקבצים שהועלו + החשכה, ולוגו. `config.design` שומר את כל השדות;
+תמונת רקע (העלאה ישירה או מהקבצים שהועלו) עם התאמה (`backgroundFit`: cover/contain/stretch/tile),
+החשכה (`backgroundOverlay`) וטשטוש (`backgroundBlur`), ולוגו. `config.design` שומר את כל השדות;
 `resolveDesign()` משלים ברירות מחדל כך שהגדרות ישנות ממשיכות לעבוד.
 בחירת מראה כותבת את השדות; כוונון ידני מאפס את `preset` והכרטיס מסומן שוב רק
 כשהערכים חוזרים להתאים.
