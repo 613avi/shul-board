@@ -309,6 +309,8 @@ window.SB_PRESETS = (() => {
       scale:  typeof d.scale === 'number' ? Math.min(1.5, Math.max(0.7, d.scale)) : 1,
       backgroundImage: typeof d.backgroundImage === 'string' ? d.backgroundImage.trim() : '',
       backgroundOverlay: typeof d.backgroundOverlay === 'number' ? d.backgroundOverlay : 0.45,
+      backgroundFit: ['cover', 'contain', 'stretch', 'tile'].includes(d.backgroundFit) ? d.backgroundFit : 'cover',
+      backgroundBlur: typeof d.backgroundBlur === 'number' ? Math.min(20, Math.max(0, d.backgroundBlur)) : 0,
       logo: d.logo && typeof d.logo === 'object' ? d.logo : { url: '' },
     };
   }

@@ -198,7 +198,8 @@ export const DEFAULTS = {
     // שקובע צבעים/סגנון/פריסה/גופן; שאר השדות מאפשרים כוונון עדין.
     design: {
       preset: 'jerusalem', theme: 'stone', layout: '3col', style: 'traditional', font: 'classic',
-      accent: '', scale: 1, backgroundImage: '', backgroundOverlay: 0.45, logo: { url: '' },
+      accent: '', scale: 1, backgroundImage: '', backgroundOverlay: 0.45,
+      backgroundFit: 'cover', backgroundBlur: 0, logo: { url: '' },
     },
     // מה מוצג על הלוח מעבר לקוביות עצמן. תכונות חדשות דולקות רק להרשמות חדשות —
     // המיגרציה ב-_migrations.js מכבה אותן לבתי כנסת שנשמרו לפניהן.

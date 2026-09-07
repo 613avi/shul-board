@@ -1020,13 +1020,24 @@
     const bgImage = (d.backgroundImage || '').trim();
     if (bgImage) {
       const safeUrl = bgImage.replace(/["'\\)]/g, '');
+      const fits = {
+        cover:   ['cover', 'no-repeat', 'center'],
+        contain: ['contain', 'no-repeat', 'center'],
+        stretch: ['100% 100%', 'no-repeat', 'center'],
+        tile:    ['auto', 'repeat', 'center'],
+      };
+      const [size, repeat, pos] = fits[d.backgroundFit] || fits.cover;
       document.body.style.setProperty('--custom-bg-url', `url("${safeUrl}")`);
       document.body.style.setProperty('--bg-overlay', String(Math.min(0.9, Math.max(0, d.backgroundOverlay))));
+      document.body.style.setProperty('--bg-size', size);
+      document.body.style.setProperty('--bg-repeat', repeat);
+      document.body.style.setProperty('--bg-pos', pos);
+      document.body.style.setProperty('--bg-blur', `${Math.min(20, Math.max(0, d.backgroundBlur || 0))}px`);
       document.body.setAttribute('data-custom-bg', '1');
     } else {
       document.body.removeAttribute('data-custom-bg');
-      document.body.style.removeProperty('--custom-bg-url');
-      document.body.style.removeProperty('--bg-overlay');
+      for (const v of ['--custom-bg-url', '--bg-overlay', '--bg-size', '--bg-repeat', '--bg-pos', '--bg-blur'])
+        document.body.style.removeProperty(v);
     }
   }
 
@@ -1728,10 +1739,10 @@
           ? event.data.design
           : event.data;
         const design = { ...(state.config.design || {}) };
-        for (const k of ['preset', 'theme', 'style', 'layout', 'font', 'accent', 'backgroundImage']) {
+        for (const k of ['preset', 'theme', 'style', 'layout', 'font', 'accent', 'backgroundImage', 'backgroundFit']) {
           if (typeof incoming[k] === 'string') design[k] = incoming[k];
         }
-        for (const k of ['backgroundOverlay', 'scale']) {
+        for (const k of ['backgroundOverlay', 'backgroundBlur', 'scale']) {
           if (typeof incoming[k] === 'number') design[k] = incoming[k];
         }
         if (incoming.logo && typeof incoming.logo === 'object') design.logo = incoming.logo;
