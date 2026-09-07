@@ -478,6 +478,7 @@
                             <th>שם</th>
                             <th style="width:90px;">יום</th>
                             <th style="width:140px;">חודש עברי</th>
+                            <th style="width:120px;" title="השם יופיע על הצג רק ביום היארצייט, ולא כל השנה">רק ביום היארצייט</th>
                             <th>הערות</th>
                             <th class="col-actions"></th>
                         </tr>
@@ -527,6 +528,31 @@
                 <p class="small">לכל אירוע (חג, תאריך מיוחד, יום זיכרון) אפשר להגדיר תאריך עברי או לועזי ולהוסיף זמני תפילה. "מילוי מהיר" עוזר לחגים נפוצים.</p>
                 <div id="sp-list"></div>
                 <button class="btn btn-ghost" id="add-sp-btn">+ אירוע חדש</button>
+            </div>
+
+            <div class="panel" id="tachanun-panel">
+                <h2>ימים ללא תחנון</h2>
+                <p class="small">
+                    בימים המסומנים יופיע על הצג "אין תחנון" בשורת ההזכרות. מורידים סימון מיום
+                    שלא נוהגים בו בבית הכנסת. השורה כולה מוצגת רק כש"הזכרות מורחבות" דולק
+                    בלשונית "מראה הצג".
+                </p>
+                <div class="tach-rules" id="tach-rules"></div>
+
+                <h3 style="margin:18px 0 6px;">ימים נוספים של הקהילה</h3>
+                <p class="small">למשל יום העצמאות, יום ירושלים, או יום שבו יש ברית קבועה.</p>
+                <table class="data-table" id="tach-table">
+                    <thead>
+                        <tr>
+                            <th>שם היום</th>
+                            <th style="width:90px;">יום</th>
+                            <th style="width:140px;">חודש עברי</th>
+                            <th class="col-actions"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <button class="btn btn-ghost btn-sm" id="add-tach-btn" style="margin-top:0.5rem;">+ יום נוסף</button>
             </div>
         </div>
 

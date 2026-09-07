@@ -215,6 +215,16 @@ export const DEFAULTS = {
       sleep: { enabled: false, from: '23:30', to: '05:00' },
       textsSeconds: 15,         // קצב החלפת הטקסטים/ההקדשות
     },
+    // ימים ללא תחנון. כל הכללים דולקים כברירת מחדל — בית כנסת קיים לא מרגיש שינוי.
+    // extra: ימים נוספים של הקהילה, במבנה של רשומת הנצחה ({ hebrewDay, hebrewMonth, label }).
+    tachanun: {
+      rules: {
+        rc: true, nisan: true, pesachSheni: true, lagBaomer: true, sivan: true,
+        tishaBav: true, tuBav: true, erevRH: true, tishrei: true, chanukah: true,
+        tuBishvat: true, purim: true, purimKatan: true, shabbat: true,
+      },
+      extra: [],
+    },
     // אשף ההקמה מוצג עד שהגבאי מסיים אותו (או מדלג עליו).
     setup: { done: false, step: 1 },
   },

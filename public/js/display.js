@@ -399,6 +399,24 @@
   }
 
   // ---------- tefilla mentions (winter/summer, rain request, ya'aleh v'yavo, al hanisim) ----------
+  // הכלל לכל מזהה מ-P.TACHANUN_RULES. חודשים: 1=ניסן … 7=תשרי … 13=אדר ב׳.
+  const TACHANUN_TESTS = {
+    rc:          (t) => t.rc,
+    nisan:       (t) => t.m === 1,
+    pesachSheni: (t) => t.m === 2 && t.d === 14,
+    lagBaomer:   (t) => t.m === 2 && t.d === 18,
+    sivan:       (t) => t.m === 3 && t.d <= 12,
+    tishaBav:    (t) => t.m === 5 && t.d === 9,
+    tuBav:       (t) => t.m === 5 && t.d === 15,
+    erevRH:      (t) => t.m === 6 && t.d === 29,
+    tishrei:     (t) => t.m === 7 && t.d >= 9,
+    chanukah:    (t) => t.isChanukah,
+    tuBishvat:   (t) => t.m === 11 && t.d === 15,
+    purim:       (t) => t.m === t.lastAdar && (t.d === 14 || t.d === 15),
+    purimKatan:  (t) => t.leap && t.m === 12 && (t.d === 14 || t.d === 15),
+    shabbat:     (t) => t.dow === 6,
+  };
+
   function computeTefillaMentions(hdate) {
     const m = hdate.getMonth(); // 1=Nisan .. 7=Tishrei .. 13=Adar II
     const d = hdate.getDate();
@@ -460,19 +478,16 @@
       else if (isChanukah) hallel = 'הלל שלם';
       else if (rc) hallel = 'חצי הלל';
       if (hallel) out.push(hallel);
-      // תחנון — ימים שבהם לא אומרים
-      const noTachanun =
-        rc || m === 1 ||
-        (m === 2 && (d === 14 || d === 18)) ||
-        (m === 3 && d <= 12) ||
-        (m === 5 && (d === 9 || d === 15)) ||
-        (m === 6 && d === 29) ||
-        (m === 7 && d >= 9) ||
-        isChanukah ||
-        (m === 11 && d === 15) ||
-        (m === lastAdar && (d === 14 || d === 15)) ||
-        (leap && m === 12 && (d === 14 || d === 15)) ||
-        hdate.getDay() === 6;
+      // תחנון — הכללים ניתנים לכיבוי בניהול, ואפשר להוסיף ימים של הקהילה
+      const t = { m, d, rc, isChanukah, leap, lastAdar, dow: hdate.getDay() };
+      const tcfg = (state.config && state.config.tachanun) || {};
+      const ruleOn = (id) => !tcfg.rules || tcfg.rules[id] !== false;
+      let noTachanun = (P?.TACHANUN_RULES || []).some(
+        r => ruleOn(r.id) && TACHANUN_TESTS[r.id] && TACHANUN_TESTS[r.id](t));
+      if (!noTachanun) {
+        noTachanun = (Array.isArray(tcfg.extra) ? tcfg.extra : [])
+          .some(e => hebrewDateMatches(e, hdate));
+      }
       if (noTachanun) out.push('אין תחנון');
     }
 
@@ -745,12 +760,8 @@
   function eventAppliesToday(ev, hdateToday, gregTodayStr) {
     if (ev.dateType === 'hebrew') {
       if (!ev.hebrewDay || !ev.hebrewMonth) return false;
-      const monthHe = hebMonth(hdateToday);
-      const monthEn = hdateToday.getMonthName();
-      const em = String(ev.hebrewMonth).trim();
-      const byName = em === monthHe.trim() || em.toLowerCase() === monthEn.toLowerCase();
-      const byIndex = Number(em) === hdateToday.getMonth();
-      return (byName || byIndex) && Number(ev.hebrewDay) === hdateToday.getDate();
+      return hebMonthMatches(ev.hebrewMonth, hdateToday) &&
+        Number(ev.hebrewDay) === hdateToday.getDate();
     }
     return ev.date === gregTodayStr;
   }
@@ -906,15 +917,22 @@
   }
 
   // ---------- memorial ----------
+  // שם החודש מהניהול הוא בלי ניקוד ("אלול"), ומ-hebcal עם ניקוד ("אֱלוּל").
+  // בלי הנרמול הזה אף יארצייט לא היה מזוהה ביומו.
+  const monthKey = (v) => stripNikud(String(v || ''))
+    .replace(/["'\u05f3\u05f4]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+  function hebMonthMatches(value, hdate) {
+    const em = monthKey(value);
+    if (!em) return false;
+    if (em === monthKey(hebMonth(hdate)) || em === monthKey(hdate.getMonthName())) return true;
+    return Number(String(value).trim()) === hdate.getMonth();
+  }
+
   function hebrewDateMatches(entry, hdate) {
     if (!entry.hebrewMonth || !entry.hebrewDay) return false;
-    const monthHe = hebMonth(hdate);
-    const monthEn = hdate.getMonthName();
-    const day = hdate.getDate();
-    const em = String(entry.hebrewMonth).trim();
-    const byName = em === monthHe.trim() || em.toLowerCase() === monthEn.toLowerCase();
-    const byIndex = Number(em) === hdate.getMonth();
-    return (byName || byIndex) && Number(entry.hebrewDay) === day;
+    return hebMonthMatches(entry.hebrewMonth, hdate) &&
+      Number(entry.hebrewDay) === hdate.getDate();
   }
 
   function renderMemorial() {
@@ -924,7 +942,10 @@
     if (!state.memorial.length) { card.style.display = 'none'; return; }
     card.style.display = '';
     const today = getEffectiveHDate();
-    const items = [...state.memorial].map(e => ({ ...e, _today: hebrewDateMatches(e, today) }));
+    const items = [...state.memorial]
+      .map(e => ({ ...e, _today: hebrewDateMatches(e, today) }))
+      .filter(e => !e.onlyOnDay || e._today);   // "רק ביום היארצייט"
+    if (!items.length) { card.style.display = 'none'; return; }
     items.sort((a, b) => {
       if (a._today && !b._today) return -1;
       if (!a._today && b._today) return 1;
