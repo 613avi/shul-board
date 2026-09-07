@@ -6,9 +6,9 @@
 **חי:** https://shul-board.pages.dev
 
 **הקוד פתוח וציבורי.** הריפו הזה הוא הקוד המלא של הפלטפורמה — שרת, ממשק הגבאים, הצג
-והמתקין. אין בו סודות: סיסמת מנהל המערכת יושבת כסוד ב-Cloudflare Pages, הסיסמאות של
-בתי הכנסת נשמרות במסד כגיבוב בלבד, ואין בריפו נתונים של אף בית כנסת. אפשר לקרוא, לדווח
-על תקלות, להציע שיפורים, או להרים עותק משלכם על חשבון Cloudflare חינמי.
+והמתקין. אין בו סודות: הסיסמאות של בתי הכנסת נשמרות במסד כגיבוב בלבד, ואין בריפו
+נתונים של אף בית כנסת. אפשר לקרוא, לדווח על תקלות, להציע שיפורים, או להרים עותק
+משלכם על חשבון Cloudflare חינמי.
 
 **רישיון:** [PolyForm Noncommercial 1.0.0](LICENSE.md). מותר להשתמש בקוד, לשנות אותו
 ולהפיץ אותו **לשימוש לא-מסחרי בלבד** — בית כנסת, קהילה, עמותה, שימוש אישי. אסור למכור
@@ -98,7 +98,6 @@ wrangler kv namespace create SESSIONS         # סשנים
 wrangler kv namespace create MEDIA            # קבצי מדיה
 # מעדכנים את המזהים שהתקבלו ב-wrangler.toml
 wrangler d1 execute shul-board --remote --file=schema.sql
-wrangler pages secret put PLATFORM_PASSWORD --project-name shul-board   # סיסמת מנהל המערכת
 wrangler pages deploy --project-name shul-board --branch main
 ```
 
@@ -109,4 +108,4 @@ wrangler d1 execute shul-board --local --file=schema.sql   # פעם אחת
 wrangler pages dev --port 8790
 ```
 
-פרטים טכניים — ארכיטקטורה, מיגרציות, API, בניית המתקין, חישוב המכסה — ב-[DEVELOPMENT.md](DEVELOPMENT.md).
+פרטים טכניים — ארכיטקטורה, מיגרציות, API, דשבורד מנהל המערכת, בניית המתקין, חישוב המכסה — ב-[DEVELOPMENT.md](DEVELOPMENT.md).
