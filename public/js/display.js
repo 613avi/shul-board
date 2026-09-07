@@ -1461,6 +1461,7 @@
       for (const { el, parent, next } of _homes.values()) {
         el.style.cssText = '';
         el.hidden = false;
+        el.classList.remove('no-clock', 'no-sub');
         parent.insertBefore(el, next);
       }
     }
@@ -1541,7 +1542,7 @@
       if (_blockRenderers[block.type]) {
         try { _blockRenderers[block.type](block, wrap); } catch (e) { console.error('block', block.type, e); }
       } else if (block.type === 'media') {
-        wrap.appendChild(buildMediaWindow());
+        wrap.appendChild(buildMediaWindow(block));
       } else if (block.type === 'logo') {
         const url = (state.config?.design?.logo?.url || '').trim();
         if (!url) { wrap.remove(); continue; }
@@ -1555,6 +1556,11 @@
         if (!home) continue;
         home.el.hidden = false;
         home.el.style.cssText = 'width:100%;height:100%;margin:0;';
+        if (block.type === 'header') {
+          // "רק שם" — כשיש קוביית שעון נפרדת אין טעם בשעון של הכותרת
+          home.el.classList.toggle('no-clock', block.showClock === false);
+          home.el.classList.toggle('no-sub', block.showSub === false);
+        }
         wrap.appendChild(home.el);
       }
     }
@@ -1564,12 +1570,17 @@
   }
 
   // ---------- חלון המודעות ----------
-  function buildMediaWindow() {
+  function buildMediaWindow(block) {
     const box = document.createElement('div');
     box.className = 'media-window';
     box.id = 'media-window';
+    if (block?.fit === 'contain' || block?.fit === 'cover') box.dataset.fit = block.fit;
+    if (block?.page) box.dataset.page = block.page;
     return box;
   }
+
+  // יחס דף (רוחב/גובה) להצגת PDF שלם. 'fill' מותח לכל הלוח.
+  const PAGE_RATIO = { portrait: 1 / 1.414, landscape: 1.414, square: 1 };
 
   function mediaItems() {
     const p = state.mediaPlaylist || {};
@@ -1579,30 +1590,42 @@
   let _mediaIndex = 0;
 
   function renderMediaItem() {
-    const box = qs('#media-window');
-    if (!box) return;
+    const boxes = document.querySelectorAll('.media-window');
+    if (!boxes.length) return;
     const items = mediaItems();
-    if (!items.length) {
-      box.innerHTML = '<div class="media-empty">לא הועלו מודעות</div>';
-      return;
-    }
-    if (_mediaIndex >= items.length) _mediaIndex = 0;
+    if (items.length && _mediaIndex >= items.length) _mediaIndex = 0;
     const item = items[_mediaIndex];
-    const fit = (state.mediaPlaylist?.fit === 'cover') ? 'cover' : 'contain';
 
-    if (item.kind === 'pdf') {
-      // Chrome מרנדר PDF מוטמע; הפרמטרים מסתירים את סרגלי הכלים בקיוסק
-      box.innerHTML =
-        `<iframe class="media-pdf" src="${item.url}#toolbar=0&navpanes=0&scrollbar=0&view=Fit" title="מודעה"></iframe>`;
-    } else {
-      box.innerHTML =
-        `<img class="media-img" style="object-fit:${fit}" src="${item.url}" alt="מודעה">`;
+    for (const box of boxes) {
+      if (!item) { box.innerHTML = '<div class="media-empty">לא הועלו מודעות</div>'; continue; }
+      // התאמה: קודם ההגדרה של הקובייה, אחרת ההגדרה של חלון המודעות
+      const fit = box.dataset.fit || (state.mediaPlaylist?.fit === 'cover' ? 'cover' : 'contain');
+      const page = box.dataset.page || 'portrait';
+
+      if (item.kind === 'pdf') {
+        // Chrome מרנדר PDF מוטמע; הפרמטרים מסתירים את סרגלי הכלים בקיוסק.
+        // כדי שכל הדף ייכנס ללוח, ה-iframe מקבל בדיוק את צורת הדף בתוך הלוח.
+        box.innerHTML =
+          `<iframe class="media-pdf" src="${item.url}#toolbar=0&navpanes=0&scrollbar=0&view=Fit" title="מודעה"></iframe>`;
+        const frame = box.querySelector('.media-pdf');
+        const ratio = PAGE_RATIO[page];
+        if (fit === 'cover' || !ratio) { frame.style.width = '100%'; frame.style.height = '100%'; continue; }
+        const bw = box.clientWidth, bh = box.clientHeight;
+        if (!bw || !bh) continue;
+        let w = bw, h = bw / ratio;
+        if (h > bh) { h = bh; w = bh * ratio; }
+        frame.style.width = `${Math.floor(w)}px`;
+        frame.style.height = `${Math.floor(h)}px`;
+      } else {
+        box.innerHTML =
+          `<img class="media-img" style="object-fit:${fit}" src="${item.url}" alt="מודעה">`;
+      }
     }
   }
 
   function startMediaRotation() {
     clearInterval(_mediaTimer);
-    if (!qs('#media-window')) return;
+    if (!document.querySelector('.media-window')) return;
     renderMediaItem();
     const items = mediaItems();
     if (items.length < 2) return;

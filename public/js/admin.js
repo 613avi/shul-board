@@ -2441,8 +2441,9 @@
           const dx = Math.round((e.clientX - start.px) / cellW);
           const dy = Math.round((e.clientY - start.py) / cellH);
           if (resizing) {
-            // הידית בצד ימין-שמאל של RTL: גרירה שמאלה מגדילה
-            block.w = Math.min(GRID.cols - block.x, Math.max(1, start.w - dx));
+            // הידית יושבת על הפינה הימנית-תחתונה של הקובייה (inset-inline-start ב-RTL),
+            // והקובייה מעוגנת בשמאל (style.left). לכן גרירה החוצה — ימינה ולמטה — מגדילה.
+            block.w = Math.min(GRID.cols - block.x, Math.max(1, start.w + dx));
             block.h = Math.min(GRID.rows - block.y, Math.max(1, start.h + dy));
           } else {
             block.x = Math.min(GRID.cols - block.w, Math.max(0, start.x + dx));
@@ -2496,7 +2497,7 @@
       });
       return el('label', { class: 'sc-prop' }, label, inp);
     };
-    box.appendChild(num('מימין', 'x', 0, GRID.cols - 1));
+    box.appendChild(num('משמאל', 'x', 0, GRID.cols - 1));
     box.appendChild(num('מלמעלה', 'y', 0, GRID.rows - 1));
     box.appendChild(num('רוחב', 'w', 1, GRID.cols));
     box.appendChild(num('גובה', 'h', 1, GRID.rows));
@@ -2549,6 +2550,45 @@
         dt.addEventListener('change', () => { block.showDate = dt.checked; markDirty(); pushScreensPreview(); });
         box.appendChild(el('label', { class: 'sc-prop' }, 'תאריך עברי מתחת', dt));
       }
+    }
+
+    if (block.type === 'media') {
+      const fit = el('select', {});
+      [['', 'לפי הגדרת חלון המודעות'], ['contain', 'כל המודעה נכנסת ללוח (בלי חיתוך)'], ['cover', 'ממלא את הלוח (עם חיתוך)']]
+        .forEach(([v, l]) => fit.appendChild(el('option', { value: v }, l)));
+      fit.value = block.fit === 'contain' || block.fit === 'cover' ? block.fit : '';
+      fit.addEventListener('change', () => {
+        if (fit.value) block.fit = fit.value; else delete block.fit;
+        markDirty(); pushScreensPreview();
+      });
+      box.appendChild(el('label', { class: 'sc-prop' }, 'התאמה', fit));
+
+      const page = el('select', {});
+      [['portrait', 'לאורך (A4)'], ['landscape', 'לרוחב'], ['square', 'ריבועי'], ['fill', 'מותח לכל הלוח']]
+        .forEach(([v, l]) => page.appendChild(el('option', { value: v }, l)));
+      page.value = ['portrait', 'landscape', 'square', 'fill'].includes(block.page) ? block.page : 'portrait';
+      page.addEventListener('change', () => { block.page = page.value; markDirty(); pushScreensPreview(); });
+      box.appendChild(el('label', { class: 'sc-prop' }, 'צורת דף PDF', page));
+      box.appendChild(el('div', { class: 'sc-hint' }, 'קובצי PDF מוצגים בשלמותם לפי צורת הדף שנבחרה. תמונות מותאמות לפי "התאמה".'));
+    }
+
+    if (block.type === 'header') {
+      const clock = el('input', { type: 'checkbox' });
+      clock.checked = block.showClock !== false;
+      clock.addEventListener('change', () => {
+        if (clock.checked) delete block.showClock; else block.showClock = false;
+        markDirty(); pushScreensPreview();
+      });
+      box.appendChild(el('label', { class: 'sc-prop' }, 'שעון', clock));
+
+      const sub = el('input', { type: 'checkbox' });
+      sub.checked = block.showSub !== false;
+      sub.addEventListener('change', () => {
+        if (sub.checked) delete block.showSub; else block.showSub = false;
+        markDirty(); pushScreensPreview();
+      });
+      box.appendChild(el('label', { class: 'sc-prop' }, 'תאריך, פרשה ושורת היום', sub));
+      box.appendChild(el('div', { class: 'sc-hint' }, 'כיבוי שניהם משאיר את שם בית הכנסת בלבד — נוח כשיש קוביית שעון נפרדת.'));
     }
 
     if (block.type === 'decor') {

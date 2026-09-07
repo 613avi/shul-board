@@ -109,6 +109,15 @@ wrangler pages secret put PLATFORM_PASSWORD --project-name shul-board
 - הסגנון דורס את משתני הצבע (`--text`, `--accent`, `--bg-card`…) בתוך `#display-root`
   לדיו על קלף, בלי תלות בערכת הצבע. המסגרות הן SVG בן 9 חלקים (`border-image-slice: 36`),
   הכותרות סרט עם `preserveAspectRatio="none"`. ב-data URI חובה לקודד `#` כ-`%23`.
+- קוביית `header`: `showClock: false` ו-`showSub: false` מוסיפים למחלקות של `.display-header`
+  את `no-clock` / `no-sub` (ב-`screens.css`), כך שנשאר רק שם בית הכנסת. `restoreClassic()`
+  מסיר את המחלקות בחזרה לפריסה הקלאסית.
+- קוביית `media`: `fit` (`contain`/`cover`, ברירת מחדל = ההגדרה של חלון המודעות) ו-`page`
+  (`portrait`/`landscape`/`square`/`fill`). PDF לא מכבד `object-fit`, ולכן `renderMediaItem()`
+  מחשב ל-iframe מידות בפיקסלים לפי יחס הדף וגודל הקובייה — כך כל הדף נכנס ללוח.
+  יכולות להיות כמה קוביות מדיה במסך אחד, כל אחת עם ההתאמה שלה.
+- עורך הפריסה: הקוביות מעוגנות בשמאל (`style.left`, `x` נמדד משמאל), וידית שינוי הגודל
+  יושבת בפינה הימנית-תחתונה. לכן גרירה ימינה ולמטה מגדילה.
 - קוביית `decor`: `asset` (מזהה מהספרייה) **או** `url` (תמונה מהמדיה), `flip` (היפוך אופקי),
   `anchor` (`top`/`bottom`, ברירת מחדל מרכז). ברירת המחדל בהוספה: `floating: true`, כדי
   שהאלמנט יוכל לחפוף ללוחות. הקובייה עצמה בלי לוח ובלי מסגרת (`.blk-decor`), בכל סגנון.

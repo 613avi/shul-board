@@ -57,6 +57,13 @@ body[data-screens] #display-root {
   display: block; border: 0;
 }
 .media-window .media-pdf { background: #fff; }
+/* PDF מקבל מידות מדויקות מ-display.js כדי שכל הדף ייכנס ללוח */
+.media-window .media-pdf { max-width: 100%; max-height: 100%; }
+
+/* כותרת בלי שעון / בלי תאריך — "רק שם", כשיש קוביית שעון נפרדת */
+.display-header.no-clock .clock { display: none; }
+.display-header.no-sub .sub { display: none !important; }
+.display-header.no-clock.header-2col { grid-template-columns: 1fr; }
 .media-empty {
   color: rgba(255, 255, 255, .45);
   font-size: 1.6vmin;
