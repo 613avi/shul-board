@@ -1134,22 +1134,6 @@
   }
 
   const _blockRenderers = {
-    // אלמנט גרפי: ציור מהספרייה (js/decor.js) או תמונה שהועלתה. בלי לוח ובלי מסגרת.
-    decor(block, wrap) {
-      const cls = `${block.flip ? 'flip' : ''} ${block.anchor ? `anchor-${block.anchor}` : ''}`.trim();
-      const { card, body } = mkCard('decor', '', cls);
-      const url = String(block.url || '').trim();
-      if (url) {
-        const img = document.createElement('img');
-        img.src = url; img.alt = ''; img.draggable = false;
-        body.appendChild(img);
-      } else {
-        const asset = window.ShulDecor?.get(block.asset || 'menorah');
-        if (!asset) { wrap.remove(); return; }
-        body.innerHTML = asset.svg;
-      }
-      wrap.appendChild(card);
-    },
     clock(block, wrap) {
       const analog = block.variant === 'analog';
       const showSec = block.seconds !== false;

@@ -16,8 +16,8 @@
 
 import { DEFAULTS, SECTIONS, GRID } from './_shared.js';
 
-export const SCHEMA_VERSION = 4;
-export const APP_VERSION = '3.7.0';
+export const SCHEMA_VERSION = 5;
+export const APP_VERSION = '3.8.0';
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -65,12 +65,23 @@ const MIGRATIONS = {
     }
     return data;
   },
+  // 4 → 5: סגנון "אלמנטים מעוטרים" וקוביית האלמנט הגרפי הוסרו. מי שהיה עליהם עובר
+  // לסגנון "פנינה" — מסגרת זהב דקה במקום המסגרות המגולפות. קוביות decor נזרקות
+  // ב-normalizeBlock (הסוג כבר לא ב-KNOWN_BLOCKS), כך שאין צורך לגעת בהן כאן.
+  5: (data) => {
+    if (isObj(data.config) && isObj(data.config.design)) {
+      const d = data.config.design;
+      if (d.style === 'elements') d.style = 'pearl';
+      if (d.preset === 'palace') d.preset = 'pearl';
+    }
+    return data;
+  },
 };
 
 // ---------- ניקוי לכל מקטע ----------
 const KNOWN_BLOCKS = new Set([
   'header', 'zmanim', 'tefillot', 'memorial', 'mentions', 'announcements', 'upcoming', 'media', 'logo',
-  'clock', 'date', 'shabbat', 'today', 'learning', 'dedications', 'shiurim', 'text', 'omer', 'weather', 'countdown', 'decor',
+  'clock', 'date', 'shabbat', 'today', 'learning', 'dedications', 'shiurim', 'text', 'omer', 'weather', 'countdown',
 ]);
 const num = (v, fallback) => (Number.isFinite(Number(v)) ? Number(v) : fallback);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));

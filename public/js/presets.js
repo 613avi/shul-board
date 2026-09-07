@@ -18,6 +18,7 @@ window.SB_PRESETS = (() => {
     { id: 'parchment', name: 'קלף עתיק',       swatch: { bg: '#efe0c0', card: 'rgba(60,30,10,.09)', text: '#3a2511', accent: '#8b0000' } },
     { id: 'marble',    name: 'שיש',            swatch: { bg: '#e8e8e8', card: 'rgba(255,255,255,.8)', text: '#2f4f4f', accent: '#8b0000' } },
     { id: 'sand',      name: 'חול',            swatch: { bg: '#f3e9d6', card: 'rgba(120,80,30,.08)', text: '#3f2d18', accent: '#a0561f' } },
+    { id: 'ivory',     name: 'שנהב',           swatch: { bg: '#faf5e8', card: 'rgba(255,253,247,.85)', text: '#46372a', accent: '#a37e45' } },
     { id: 'sky',       name: 'תכלת',           swatch: { bg: '#e9f3fb', card: 'rgba(255,255,255,.75)', text: '#12314a', accent: '#1b6ca8' } },
     { id: 'light',     name: 'בהיר ונקי',      swatch: { bg: '#f5f5f5', card: 'rgba(0,0,0,.04)', text: '#1a2140', accent: '#b8860b' } },
     { id: 'royal',     name: 'סגול מלכותי',    swatch: { bg: '#1d1033', card: 'rgba(255,255,255,.07)', text: '#f3eeff', accent: '#f0c75e' } },
@@ -36,7 +37,7 @@ window.SB_PRESETS = (() => {
     { id: 'ornate',      name: 'מעוטר',        desc: 'מסגרת כפולה וכותרות במרכז' },
     { id: 'glass',       name: 'זכוכית',       desc: 'לוחות שקופים עם טשטוש רקע' },
     { id: 'bold',        name: 'נועז',         desc: 'כותרות גדולות, פס עבה, ניגודיות גבוהה' },
-    { id: 'elements',    name: 'אלמנטים מעוטרים', desc: 'מסגרות זהב מגולפות, כותרות על סרטי קלף, ואלמנטים גרפיים חופשיים' },
+    { id: 'pearl',       name: 'פנינה',        desc: 'מסגרת זהב דקה, זוויות פינה ושורות על רקע בהיר' },
   ];
 
   // ---------- פריסת הצג הקלאסי (data-layout) ----------
@@ -67,7 +68,7 @@ window.SB_PRESETS = (() => {
   // accent ריק = צבע הערכה; ערך = דריסה.
   const DESIGN_PRESETS = [
     { id: 'jerusalem',   name: 'ירושלים',        desc: 'אבן ירושלמית עם עיטורים מסורתיים', theme: 'stone',     style: 'traditional', layout: '3col',       font: 'classic' },
-    { id: 'palace',      name: 'ארמון',          desc: 'קלף, זהב ומסגרות מגולפות — עם אלמנטים גרפיים', theme: 'parchment', style: 'elements',    layout: '3col',       font: 'classic' },
+    { id: 'pearl',       name: 'פנינה',          desc: 'מסגרת זהב דקה על קלף בהיר — שקט ויוקרתי', theme: 'ivory',     style: 'pearl',       layout: '3col',       font: 'classic' },
     { id: 'classic',     name: 'קלאסי כהה',      desc: 'הלוח המוכר — כהה, זהב ונקי',        theme: 'dark',      style: 'classic',     layout: '3col',       font: 'classic' },
     { id: 'midnight',    name: 'חצות',           desc: 'כחול לילה עמוק וזהב חם',            theme: 'midnight',  style: 'modern',      layout: '3col',       font: 'classic' },
     { id: 'royal',       name: 'כחול מלכותי',    desc: 'כחול עמוק עם טורקיז',               theme: 'blue',      style: 'modern',      layout: '2col',       font: 'sans' },
@@ -94,14 +95,12 @@ window.SB_PRESETS = (() => {
   const B = (type, x, y, w, h, extra = {}) => ({ type, x, y, w, h, ...extra });
   const SCREEN_TEMPLATES = [
     {
-      id: 'ornate', name: 'לוח מעוטר', desc: 'סרט כותרת, שעון ולוגו בקלף, שני לוחות גדולים ואלמנטים גרפיים בפינות — הכי יפה בסגנון "אלמנטים מעוטרים"',
+      id: 'ornate', name: 'לוח מוזהב', desc: 'שעון ולוגו משני צידי הכותרת, שני לוחות גדולים ופס הודעות — הכי יפה בסגנון "פנינה"',
       blocks: [
         B('clock', 0, 0, 5, 3, { variant: 'digital', face: 'plain', seconds: false, showDate: true }),
         B('header', 5, 0, 14, 3), B('logo', 19, 0, 5, 3),
-        B('tefillot', 12, 4, 11, 10), B('shiurim', 1, 4, 11, 10),
-        B('decor', 0, 14, 5, 4, { asset: 'book', floating: true, anchor: 'bottom' }),
-        B('decor', 19, 13, 5, 5, { asset: 'menorah', floating: true, anchor: 'bottom' }),
-        B('mentions', 5, 15, 14, 1), B('announcements', 5, 16, 14, 2),
+        B('tefillot', 12, 3, 12, 11), B('shiurim', 0, 3, 12, 11),
+        B('mentions', 0, 14, 24, 1), B('announcements', 0, 15, 24, 3),
       ],
     },
     {
@@ -240,7 +239,6 @@ window.SB_PRESETS = (() => {
     { type: 'omer',          name: 'ספירת העומר',     desc: 'הספירה בגדול, בימי הספירה' },
     { type: 'weather',       name: 'מזג אוויר',       desc: 'טמפרטורה ותחזית (Open-Meteo)' },
     { type: 'countdown',     name: 'התפילה הבאה',     desc: 'ספירה לאחור למניין הקרוב' },
-    { type: 'decor',         name: 'אלמנט גרפי',      desc: 'מנורה, ספר, כתר, נרות, מסגרת, סרט — או תמונה שהעליתם; מונח בחופשיות' },
   ];
 
   // ---------- לימוד יומי (hebcal/learning) ----------

@@ -2786,37 +2786,6 @@
       box.appendChild(el('div', { class: 'sc-hint' }, 'כיבוי שניהם משאיר את שם בית הכנסת בלבד — נוח כשיש קוביית שעון נפרדת.'));
     }
 
-    if (block.type === 'decor') {
-      const pick = el('select', {});
-      for (const a of (window.ShulDecor?.ASSETS || [])) pick.appendChild(el('option', { value: `asset:${a.id}` }, a.name));
-      const images = state.media.filter(m => m.kind === 'image');
-      if (images.length) {
-        const grp = el('optgroup', { label: 'תמונות שהעליתם' });
-        for (const m of images) grp.appendChild(el('option', { value: `url:${m.url}` }, m.filename));
-        pick.appendChild(grp);
-      }
-      pick.value = block.url ? `url:${block.url}` : `asset:${block.asset || 'menorah'}`;
-      if (!pick.value) pick.value = 'asset:menorah';
-      pick.addEventListener('change', () => {
-        const [kind, ...rest] = pick.value.split(':'); const v = rest.join(':');
-        if (kind === 'url') { block.url = v; delete block.asset; } else { block.asset = v; delete block.url; }
-        markDirty(); pushScreensPreview();
-      });
-      box.appendChild(el('label', { class: 'sc-prop' }, 'אלמנט', pick));
-
-      const flip = el('input', { type: 'checkbox' });
-      flip.checked = !!block.flip;
-      flip.addEventListener('change', () => { block.flip = flip.checked; markDirty(); pushScreensPreview(); });
-      box.appendChild(el('label', { class: 'sc-prop' }, 'היפוך אופקי', flip));
-
-      const anchor = el('select', {});
-      [['', 'במרכז'], ['bottom', 'צמוד למטה'], ['top', 'צמוד למעלה']].forEach(([v, l]) => anchor.appendChild(el('option', { value: v }, l)));
-      anchor.value = block.anchor || '';
-      anchor.addEventListener('change', () => { if (anchor.value) block.anchor = anchor.value; else delete block.anchor; markDirty(); pushScreensPreview(); });
-      box.appendChild(el('label', { class: 'sc-prop' }, 'יישור', anchor));
-      box.appendChild(el('div', { class: 'sc-hint' }, 'תמונה עם רקע שקוף (PNG) מלשונית "קבצים ומדיה" מופיעה כאן ברשימה. "צף מעל השאר" נותן לאלמנט לחפוף ללוחות.'));
-    }
-
     box.appendChild(el('button', {
       class: 'btn btn-ghost btn-sm btn-danger',
       onclick: () => {
@@ -2831,9 +2800,7 @@
   function addBlock(type) {
     const s = scScreen();
     const id = `b-${type}-${Math.random().toString(36).slice(2, 7)}`;
-    s.blocks.push(type === 'decor'
-      ? { id, type, x: 10, y: 7, w: 4, h: 4, asset: 'menorah', floating: true }
-      : { id, type, x: 6, y: 6, w: 8, h: 5 });
+    s.blocks.push({ id, type, x: 6, y: 6, w: 8, h: 5 });
     scSelected = id;
     markDirty(); renderScreens();
   }
