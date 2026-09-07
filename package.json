@@ -1,6 +1,7 @@
 {
   "name": "shul-board",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
   "version": "1.0.0",
   "description": "פלטפורמה רב-קהילתית לצגי בתי כנסת על Cloudflare Pages",
   "scripts": {
