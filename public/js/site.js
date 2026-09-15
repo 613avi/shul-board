@@ -136,6 +136,7 @@
 
     const payload = {
       name: $('c-name').value.trim(),
+      email: $('c-email').value.trim(),
       contact: $('c-contact').value.trim(),
       topic: $('c-topic').value,
       shul: $('c-shul').value.trim(),
@@ -144,14 +145,17 @@
     };
     const fail = (text) => { msg.textContent = text; msg.className = 'msg bad'; };
     if (payload.name.length < 2) return fail('נא למלא שם');
-    if (!payload.contact) return fail('נא להשאיר טלפון או מייל, אחרת לא נוכל לחזור אליכם');
+    // אותה בדיקה בדיוק כמו בשרת (isEmail ב-functions/_contact.js)
+    if (!/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(payload.email)) {
+      return fail('נא למלא כתובת מייל תקינה — לשם נחזור אליכם');
+    }
     if (payload.message.length < 5) return fail('נא לכתוב את תוכן הפנייה');
 
     btn.disabled = true;
     try {
       await Api.contact(payload);
       $('c-message').value = '';
-      msg.textContent = 'הפנייה נשלחה. נחזור אליכם בהקדם — תודה!';
+      msg.textContent = 'הפנייה נשלחה. נחזור אליכם במייל בהקדם — תודה!';
       msg.className = 'msg ok';
     } catch (e) {
       fail(e.message || 'שליחה נכשלה. נסו שוב, או כתבו בשרשור בפורום');

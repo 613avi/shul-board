@@ -155,6 +155,23 @@
   border: 1px solid var(--sb-line); color: var(--sb-dim);
 }
 .mg-msg-head .when { font-size: 12px; color: var(--sb-dim); margin-inline-start: auto; }
-.mg-msg .who { font-size: 13.5px; color: var(--sb-gold-soft); direction: ltr; text-align: right; unicode-bidi: plaintext; }
+.mg-msg .who { font-size: 13.5px; color: var(--sb-gold-soft); direction: ltr; text-align: right; unicode-bidi: plaintext;
+  display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; }
+.mg-msg .who a { color: inherit; }
 .mg-msg .body { margin: 8px 0 10px; white-space: pre-wrap; line-height: 1.65; font-size: 14.5px; }
 .mg-msg .mg-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* סיסמה חדשה אחרי איפוס — מוצגת פעם אחת, כדי להקריא בטלפון ולהעתיק */
+.mg-newpass {
+  margin: 0 0 14px; padding: 12px 14px; border-radius: 10px;
+  background: rgba(212, 175, 55, .10); border: 1px solid var(--sb-gold);
+}
+.mg-newpass-head { font-weight: 700; margin-bottom: 8px; }
+.mg-newpass-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mg-newpass-code {
+  font-family: 'Courier New', monospace; font-size: 22px; font-weight: 700;
+  letter-spacing: .06em; direction: ltr; user-select: all;
+  padding: 6px 14px; border-radius: 8px;
+  background: rgba(0, 0, 0, .3); color: var(--sb-gold);
+}
+.mg-newpass-note { margin-top: 8px; font-size: 13px; opacity: .8; line-height: 1.6; }

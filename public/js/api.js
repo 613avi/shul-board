@@ -45,6 +45,7 @@ window.Api = (() => {
     me: () => call('/api/me'),
     screens: () => call('/api/screens'),   // מסכים בלייב
     contact: (payload) => call('/api/contact', { method: 'POST', body: j(payload) }),
+    changePassword: (payload) => call('/api/password', { method: 'PUT', body: j(payload) }),
 
     // ---- הגדרות ----
     loadAll: () => call('/api/data'),

@@ -11,6 +11,7 @@ export const MAX_ROWS = 5000;                // תקרה, כדי שהטבלה ל
 const SQL = `CREATE TABLE IF NOT EXISTS contact (
   id         TEXT PRIMARY KEY,
   name       TEXT NOT NULL,
+  email      TEXT,
   contact    TEXT,
   shul       TEXT,
   topic      TEXT,
@@ -27,7 +28,14 @@ export async function ensureContactTable(env) {
   await env.DB.prepare(
     'CREATE INDEX IF NOT EXISTS idx_contact_new ON contact(status, created_at DESC)'
   ).run();
+  // טבלה שנוצרה לפני שהמייל היה חובה — מוסיפים את העמודה פעם אחת.
+  // SQLite זורק שגיאה אם היא כבר קיימת, וזה בדיוק המצב הרגיל.
+  await env.DB.prepare('ALTER TABLE contact ADD COLUMN email TEXT').run().catch(() => {});
 }
+
+// ולידציה מכוונת-סלחנות: תופסת שגיאות הקלדה נפוצות בלי לפסול כתובות חוקיות
+// מוזרות. מה שבאמת מוודא שהכתובת אמיתית זה שהתשובה מגיעה.
+export const isEmail = (v) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(String(v || '').trim());
 
 export const TOPICS = {
   help: 'עזרה בהקמה',

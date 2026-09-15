@@ -1,4 +1,4 @@
-import { json, bad, now } from '../../../_shared.js';
+import { json, bad, now, hashPassword } from '../../../_shared.js';
 import { requireAdmin } from '../../../_admin.js';
 import { ensureScreensTable } from '../../../_screens.js';
 
@@ -31,6 +31,64 @@ export async function onRequestPatch({ request, env, params }) {
   ).run().catch(() => {});
 
   return json({ ok: true, id: shul.id, status });
+}
+
+// ---------- איפוס סיסמה ----------
+// הסיסמה נשמרת כגיבוב PBKDF2 ולכן אי אפשר לשחזר אותה — אפשר רק לקבוע חדשה.
+// גבאי ששכח את הסיסמה פונה דרך "יצירת קשר", מנהל המערכת מוודא את זהותו מול
+// פרטי הקשר שנרשמו בהרשמה (shuls.contact), ומוסר לו את הסיסמה החדשה.
+
+// אלפבית בלי תווים שמתבלבלים בהכתבה בטלפון: בלי 0/O, בלי 1/l/i, בלי o.
+const PW_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+
+function generatePassword(len = 10) {
+  // דגימה עם דחייה — 248 = 31×8, כך שאין הטיה לטובת התווים הראשונים
+  const limit = Math.floor(256 / PW_ALPHABET.length) * PW_ALPHABET.length;
+  let out = '';
+  while (out.length < len) {
+    for (const b of crypto.getRandomValues(new Uint8Array(len))) {
+      if (b >= limit) continue;
+      out += PW_ALPHABET[b % PW_ALPHABET.length];
+      if (out.length === len) break;
+    }
+  }
+  // מקף באמצע — קל יותר להקריא בטלפון ולהקליד בלי טעות
+  return `${out.slice(0, len / 2)}-${out.slice(len / 2)}`;
+}
+
+export async function onRequestPut({ request, env, params }) {
+  const auth = await requireAdmin(request, env);
+  if (auth.error) return auth.error;
+
+  const shul = await loadShul(env, String(params.id));
+  if (!shul) return bad('בית הכנסת לא נמצא', 404);
+
+  let body;
+  try { body = await request.json(); } catch { return bad('בקשה לא תקינה'); }
+
+  // אישור מפורש עם ה-slug, כמו במחיקה: איפוס בטעות נועל את כל הגבאים בחוץ
+  if (String(body.confirm || '') !== shul.slug) {
+    return bad('כדי לאפס סיסמה יש לשלוח confirm=<slug> תואם', 400, { expected: shul.slug });
+  }
+
+  const typed = String(body.password || '');
+  if (typed && typed.length < 6) return bad('הסיסמה חייבת להיות באורך 6 תווים לפחות');
+  const password = typed || generatePassword();
+
+  const { hash, salt } = await hashPassword(password);
+  await env.DB.prepare('UPDATE shuls SET pass_hash = ?, pass_salt = ?, updated_at = ? WHERE id = ?')
+    .bind(hash, salt, now(), shul.id).run();
+
+  // ביומן נרשמת העובדה שהייתה איפוס — לעולם לא הסיסמה עצמה
+  await env.DB.prepare(
+    'INSERT INTO audit (shul_id, gabbai, action, detail, ip, created_at) VALUES (?,?,?,?,?,?)'
+  ).bind(
+    shul.id, null, 'admin-reset-password', shul.slug,
+    request.headers.get('cf-connecting-ip') || null, now()
+  ).run().catch(() => {});
+
+  // הסיסמה מוחזרת פעם אחת בלבד — היא לא נשמרת בשום מקום שאפשר לקרוא ממנו שוב
+  return json({ ok: true, slug: shul.slug, password, contact: shul.contact || null });
 }
 
 // מחיקה מלאה. דורש אישור מפורש עם ה-slug — כדי שלחיצה בטעות לא תמחק בית כנסת.

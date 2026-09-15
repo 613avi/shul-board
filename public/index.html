@@ -123,8 +123,9 @@
   <section id="contact" class="contact">
     <h2>יצירת קשר</h2>
     <p class="lead">
-      שאלה, תקלה, רעיון לשיפור או בקשה לעזרה בהקמת הצג — כתבו כאן ונחזור אליכם.
-      אפשר גם בלי חשבון.
+      שאלה, תקלה, רעיון לשיפור או בקשה לעזרה בהקמת הצג — כתבו כאן ונחזור אליכם במייל.
+      אפשר גם בלי חשבון. שכחתם את סיסמת בית הכנסת? כתבו כאן, ונוודא את זהותכם
+      מול פרטי הקשר שהשארתם בהרשמה.
     </p>
 
     <div class="form-card contact-form">
@@ -134,8 +135,18 @@
           <input type="text" id="c-name" placeholder="לדוגמה: משה כהן" autocomplete="name">
         </div>
         <div class="field">
-          <label for="c-contact">טלפון או מייל לחזרה</label>
-          <input type="text" id="c-contact" placeholder="050-0000000" autocomplete="tel">
+          <label for="c-email">מייל לחזרה</label>
+          <input type="email" id="c-email" placeholder="you@example.com" dir="ltr" autocomplete="email" required>
+        </div>
+      </div>
+      <div class="c-row">
+        <div class="field">
+          <label for="c-contact">טלפון (רשות)</label>
+          <input type="tel" id="c-contact" placeholder="050-0000000" autocomplete="tel">
+        </div>
+        <div class="field">
+          <label for="c-shul">כתובת בית הכנסת (רשות)</label>
+          <input type="text" id="c-shul" placeholder="beit-yaakov" dir="ltr" autocomplete="off">
         </div>
       </div>
       <div class="c-row">
@@ -147,10 +158,6 @@
             <option value="idea">רעיון לשיפור</option>
             <option value="other">אחר</option>
           </select>
-        </div>
-        <div class="field">
-          <label for="c-shul">כתובת בית הכנסת (רשות)</label>
-          <input type="text" id="c-shul" placeholder="beit-yaakov" dir="ltr" autocomplete="off">
         </div>
       </div>
       <div class="field">

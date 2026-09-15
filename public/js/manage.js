@@ -186,7 +186,11 @@
           ${m.shul ? `<a class="mono" href="/s/${esc(m.shul)}" target="_blank">/s/${esc(m.shul)}</a>` : ''}
           <span class="when">${new Date(m.created_at).toLocaleString('he-IL')}</span>
         </div>
-        <div class="who">${esc(m.contact || '—')}</div>
+        <div class="who">
+          ${m.email ? `<a href="mailto:${esc(m.email)}" class="mono">${esc(m.email)}</a>` : ''}
+          ${m.contact ? `<span class="mono">${esc(m.contact)}</span>` : ''}
+          ${!m.email && !m.contact ? '—' : ''}
+        </div>
         <div class="body">${esc(m.message)}</div>
         <div class="mg-actions">
           ${m.status !== 'done' ? '<button class="btn btn-ghost" data-act="done">סימון כטופל</button>' : '<button class="btn btn-ghost" data-act="new">החזרה לחדשות</button>'}
@@ -243,6 +247,7 @@
         <td>
           <div class="mg-actions">
             <button class="btn btn-ghost" data-act="toggle">${s.status === 'active' ? 'השהיה' : 'הפעלה'}</button>
+            <button class="btn btn-ghost" data-act="password">סיסמה</button>
             <button class="btn btn-ghost btn-danger" data-act="delete">מחיקה</button>
           </div>
         </td>
@@ -252,7 +257,9 @@
       btn.addEventListener('click', () => {
         const id = btn.closest('tr').dataset.id;
         const shul = data.shuls.find(s => s.id === id);
-        btn.dataset.act === 'toggle' ? toggleShul(shul) : deleteShul(shul);
+        if (btn.dataset.act === 'toggle') toggleShul(shul);
+        else if (btn.dataset.act === 'password') resetPassword(shul);
+        else deleteShul(shul);
       });
     });
   }
@@ -302,6 +309,55 @@
       toast(next === 'suspended' ? 'בית הכנסת הושהה' : 'בית הכנסת הופעל', 'ok');
       refresh();
     } catch (e) { toast(e.message, 'bad'); }
+  }
+
+  // ---------- איפוס סיסמה ----------
+  // הסיסמה היא גיבוב ואי אפשר לשחזר אותה, רק לקבוע חדשה. לכן קודם מוודאים
+  // שמי שהתקשר הוא באמת הגבאי — מול פרטי הקשר שנרשמו בהרשמה.
+  async function resetPassword(shul) {
+    const known = shul.contact
+      ? `פרטי הקשר שנרשמו בהרשמה: ${shul.contact}`
+      : 'לא נרשמו פרטי קשר בהרשמה — ודאו את זהות הפונה בדרך אחרת (למשל מול גבאי אחר שרשום).';
+    const typed = prompt(
+      `איפוס סיסמה ל"${shul.name}".\n\n` +
+      `${known}\n\n` +
+      'הסיסמה הנוכחית תפסיק לעבוד לכל הגבאים, ובמקומה תיווצר סיסמה חדשה שתוצג כאן פעם אחת.\n\n' +
+      `להמשך הקלידו את הכתובת: ${shul.slug}`
+    );
+    if (typed === null) return;
+    if (typed.trim() !== shul.slug) return toast('הכתובת לא תואמת — האיפוס בוטל', 'bad');
+
+    try {
+      const res = await call(`/api/admin/shul/${shul.id}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ confirm: shul.slug }),
+      });
+      showNewPassword(shul, res.password);
+    } catch (e) { toast(e.message, 'bad'); }
+  }
+
+  // הסיסמה מוצגת בלוח עצמו ולא ב-alert, כדי שאפשר יהיה להקריא אותה בטלפון
+  // בנחת ולהעתיק אותה. היא לא נשמרת בשום מקום — סגירת הפאנל מוחקת אותה.
+  function showNewPassword(shul, password) {
+    const box = $('mg-newpass');
+    box.innerHTML = `
+      <div class="mg-newpass-head">סיסמה חדשה ל"${esc(shul.name)}"</div>
+      <div class="mg-newpass-row">
+        <code class="mg-newpass-code">${esc(password)}</code>
+        <button class="btn btn-ghost btn-sm" id="mg-newpass-copy">העתקה</button>
+        <button class="btn btn-ghost btn-sm" id="mg-newpass-close">סגירה</button>
+      </div>
+      <div class="mg-newpass-note">
+        מסרו אותה לגבאי, והמליצו לו לשנות אותה מיד בלשונית "חשבון" בניהול.
+        הסיסמה מוצגת פעם אחת בלבד — אחרי סגירה אין דרך לראות אותה שוב, רק לאפס מחדש.
+      </div>`;
+    box.hidden = false;
+    $('mg-newpass-copy').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(password); toast('הועתק', 'ok'); }
+      catch { toast('ההעתקה נחסמה — סמנו והעתיקו ידנית', 'bad'); }
+    });
+    $('mg-newpass-close').addEventListener('click', () => { box.hidden = true; box.innerHTML = ''; });
   }
 
   async function deleteShul(shul) {

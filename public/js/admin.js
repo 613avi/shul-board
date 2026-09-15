@@ -1389,6 +1389,36 @@
 
     const offBtn = qs('#off-export');
     if (offBtn) offBtn.addEventListener('click', exportOffline);
+
+    const pwBtn = qs('#pw-save');
+    if (pwBtn) pwBtn.addEventListener('click', changePassword);
+  }
+
+  // ---------- שינוי סיסמת בית הכנסת ----------
+  async function changePassword() {
+    const btn = qs('#pw-save');
+    const msg = qs('#pw-msg');
+    const current = qs('#pw-current').value;
+    const next = qs('#pw-next').value;
+    const fail = (t) => { msg.textContent = t; msg.className = 'small bad'; };
+
+    if (!current) return fail('נא למלא את הסיסמה הנוכחית');
+    if (next.length < 6) return fail('הסיסמה החדשה חייבת להיות באורך 6 תווים לפחות');
+
+    btn.disabled = true;
+    msg.textContent = 'משנה…';
+    msg.className = 'small';
+    try {
+      await Api.changePassword({ current, next });
+      qs('#pw-current').value = '';
+      qs('#pw-next').value = '';
+      msg.textContent = 'הסיסמה שונתה. גבאים אחרים יצטרכו את החדשה בכניסה הבאה.';
+      msg.className = 'small ok';
+    } catch (e) {
+      fail(e.message || 'השינוי נכשל');
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   // ---------- ייצוא לקובץ אופליין ----------

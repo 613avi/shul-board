@@ -866,6 +866,28 @@
                 <ul id="gabbaim-list" class="plain-list"></ul>
             </div>
             <div class="panel">
+                <h2>סיסמת בית הכנסת</h2>
+                <p class="desc">
+                    הסיסמה משותפת לכל הגבאים. שינוי שלה מנתק את כולם — מי שירצה להיכנס
+                    שוב יצטרך את החדשה. כך גבאי שפרש מפסיק לגשת, וכך סיסמה זמנית שקיבלתם
+                    בטלפון לא נשארת לתמיד.
+                </p>
+                <div class="c-row">
+                    <div class="field">
+                        <label for="pw-current">הסיסמה הנוכחית</label>
+                        <input type="password" id="pw-current" autocomplete="current-password">
+                    </div>
+                    <div class="field">
+                        <label for="pw-next">סיסמה חדשה</label>
+                        <input type="password" id="pw-next" autocomplete="new-password" placeholder="6 תווים לפחות">
+                    </div>
+                </div>
+                <p>
+                    <button class="btn btn-primary" id="pw-save" type="button">שינוי הסיסמה</button>
+                    <span class="small" id="pw-msg"></span>
+                </p>
+            </div>
+            <div class="panel">
                 <h2>פעילות אחרונה</h2>
                 <ul id="activity-list" class="plain-list small"></ul>
             </div>

@@ -9,7 +9,7 @@ export async function onRequestGet({ request, env }) {
 
   await ensureContactTable(env);
   const rows = await env.DB.prepare(
-    `SELECT id, name, contact, shul, topic, message, status, created_at
+    `SELECT id, name, email, contact, shul, topic, message, status, created_at
      FROM contact ORDER BY (status = 'new') DESC, created_at DESC LIMIT 200`
   ).all();
 

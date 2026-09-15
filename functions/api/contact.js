@@ -1,5 +1,5 @@
 import { json, bad, uuid, now, normalizeSlug } from '../_shared.js';
-import { ensureContactTable, clean, cleanText, TOPICS, MAX_PER_IP, RL_WINDOW, MAX_ROWS } from '../_contact.js';
+import { ensureContactTable, clean, cleanText, isEmail, TOPICS, MAX_PER_IP, RL_WINDOW, MAX_ROWS } from '../_contact.js';
 
 // שליחת פנייה מדף הבית. ציבורי, בלי התחברות — ולכן מוגבל בקצב ובגודל.
 export async function onRequestPost(ctx) {
@@ -19,6 +19,7 @@ export async function onRequestPost(ctx) {
   if (clean(body.website, 40)) return json({ ok: true });
 
   const name = clean(body.name, 60);
+  const email = clean(body.email, 120);
   const contact = clean(body.contact, 80);
   const shul = normalizeSlug(body.shul) || null;
   const topic = Object.hasOwn(TOPICS, body.topic) ? body.topic : 'other';
@@ -26,7 +27,9 @@ export async function onRequestPost(ctx) {
 
   if (name.length < 2) return bad('נא למלא שם');
   if (message.length < 5) return bad('נא לכתוב את תוכן הפנייה');
-  if (!contact) return bad('נא להשאיר טלפון או מייל, אחרת לא נוכל לחזור אליכם');
+  // המייל חובה: זו הדרך היחידה לחזור לפונה בלי להסתמך על שיחת טלפון,
+  // והוא גם מה שמאפשר לזהות גבאי ששכח את סיסמת בית הכנסת.
+  if (!isEmail(email)) return bad('נא למלא כתובת מייל תקינה — לשם נחזור אליכם');
 
   const total = await env.DB.prepare('SELECT COUNT(*) AS n FROM contact').first().catch(() => null);
   if (Number(total?.n) >= MAX_ROWS) return bad('תיבת הפניות מלאה כרגע. נסו שוב מאוחר יותר', 503);
@@ -35,10 +38,10 @@ export async function onRequestPost(ctx) {
   const id = uuid();
   await ensureContactTable(env);
   await env.DB.prepare(
-    `INSERT INTO contact (id, name, contact, shul, topic, message, status, ip, user_agent, created_at)
-     VALUES (?,?,?,?,?,?,'new',?,?,?)`
+    `INSERT INTO contact (id, name, email, contact, shul, topic, message, status, ip, user_agent, created_at)
+     VALUES (?,?,?,?,?,?,?,'new',?,?,?)`
   ).bind(
-    id, name, contact, shul, topic, message, ip,
+    id, name, email, contact || null, shul, topic, message, ip,
     clean(request.headers.get('user-agent'), 200), t
   ).run();
 
@@ -50,9 +53,9 @@ export async function onRequestPost(ctx) {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        source: 'shul-board', id, name, contact, shul,
+        source: 'shul-board', id, name, email, contact, shul,
         topic: TOPICS[topic], message, created_at: t,
-        text: `פנייה חדשה ב-ShulBoard\n${name} (${contact})${shul ? ` · ${shul}` : ''}\n${TOPICS[topic]}\n\n${message}`,
+        text: `פנייה חדשה ב-ShulBoard\n${name} (${email}${contact ? ` · ${contact}` : ''})${shul ? ` · ${shul}` : ''}\n${TOPICS[topic]}\n\n${message}`,
       }),
     }).catch(() => {});
     if (typeof ctx.waitUntil === 'function') ctx.waitUntil(send);
