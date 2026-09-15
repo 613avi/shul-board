@@ -207,6 +207,7 @@
     set('#hdr-shul', me.shul.name);
     set('#hdr-gabbai', me.gabbai);
     fillRecovery();
+    renderGoogleLinks();
     const disp = qs('#link-display');
     if (disp) disp.href = me.urls.display;
     const dispFull = qs('#link-display-full');
@@ -1396,6 +1397,109 @@
 
     const recBtn = qs('#rec-save');
     if (recBtn) recBtn.addEventListener('click', saveRecovery);
+  }
+
+  // ---------- כניסה ושיוך עם Google ----------
+  // התכונה כבויה בשרת בלי הסודות של Google, ואז הכפתורים פשוט לא מוצגים.
+  const GOOGLE_MSG = {
+    in: ['נכנסתם עם Google.', 'ok'],
+    linked: ['החשבון שויך. מעכשיו אפשר להיכנס איתו בלחיצה.', 'ok'],
+    nolink: ['החשבון הזה עדיין לא משויך לבית כנסת. היכנסו עם הסיסמה ושייכו אותו בלשונית "חשבון".', 'bad'],
+    unverified: ['המייל בחשבון Google לא מאומת, ולכן אי אפשר להשתמש בו לזיהוי.', 'bad'],
+    cancelled: ['הכניסה עם Google בוטלה.', ''],
+    expired: ['הבקשה פגה. נסו שוב.', 'bad'],
+    failed: ['הכניסה עם Google נכשלה. נסו שוב או היכנסו עם הסיסמה.', 'bad'],
+    off: ['כניסה עם Google לא מופעלת בשרת הזה.', 'bad'],
+  };
+
+  async function initGoogle() {
+    const params = new URLSearchParams(location.search);
+
+    // הודעה מהחזרה של Google, ואז ניקוי הכתובת כדי שרענון לא יחזור עליה
+    const code = params.get('google');
+    if (code && GOOGLE_MSG[code]) {
+      const [text, kind] = GOOGLE_MSG[code];
+      const box = qs('#login-msg');
+      box.textContent = text;
+      box.className = `hint ${kind}`;
+    }
+    if (code || params.get('pick')) {
+      const clean = new URL(location.href);
+      clean.searchParams.delete('google');
+      history.replaceState(null, '', clean.pathname + clean.search + clean.hash);
+    }
+
+    const pick = params.get('pick');
+    if (pick) { await showPick(pick); return; }
+
+    try {
+      const cfg = await Api.config();
+      if (!cfg.google) return;
+      qs('#google-login').hidden = false;
+      qs('#google-login-wrap').hidden = false;
+      qs('#google-panel').hidden = false;
+    } catch { /* בלי התשובה פשוט לא מציגים את הכפתורים */ }
+  }
+
+  // בחירת בית כנסת, כשאותו חשבון משויך ליותר מאחד
+  async function showPick(token) {
+    const view = qs('#pick-view');
+    const list = qs('#pick-list');
+    const msg = qs('#pick-msg');
+    try {
+      const res = await Api.googlePickList(token);
+      qs('#login-view').style.display = 'none';
+      view.style.display = '';
+      list.innerHTML = '';
+      for (const shul of res.shuls) {
+        const btn = el('button', { class: 'btn btn-primary', type: 'button' }, shul.name);
+        btn.addEventListener('click', async () => {
+          msg.textContent = 'נכנס…';
+          msg.className = 'hint';
+          try {
+            await Api.googlePick({ token, shulId: shul.id });
+            location.href = '/admin.html';
+          } catch (e) {
+            msg.textContent = e.message || 'הכניסה נכשלה';
+            msg.className = 'hint bad';
+          }
+        });
+        list.appendChild(btn);
+      }
+    } catch (e) {
+      msg.textContent = e.message || 'הבחירה פגה';
+      msg.className = 'hint bad';
+      qs('#login-view').style.display = '';
+      view.style.display = 'none';
+      qs('#login-msg').textContent = e.message || 'הבחירה פגה. היכנסו שוב.';
+      qs('#login-msg').className = 'hint bad';
+    }
+  }
+
+  async function renderGoogleLinks() {
+    const box = qs('#google-links');
+    if (!box) return;
+    let res;
+    try { res = await Api.googleLinks(); } catch { return; }
+    if (!res.enabled) return;
+    qs('#google-panel').hidden = false;
+    box.innerHTML = '';
+    for (const link of res.links) {
+      const li = el('li', {},
+        el('span', { class: 'g-mail' }, link.email || '—'),
+        el('span', { class: 'small' }, `נכנס בשם ${link.gabbai}`));
+      const rm = el('button', { class: 'btn btn-ghost btn-sm btn-danger', type: 'button' }, 'הסרה');
+      rm.addEventListener('click', async () => {
+        if (!confirm(`להסיר את השיוך של ${link.email || 'החשבון'}?\n\nמי שמשתמש בו יצטרך להיכנס עם סיסמת בית הכנסת.`)) return;
+        try { await Api.googleUnlink(link.id); await renderGoogleLinks(); }
+        catch (e) { qs('#google-msg').textContent = e.message; qs('#google-msg').className = 'small bad'; }
+      });
+      li.appendChild(rm);
+      box.appendChild(li);
+    }
+    if (!res.links.length) {
+      box.innerHTML = '<li class="small">עדיין לא שויך אף חשבון.</li>';
+    }
   }
 
   // ---------- פרטי שחזור ----------
@@ -3159,6 +3263,8 @@
     qs('#login-slug').value = new URLSearchParams(location.search).get('shul')
       || localStorage.getItem(LS_SLUG) || '';
     qs('#login-gabbai').value = localStorage.getItem(LS_GABBAI) || '';
+
+    initGoogle();
 
     // אם כבר יש סשן פעיל — נכנסים ישר, בלי להקליד שוב
     enterApp().catch(() => {});

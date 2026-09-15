@@ -400,3 +400,14 @@
 .tach-rules label:hover { background: #f4f6fa; }
 .tach-rules input { margin: 0; }
 .tach-rules label.off { color: #9aa3b2; }
+
+/* כניסה עם Google */
+.g-btn { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.g-btn svg { width: 18px; height: 18px; flex: 0 0 auto; }
+#google-login { width: 100%; justify-content: center; }
+.g-or { display: flex; align-items: center; gap: 12px; margin: 14px 0 10px; color: var(--muted, #888); font-size: 13px; }
+.g-or::before, .g-or::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: .25; }
+#google-links:empty { display: none; }
+#google-links li { display: flex; align-items: center; gap: 14px; justify-content: space-between; padding: 8px 0; }
+#google-links .g-mail { direction: ltr; unicode-bidi: plaintext; }
+#pick-list .btn { width: 100%; margin-bottom: 8px; justify-content: center; }

@@ -51,6 +51,13 @@ window.Api = (() => {
     checkReset: (token) => call(`/api/reset-confirm?t=${encodeURIComponent(token)}`),
     confirmReset: (payload) => call('/api/reset-confirm', { method: 'POST', body: j(payload) }),
 
+    // ---- תכונות אופציונליות ו-Google ----
+    config: () => call('/api/config'),
+    googleLinks: () => call('/api/auth/google/links'),
+    googleUnlink: (id) => call(`/api/auth/google/links?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    googlePickList: (token) => call(`/api/auth/google/pick?t=${encodeURIComponent(token)}`),
+    googlePick: (payload) => call('/api/auth/google/pick', { method: 'POST', body: j(payload) }),
+
     // ---- הגדרות ----
     loadAll: () => call('/api/data'),
     saveSection: (section, data) =>

@@ -122,6 +122,34 @@ schema.sql               סכימת D1
 - העמודה `shuls.email` נוספת ב-`ensureShulEmail()` (`ALTER TABLE` עטוף ב-catch), נקראת
   רק מהמסלולים שנוגעים בה. `shuls.contact` הפך לטלפון בלבד.
 
+**כניסה עם Google** (`_google.js`, `api/auth/google/*`, `api/config.js`) — הדרך המומלצת:
+חשבון משויך נותן זהות מאומתת בלי סיסמה לזכור, ומייתר את שחזור הסיסמה לגמרי.
+
+- זרימת **Authorization Code**: הדפדפן חוזר עם `code`, והשרת מחליף אותו ל-`id_token`
+  מול Google ישירות (TLS + `client_secret`). כיוון שהאסימון מגיע בערוץ הישיר הזה ולא
+  דרך הדפדפן, אין צורך לאמת את חתימת ה-JWT — כך גם מתועד אצל Google. `aud` כן נבדק,
+  כהגנה זולה מפני טעות הגדרה.
+- `state` נשמר ב-KV ל-10 דקות ו**נמחק ברגע שנקרא**: אותו state לא יכול לשמש פעמיים.
+- **שיוך** דורש סשן קיים — אחרת כל אחד היה משייך את עצמו לכל בית כנסת. טבלת
+  `google_links` (יצירה עצלה) מחזיקה `sub` (מזהה Google, יציב גם אם המייל משתנה),
+  מייל, ושם הגבאי שאיתו ייכנס בעל החשבון. `UNIQUE (shul_id, sub)` עם `ON CONFLICT
+  DO UPDATE`, כך ששיוך חוזר מעדכן ולא משכפל.
+- **מייל לא מאומת** (`email_verified !== true`) נדחה: הוא לא מזהה אף אחד.
+- גבאי המשויך ל**כמה בתי כנסת** לא מנוחש: ה-callback מייצר אסימון בחירה קצר
+  (חמש דקות, חד-פעמי) שמכיל בדיוק את בתי הכנסת שלו, והבחירה נעשית ב-`admin.html`.
+  `POST /api/auth/google/pick` מוודא שה-`shulId` נמצא ברשימה שבאסימון.
+- הסרת שיוך מותנית גם ב-`shul_id`, כך שגבאי לא יכול להסיר שיוך של בית כנסת אחר
+  גם אם ניחש מזהה.
+- `GET /api/config` (ציבורי) מחזיר אילו תכונות אופציונליות דלוקות, כדי שהדפדפן ידע
+  אם להציג את כפתור Google עוד לפני שיש סשן.
+
+```bash
+# Google Cloud → Credentials → OAuth client (Web)
+# Authorized redirect URI: https://<הדומיין>/api/auth/google/callback
+wrangler pages secret put GOOGLE_CLIENT_ID     --project-name shul-board
+wrangler pages secret put GOOGLE_CLIENT_SECRET --project-name shul-board
+```
+
 **ספק המייל** (`_mail.js`): ל-Workers אין שליחת מייל מובנית ואין SMTP, ולכן שולחים דרך
 API. נתמכים Brevo ו-Resend, והבחירה לפי הסוד שהוגדר:
 
