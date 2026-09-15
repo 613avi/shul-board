@@ -150,17 +150,30 @@ wrangler pages secret put GOOGLE_CLIENT_ID     --project-name shul-board
 wrangler pages secret put GOOGLE_CLIENT_SECRET --project-name shul-board
 ```
 
-**ספק המייל** (`_mail.js`): ל-Workers אין שליחת מייל מובנית ואין SMTP, ולכן שולחים דרך
-API. נתמכים Brevo ו-Resend, והבחירה לפי הסוד שהוגדר:
+**ספק המייל** (`_mail.js`): ל-Workers אין שליחת מייל מובנית ואין SMTP — פורט 25 חסום,
+וגם לקוח SMTP מעל `cloudflare:sockets` היה נתקל בחסימות של Google מול כתובות IP של
+דאטה-סנטר. לכן שולחים דרך HTTP. שלושה ספקים, לפי הסודות שהוגדרו:
 
-```bash
-wrangler pages secret put BREVO_API_KEY --project-name shul-board   # או RESEND_API_KEY
-wrangler pages secret put MAIL_FROM     --project-name shul-board   # (רשות) MAIL_FROM_NAME
-```
+| | מתי | מגבלה |
+|---|---|---|
+| **Apps Script** (`GAS_MAIL_URL` + `GAS_MAIL_SECRET`) | כשאין דומיין — מומלץ | 100 נמענים ליום |
+| **Brevo** (`BREVO_API_KEY` + `MAIL_FROM`) | חלופה בלי דומיין | 300 ליום, וחלק ינחת בספאם |
+| **Resend** (`RESEND_API_KEY` + `MAIL_FROM`) | כשיש דומיין מאומת | — |
 
-Brevo מאפשר לאמת כתובת שולח בודדת (למשל Gmail) בלי דומיין משלכם, ולכן הוא הבחירה
-כשעוד אין דומיין; Resend נעים יותר אבל דורש דומיין מאומת לשליחה לכל אחד. בלי הסודות
-האלה `POST /api/reset` מחזיר 503 עם הפניה לטופס יצירת הקשר, ושום מסלול אחר לא מושפע.
+**למה Apps Script ראשון**: ספק חיצוני ששולח "מטעם" כתובת `@gmail.com` חותם SPF/DKIM
+על הדומיין שלו, אין התאמת DMARC, וחלק מהמיילים נוחתים בספאם. הממסר
+(`tools/gmail-relay.gs`) רץ **בתוך** חשבון Google, ולכן המייל יוצא באמת מהתיבה —
+התאמה מלאה, בלי דומיין ובלי ספק חיצוני. הוראות ההתקנה בראש הקובץ.
+
+שתי דקויות בצד שלנו (`sendViaAppsScript`):
+
+- Web App של Apps Script עונה **302** אל `script.googleusercontent.com`, ושם הגוף
+  האמיתי. `fetch` עוקב לבד, אז אין מה לעשות — רק לא להיבהל.
+- הסקריפט מחזיר **200 גם כששליחה נכשלה אצלו**, ולכן הסימן להצלחה הוא גוף התשובה
+  (`ok`) ולא קוד הסטטוס. בלי הבדיקה הזאת כישלון היה נראה כהצלחה.
+
+בלי אף אחד מהסודות `POST /api/reset` מחזיר 503 עם הפניה לטופס יצירת הקשר, ושום
+מסלול אחר לא מושפע.
 
 הסיסמה שנוצרת באיפוס היא 10 תווים מאלפבית בלי `0/O` ובלי `1/l/i`, עם מקף באמצע —
 היא נמסרת בהכתבה בטלפון. הדגימה עם דחייה (`limit = ⌊256/31⌋×31`) כדי שלא תהיה הטיה
