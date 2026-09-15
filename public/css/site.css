@@ -227,3 +227,8 @@
 .media-meta strong { word-break: break-word; font-size: 14px; }
 .media-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
 .btn-danger { color: var(--sb-red) !important; }
+
+/* דף שחזור הסיסמה */
+.reset-wrap { max-width: 480px; margin: 40px auto 60px; }
+.reset-wrap .form-card { margin: 0; }
+.reset-wrap h2 { margin: 0 0 8px; }

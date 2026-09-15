@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>שחזור סיסמה — ShulBoard</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%8D%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body class="site-body">
+
+<div class="site-wrap">
+
+  <nav class="site-nav">
+    <a href="/" class="site-logo">ShulBoard</a>
+    <div class="links">
+      <a class="btn btn-ghost btn-sm" href="/admin.html">כניסת גבאים</a>
+      <a class="btn btn-ghost btn-sm" href="/#contact">יצירת קשר</a>
+    </div>
+  </nav>
+
+<main class="reset-wrap">
+
+  <!-- שלב א׳: בקשת קישור -->
+  <section class="form-card" id="rs-request">
+    <h2>שכחתם את הסיסמה?</h2>
+    <p class="desc">
+      מלאו את כתובת בית הכנסת, ונשלח קישור לקביעת סיסמה חדשה למייל שרשום אצלכם
+      לשחזור. הקישור תקף לשעה אחת.
+    </p>
+    <div class="field">
+      <label for="rs-slug">כתובת בית הכנסת</label>
+      <input type="text" id="rs-slug" placeholder="beit-yaakov" dir="ltr" autocomplete="off">
+      <div class="desc" style="margin:6px 0 0;font-size:13px;">זה מה שמופיע בכתובת הצג: shul-board.pages.dev/s/<b>beit-yaakov</b></div>
+    </div>
+    <button class="btn btn-primary" id="rs-send" style="width:100%;margin-top:8px;">שליחת קישור</button>
+    <div class="msg" id="rs-msg"></div>
+    <p class="desc" style="margin-top:16px;font-size:13.5px;">
+      לא רשמתם מייל לשחזור? <a href="/#contact">כתבו לנו</a> ונזהה אתכם מול פרטי הקשר
+      שהשארתם בהרשמה. אחרי שתיכנסו, אפשר להוסיף מייל בלשונית "חשבון" בניהול.
+    </p>
+  </section>
+
+  <!-- שלב ב׳: קביעת סיסמה חדשה (כשמגיעים מהקישור שבמייל) -->
+  <section class="form-card" id="rs-set" hidden>
+    <h2>סיסמה חדשה</h2>
+    <p class="desc">בית הכנסת: <b id="rs-slug-name" dir="ltr"></b></p>
+    <div class="field">
+      <label for="rs-pass">הסיסמה החדשה</label>
+      <input type="password" id="rs-pass" autocomplete="new-password" placeholder="6 תווים לפחות">
+    </div>
+    <div class="field">
+      <label for="rs-pass2">שוב, לוודא</label>
+      <input type="password" id="rs-pass2" autocomplete="new-password">
+    </div>
+    <button class="btn btn-primary" id="rs-save" style="width:100%;margin-top:8px;">קביעת הסיסמה</button>
+    <div class="msg" id="rs-set-msg"></div>
+    <p class="desc" style="margin-top:16px;font-size:13.5px;">
+      הסיסמה משותפת לכל הגבאים בבית הכנסת — מי שירצה להיכנס אחרי השינוי יצטרך את החדשה.
+    </p>
+  </section>
+
+  <!-- הקישור פג או כבר שימש -->
+  <section class="form-card" id="rs-dead" hidden>
+    <h2>הקישור כבר לא בתוקף</h2>
+    <p class="desc" id="rs-dead-msg">קישור שחזור תקף לשעה אחת ולשימוש אחד בלבד.</p>
+    <a class="btn btn-primary" href="/reset" style="width:100%;">בקשת קישור חדש</a>
+  </section>
+
+  <!-- הצליח -->
+  <section class="form-card" id="rs-done" hidden>
+    <h2>הסיסמה נקבעה</h2>
+    <p class="desc">אפשר להיכנס לניהול עם הסיסמה החדשה.</p>
+    <a class="btn btn-primary" href="/admin.html" style="width:100%;">מעבר לניהול</a>
+  </section>
+
+</main>
+
+  <footer class="site-footer">
+    <a href="/">ShulBoard</a> · <a href="/#contact">יצירת קשר</a>
+  </footer>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/reset.js"></script>
+</body>
+</html>

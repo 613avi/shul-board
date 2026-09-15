@@ -101,6 +101,15 @@ export const clearCookie = () =>
   `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 
 // שומר סף לנתיבי ניהול. מחזיר את הסשן או Response של שגיאה.
+// העמודה shuls.email נוספה אחרי שכבר היו בתי כנסת. ההוספה עצלה, כמו טבלת הפניות:
+// SQLite זורק שגיאה אם היא כבר קיימת, וזה המצב הרגיל. נקראת רק מהמסלולים שנוגעים בה.
+export async function ensureShulEmail(env) {
+  await env.DB.prepare('ALTER TABLE shuls ADD COLUMN email TEXT').run().catch(() => {});
+}
+
+// ולידציה מכוונת-סלחנות, זהה לזו שבטופס הפניות (functions/_contact.js)
+export const isEmail = (v) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(String(v || '').trim());
+
 export async function requireAuth(request, env) {
   const session = await readSession(request, env);
   if (!session) return { error: bad('נדרשת התחברות', 401) };

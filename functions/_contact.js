@@ -35,7 +35,7 @@ export async function ensureContactTable(env) {
 
 // ולידציה מכוונת-סלחנות: תופסת שגיאות הקלדה נפוצות בלי לפסול כתובות חוקיות
 // מוזרות. מה שבאמת מוודא שהכתובת אמיתית זה שהתשובה מגיעה.
-export const isEmail = (v) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(String(v || '').trim());
+export { isEmail } from './_shared.js';
 
 export const TOPICS = {
   help: 'עזרה בהקמה',

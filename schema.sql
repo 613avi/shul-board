@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS shuls (
   name          TEXT NOT NULL,               -- "בית הכנסת המרכזי"
   pass_hash     TEXT NOT NULL,               -- PBKDF2-SHA256 של סיסמת הגבאים המשותפת
   pass_salt     TEXT NOT NULL,
-  contact       TEXT,                        -- טלפון/מייל לשחזור, אופציונלי
+  contact       TEXT,                        -- טלפון לשחזור, אופציונלי
+  email         TEXT,                        -- מייל לשחזור סיסמה עצמי, אופציונלי
   status        TEXT NOT NULL DEFAULT 'active',  -- active | suspended
   created_at    INTEGER NOT NULL,
   updated_at    INTEGER NOT NULL

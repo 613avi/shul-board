@@ -46,6 +46,10 @@ window.Api = (() => {
     screens: () => call('/api/screens'),   // מסכים בלייב
     contact: (payload) => call('/api/contact', { method: 'POST', body: j(payload) }),
     changePassword: (payload) => call('/api/password', { method: 'PUT', body: j(payload) }),
+    saveRecovery: (payload) => call('/api/shul', { method: 'PUT', body: j(payload) }),
+    requestReset: (slug) => call('/api/reset', { method: 'POST', body: j({ slug }) }),
+    checkReset: (token) => call(`/api/reset-confirm?t=${encodeURIComponent(token)}`),
+    confirmReset: (payload) => call('/api/reset-confirm', { method: 'POST', body: j(payload) }),
 
     // ---- הגדרות ----
     loadAll: () => call('/api/data'),

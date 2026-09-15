@@ -206,6 +206,7 @@
     const set = (sel, text) => { const e = qs(sel); if (e) e.textContent = text; };
     set('#hdr-shul', me.shul.name);
     set('#hdr-gabbai', me.gabbai);
+    fillRecovery();
     const disp = qs('#link-display');
     if (disp) disp.href = me.urls.display;
     const dispFull = qs('#link-display-full');
@@ -1392,6 +1393,49 @@
 
     const pwBtn = qs('#pw-save');
     if (pwBtn) pwBtn.addEventListener('click', changePassword);
+
+    const recBtn = qs('#rec-save');
+    if (recBtn) recBtn.addEventListener('click', saveRecovery);
+  }
+
+  // ---------- פרטי שחזור ----------
+  function fillRecovery() {
+    const shul = state.me?.shul || {};
+    const email = qs('#rec-email');
+    const contact = qs('#rec-contact');
+    if (email) email.value = shul.email || '';
+    if (contact) contact.value = shul.contact || '';
+  }
+
+  async function saveRecovery() {
+    const btn = qs('#rec-save');
+    const msg = qs('#rec-msg');
+    const email = qs('#rec-email').value.trim();
+    const contact = qs('#rec-contact').value.trim();
+
+    // אותה בדיקה כמו בשרת (isEmail ב-functions/_shared.js)
+    if (email && !/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(email)) {
+      msg.textContent = 'כתובת המייל לא תקינה';
+      msg.className = 'small bad';
+      return;
+    }
+
+    btn.disabled = true;
+    msg.textContent = 'שומר…';
+    msg.className = 'small';
+    try {
+      const res = await Api.saveRecovery({ email, contact });
+      if (state.me?.shul) { state.me.shul.email = res.email; state.me.shul.contact = res.contact; }
+      msg.textContent = res.email
+        ? 'נשמר. מעכשיו אפשר לאפס סיסמה לבד מ"שכחתם את הסיסמה?" במסך הכניסה.'
+        : 'נשמר. בלי מייל, שחזור סיסמה מצריך פנייה אלינו.';
+      msg.className = 'small ok';
+    } catch (e) {
+      msg.textContent = e.message || 'השמירה נכשלה';
+      msg.className = 'small bad';
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   // ---------- שינוי סיסמת בית הכנסת ----------

@@ -37,6 +37,7 @@
         </div>
         <button class="btn btn-primary" id="login-btn" style="width:100%;margin-top:0.5rem;">כניסה</button>
         <div class="hint" id="login-msg"></div>
+        <div class="hint"><a href="/reset">שכחתם את הסיסמה?</a></div>
         <div class="hint">אין לכם עדיין בית כנסת במערכת? <a href="/#register">הרשמה — לוקח דקה</a></div>
     </div>
 </div>
@@ -864,6 +865,28 @@
                 <h2>גבאים מורשים</h2>
                 <p class="desc">כל מי שנכנס עם סיסמת בית הכנסת נרשם כאן אוטומטית.</p>
                 <ul id="gabbaim-list" class="plain-list"></ul>
+            </div>
+            <div class="panel">
+                <h2>פרטי שחזור</h2>
+                <p class="desc">
+                    אם תשכחו את הסיסמה, המייל כאן הוא מה שיאפשר לכם לאפס אותה לבד —
+                    נשלח אליו קישור לקביעת סיסמה חדשה. בלי מייל, שחזור מצריך פנייה אלינו
+                    וזיהוי מול הפרטים שהשארתם בהרשמה. הפרטים האלה לא מוצגים על הצג.
+                </p>
+                <div class="c-row">
+                    <div class="field">
+                        <label for="rec-email">מייל לשחזור</label>
+                        <input type="email" id="rec-email" dir="ltr" autocomplete="email" placeholder="you@example.com">
+                    </div>
+                    <div class="field">
+                        <label for="rec-contact">טלפון (רשות)</label>
+                        <input type="tel" id="rec-contact" autocomplete="tel" placeholder="050-0000000">
+                    </div>
+                </div>
+                <p>
+                    <button class="btn btn-primary" id="rec-save" type="button">שמירת פרטי השחזור</button>
+                    <span class="small" id="rec-msg"></span>
+                </p>
             </div>
             <div class="panel">
                 <h2>סיסמת בית הכנסת</h2>
