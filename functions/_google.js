@@ -22,6 +22,7 @@ export const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 export const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 export const STATE_TTL = 10 * 60;      // הזמן שיש לגבאי להשלים את המסך של Google
 export const PICK_TTL = 5 * 60;        // הזמן לבחור בית כנסת כששייכים לכמה
+export const SIGNUP_TTL = 20 * 60;     // הזמן למלא את פרטי בית הכנסת אחרי אימות Google
 
 export const googleConfigured = (env) => Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
@@ -79,6 +80,26 @@ export async function readPick(env, token) {
 
 export async function burnPick(env, token) {
   await env.SESSIONS.delete(`gpick:${token}`).catch(() => {});
+}
+
+// ---------- אסימון הרשמה ----------
+// בהרשמה עם Google הזהות מאומתת לפני שידוע שם בית הכנסת, ולכן היא נשמרת
+// לרגע אחד בצד ומחוברת לטופס שמגיע אחריה.
+export async function saveSignup(env, profile) {
+  const token = rand();
+  await env.SESSIONS.put(`gsignup:${token}`, JSON.stringify(profile), { expirationTtl: SIGNUP_TTL });
+  return token;
+}
+
+export async function readSignup(env, token) {
+  if (!/^[0-9a-f]{48}$/.test(String(token || ''))) return null;
+  const raw = await env.SESSIONS.get(`gsignup:${token}`);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+export async function burnSignup(env, token) {
+  await env.SESSIONS.delete(`gsignup:${token}`).catch(() => {});
 }
 
 // ---------- החלפת code ב-id_token ----------

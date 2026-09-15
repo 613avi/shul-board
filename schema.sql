@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS shuls (
   pass_salt     TEXT NOT NULL,
   contact       TEXT,                        -- טלפון לשחזור, אופציונלי
   email         TEXT,                        -- מייל לשחזור סיסמה עצמי, אופציונלי
+  has_password  INTEGER NOT NULL DEFAULT 1,  -- 0 = נפתח עם Google ואין סיסמה משותפת
   status        TEXT NOT NULL DEFAULT 'active',  -- active | suspended
   created_at    INTEGER NOT NULL,
   updated_at    INTEGER NOT NULL

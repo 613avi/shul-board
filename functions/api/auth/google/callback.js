@@ -1,7 +1,7 @@
 import { createSession, sessionCookie, logAudit } from '../../../_shared.js';
 import {
   googleConfigured, takeState, exchangeCode, ensureGoogleTable,
-  addLink, shulsForSub, savePick,
+  addLink, shulsForSub, savePick, saveSignup,
 } from '../../../_google.js';
 
 // חזרה מ-Google. תמיד מסתיים בהפניה לדף — לא ב-JSON — כי הדפדפן הגיע לכאן בניווט.
@@ -29,6 +29,14 @@ export async function onRequestGet({ request, env }) {
   if (!profile.emailVerified) return to('/admin.html?google=unverified');
 
   await ensureGoogleTable(env);
+
+  // ---------- הרשמה ----------
+  // הזהות מאומתת, אבל שם בית הכנסת עוד לא ידוע. שומרים אותה לרגע ומחזירים
+  // לטופס ההרשמה, שם ממלאים שם וכתובת בלבד.
+  if (state.mode === 'register') {
+    const token = await saveSignup(env, { sub: profile.sub, email: profile.email, name: profile.name });
+    return to(`/?gsignup=${token}#register`);
+  }
 
   // ---------- שיוך ----------
   if (state.mode === 'link') {

@@ -1505,6 +1505,18 @@
   // ---------- פרטי שחזור ----------
   function fillRecovery() {
     const shul = state.me?.shul || {};
+    // בית כנסת שנפתח עם Google עוד לא הייתה לו סיסמה — אין "נוכחית" לבקש
+    const first = shul.hasPassword === false;
+    const cur = qs('#pw-current');
+    if (cur) cur.closest('.field').hidden = first;
+    const note = qs('#pw-note');
+    if (note) {
+      note.textContent = first
+        ? 'בית הכנסת נפתח עם Google ואין לו סיסמה משותפת. אפשר להוסיף אחת כאן — היא תאפשר גם לגבאים בלי חשבון Google להיכנס. הכניסה עם Google תמשיך לעבוד כרגיל.'
+        : 'הסיסמה משותפת לכל הגבאים. שינוי שלה מנתק את כולם — מי שירצה להיכנס שוב יצטרך את החדשה. כך גבאי שפרש מפסיק לגשת, וכך סיסמה זמנית שקיבלתם בטלפון לא נשארת לתמיד.';
+    }
+    const btn = qs('#pw-save');
+    if (btn) btn.textContent = first ? 'הגדרת סיסמה' : 'שינוי הסיסמה';
     const email = qs('#rec-email');
     const contact = qs('#rec-contact');
     if (email) email.value = shul.email || '';
@@ -1546,11 +1558,12 @@
   async function changePassword() {
     const btn = qs('#pw-save');
     const msg = qs('#pw-msg');
+    const first = state.me?.shul?.hasPassword === false;
     const current = qs('#pw-current').value;
     const next = qs('#pw-next').value;
     const fail = (t) => { msg.textContent = t; msg.className = 'small bad'; };
 
-    if (!current) return fail('נא למלא את הסיסמה הנוכחית');
+    if (!first && !current) return fail('נא למלא את הסיסמה הנוכחית');
     if (next.length < 6) return fail('הסיסמה החדשה חייבת להיות באורך 6 תווים לפחות');
 
     btn.disabled = true;
@@ -1560,7 +1573,11 @@
       await Api.changePassword({ current, next });
       qs('#pw-current').value = '';
       qs('#pw-next').value = '';
-      msg.textContent = 'הסיסמה שונתה. גבאים אחרים יצטרכו את החדשה בכניסה הבאה.';
+      if (state.me?.shul) state.me.shul.hasPassword = true;
+      fillRecovery();
+      msg.textContent = first
+        ? 'הסיסמה נקבעה. מעכשיו אפשר להיכנס גם בלעדיה — וגם איתה.'
+        : 'הסיסמה שונתה. גבאים אחרים יצטרכו את החדשה בכניסה הבאה.';
       msg.className = 'small ok';
     } catch (e) {
       fail(e.message || 'השינוי נכשל');

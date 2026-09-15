@@ -65,6 +65,39 @@
     checkTimer = setTimeout(checkSlug, 400);
   }
 
+  // ---------- הרשמה עם Google ----------
+  // בחזרה מ-Google מגיע ?gsignup=<אסימון>. הזהות כבר אומתה, ולכן הטופס מצטמצם
+  // לשם בית הכנסת ולכתובת, בלי סיסמה בכלל.
+  let gSignup = '';
+
+  async function initGoogleSignup() {
+    const token = new URLSearchParams(location.search).get('gsignup') || '';
+
+    if (token) {
+      gSignup = token;
+      // מנקים את הכתובת כדי שרענון אחרי ההרשמה לא ינסה להשתמש באסימון שנשרף
+      const clean = new URL(location.href);
+      clean.searchParams.delete('gsignup');
+      history.replaceState(null, '', clean.pathname + clean.search + '#register');
+
+      $('r-password-field').hidden = true;
+      $('r-google-wrap').hidden = true;
+      $('r-lead').textContent = 'החשבון אומת. נשאר רק לבחור שם וכתובת — בלי סיסמה לזכור.';
+      const box = $('r-google-as');
+      box.innerHTML = '<span>✓</span><span>מחוברים עם Google. בית הכנסת ייפתח בלי סיסמה משותפת,'
+        + ' ותיכנסו לניהול בלחיצה. אפשר להוסיף סיסמה אחר כך בלשונית "חשבון".</span>';
+      box.hidden = false;
+      $('r-submit').textContent = 'פתיחת בית הכנסת';
+      $('r-name').focus();
+      return;
+    }
+
+    try {
+      const cfg = await Api.config();
+      if (cfg.google) $('r-google-wrap').hidden = false;
+    } catch { /* בלי התשובה פשוט לא מציגים את הכפתור */ }
+  }
+
   async function register() {
     const msg = $('r-msg');
     const btn = $('r-submit');
@@ -78,11 +111,12 @@
       password: $('r-password').value,
       contact: $('r-contact').value.trim(),
     };
+    if (gSignup) payload.googleToken = gSignup;
 
     if (payload.name.length < 2) { fail('הזינו את שם בית הכנסת'); return; }
     if (payload.slug.length < 3) { fail('בחרו שם באנגלית, לפחות 3 תווים'); return; }
     if (payload.gabbai.length < 2) { fail('הזינו את שמכם'); return; }
-    if (payload.password.length < 6) { fail('הסיסמה חייבת להיות באורך 6 תווים לפחות'); return; }
+    if (!gSignup && payload.password.length < 6) { fail('הסיסמה חייבת להיות באורך 6 תווים לפחות'); return; }
 
     btn.disabled = true;
     msg.textContent = 'פותח את בית הכנסת…';
@@ -96,6 +130,7 @@
           <p style="margin:0 0 10px;">כתובת הצג שלכם:<br><a href="${displayUrl}" target="_blank">${displayUrl}</a></p>
           <p style="margin:0 0 14px;" class="desc">שמרו את הקישור. אפשר לפתוח אותו על כל מסך בבית הכנסת.</p>
           <a class="btn btn-primary" href="/admin.html">להמשך ההקמה — 4 שלבים קצרים</a>
+          ${gSignup ? '<p class="desc" style="margin:12px 0 0;">בכניסות הבאות: "כניסה עם Google" במסך הניהול.</p>' : ''}
         </div>`;
       $('r-success').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) {
@@ -166,6 +201,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     setupBanner();
+    initGoogleSignup();
     renderPreview();
 
     if ($('c-submit')) $('c-submit').addEventListener('click', sendContact);

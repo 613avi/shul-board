@@ -1,4 +1,4 @@
-import { json, requireAuth, ensureShulEmail } from '../_shared.js';
+import { json, requireAuth, ensureShulEmail, ensureShulPasswordFlag } from '../_shared.js';
 
 // מצב ההתחברות + הקשר בית הכנסת, לטעינת ממשק הניהול.
 export async function onRequestGet({ request, env }) {
@@ -7,6 +7,7 @@ export async function onRequestGet({ request, env }) {
   const { session, shul } = auth;
 
   await ensureShulEmail(env);
+  await ensureShulPasswordFlag(env);
   const gabbaim = await env.DB.prepare(
     'SELECT name, is_owner FROM gabbaim WHERE shul_id = ? ORDER BY is_owner DESC, name'
   ).bind(shul.id).all();
@@ -24,6 +25,7 @@ export async function onRequestGet({ request, env }) {
       name: shul.name,
       contact: shul.contact,
       email: shul.email || null,
+      hasPassword: shul.has_password !== 0,
       createdAt: shul.created_at,
     },
     urls: {

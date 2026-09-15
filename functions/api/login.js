@@ -31,6 +31,13 @@ export async function onRequestPost({ request, env }) {
   }
   if (shul.status !== 'active') return bad('החשבון מושהה', 403);
 
+  // בית כנסת שנפתח עם Google אין לו סיסמה משותפת — יש לו רק גיבוב אקראי שאיש
+  // לא יודע. מגיעים לכאן רק אם מישהו ניחש אותו, ולכן זו בפועל שורה מתה; היא
+  // קיימת כדי שאם אי פעם כן ייווצר מצב כזה, ההודעה תכוון במקום לבלבל.
+  if (shul.has_password === 0) {
+    return bad('בית הכנסת הזה נפתח עם חשבון Google — היכנסו בכפתור "כניסה עם Google"', 403);
+  }
+
   const known = await env.DB.prepare(
     'SELECT id FROM gabbaim WHERE shul_id = ? AND name = ?'
   ).bind(shul.id, gabbai).first();

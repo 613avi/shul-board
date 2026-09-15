@@ -232,3 +232,17 @@
 .reset-wrap { max-width: 480px; margin: 40px auto 60px; }
 .reset-wrap .form-card { margin: 0; }
 .reset-wrap h2 { margin: 0 0 8px; }
+
+/* הרשמה עם Google */
+.g-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; }
+.g-btn svg { width: 18px; height: 18px; flex: 0 0 auto; }
+#r-google { width: 100%; }
+.g-or { display: flex; align-items: center; gap: 12px; margin: 18px 0 14px; color: var(--sb-dim); font-size: 13px; }
+.g-or::before, .g-or::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: .25; }
+.g-signed {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(52, 211, 153, .10); border: 1px solid var(--sb-green);
+  font-size: 14px;
+}
+.g-signed .mail { direction: ltr; unicode-bidi: plaintext; font-weight: 600; }

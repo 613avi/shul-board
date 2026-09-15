@@ -106,6 +106,14 @@ export async function ensureShulEmail(env) {
   await env.DB.prepare('ALTER TABLE shuls ADD COLUMN email TEXT').run().catch(() => {});
 }
 
+// בית כנסת שנפתח עם Google מתחיל בלי סיסמה משותפת בכלל. has_password מבדיל
+// בינו לבין בית כנסת רגיל: אי אפשר להיכנס אליו בסיסמה, וקביעת סיסמה ראשונה
+// לא דורשת "סיסמה נוכחית" — אין כזאת לדעת. ברירת המחדל 1 שומרת על כל מי שנרשם קודם.
+export async function ensureShulPasswordFlag(env) {
+  await env.DB.prepare('ALTER TABLE shuls ADD COLUMN has_password INTEGER NOT NULL DEFAULT 1')
+    .run().catch(() => {});
+}
+
 // ולידציה מכוונת-סלחנות, זהה לזו שבטופס הפניות (functions/_contact.js)
 export const isEmail = (v) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(String(v || '').trim());
 

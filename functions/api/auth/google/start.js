@@ -1,14 +1,16 @@
 import { bad, readSession } from '../../../_shared.js';
 import { googleConfigured, redirectUri, saveState, AUTH_URL } from '../../../_google.js';
 
-// תחילת מסע ההרשאה. שני מצבים:
-//   login — כניסה לניהול עם חשבון שכבר שויך.
-//   link  — שיוך החשבון לבית הכנסת שאליו הגבאי כבר מחובר.
+// תחילת מסע ההרשאה. שלושה מצבים:
+//   login    — כניסה לניהול עם חשבון שכבר שויך.
+//   link     — שיוך החשבון לבית הכנסת שאליו הגבאי כבר מחובר.
+//   register — פתיחת בית כנסת חדש, בלי סיסמה בכלל.
 export async function onRequestGet({ request, env }) {
   if (!googleConfigured(env)) return bad('כניסה עם Google לא מופעלת בשרת הזה', 503);
 
   const url = new URL(request.url);
-  const mode = url.searchParams.get('mode') === 'link' ? 'link' : 'login';
+  const asked = url.searchParams.get('mode');
+  const mode = ['link', 'register'].includes(asked) ? asked : 'login';
 
   // שיוך דורש שהגבאי כבר מחובר — אחרת כל אחד היה יכול לשייך את עצמו
   let session = null;

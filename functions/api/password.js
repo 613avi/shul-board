@@ -1,4 +1,6 @@
-import { json, bad, now, hashPassword, verifyPassword, requireAuth, logAudit } from '../_shared.js';
+import {
+  json, bad, now, hashPassword, verifyPassword, requireAuth, logAudit, ensureShulPasswordFlag,
+} from '../_shared.js';
 
 // שינוי סיסמת בית הכנסת על ידי גבאי מחובר.
 //
@@ -16,21 +18,26 @@ export async function onRequestPut({ request, env }) {
   const current = String(body.current || '');
   const next = String(body.next || '');
 
-  // דורשים את הסיסמה הנוכחית גם ממי שכבר מחובר: עוגיית סשן שנשארה פתוחה
-  // על מחשב בבית הכנסת לא אמורה לאפשר לעובר אורח לנעול את הגבאים בחוץ.
-  if (!await verifyPassword(current, shul.pass_hash, shul.pass_salt)) {
+  // בית כנסת שנפתח עם Google מעולם לא הייתה לו סיסמה, ולכן אין "נוכחית" לדעת.
+  // בכל מקרה אחר דורשים אותה גם ממי שכבר מחובר: עוגיית סשן שנשארה פתוחה על
+  // מחשב בבית הכנסת לא אמורה לאפשר לעובר אורח לנעול את הגבאים בחוץ.
+  const first = shul.has_password === 0;
+  if (!first && !await verifyPassword(current, shul.pass_hash, shul.pass_salt)) {
     return bad('הסיסמה הנוכחית שגויה');
   }
   if (next.length < 6) return bad('הסיסמה החדשה חייבת להיות באורך 6 תווים לפחות');
-  if (next === current) return bad('הסיסמה החדשה זהה לנוכחית');
+  if (!first && next === current) return bad('הסיסמה החדשה זהה לנוכחית');
 
   const { hash, salt } = await hashPassword(next);
-  await env.DB.prepare('UPDATE shuls SET pass_hash = ?, pass_salt = ?, updated_at = ? WHERE id = ?')
-    .bind(hash, salt, now(), shul.id).run();
+  await ensureShulPasswordFlag(env);
+  await env.DB.prepare(
+    'UPDATE shuls SET pass_hash = ?, pass_salt = ?, has_password = 1, updated_at = ? WHERE id = ?'
+  ).bind(hash, salt, now(), shul.id).run();
 
   // ביומן נרשמת העובדה שהסיסמה שונתה ומי שינה — לעולם לא הסיסמה עצמה
   await logAudit(env, {
-    shulId: shul.id, gabbai: session.gabbai, action: 'password-change', detail: null, request,
+    shulId: shul.id, gabbai: session.gabbai,
+    action: first ? 'password-set' : 'password-change', detail: null, request,
   }).catch(() => {});
 
   return json({ ok: true });

@@ -1,8 +1,10 @@
 import {
   json, bad, uuid, now, hashPassword, createSession, sessionCookie,
   normalizeSlug, slugAvailable, DEFAULTS, SECTIONS, logAudit,
+  ensureShulEmail, ensureShulPasswordFlag,
 } from '../_shared.js';
 import { SCHEMA_VERSION } from '../_migrations.js';
+import { ensureGoogleTable, addLink, readSignup, burnSignup } from '../_google.js';
 
 // הרשמה עצמית: יוצר בית כנסת, גבאי-בעלים, והגדרות ברירת מחדל — ומחבר מיד.
 export async function onRequestPost({ request, env }) {
@@ -15,9 +17,16 @@ export async function onRequestPost({ request, env }) {
   const contact = String(body.contact || '').trim() || null;
   const slug = normalizeSlug(body.slug || name);
 
+  // הרשמה עם Google: במקום סיסמה מגיע אסימון קצר-מועד שנוצר אחרי שהזהות
+  // אומתה מול Google. בית הכנסת נפתח בלי סיסמה משותפת בכלל.
+  const signup = body.googleToken ? await readSignup(env, String(body.googleToken)) : null;
+  if (body.googleToken && !signup) {
+    return bad('ההרשמה עם Google פגה. התחילו שוב מהכפתור בדף הבית', 410);
+  }
+
   if (name.length < 2) return bad('שם בית הכנסת קצר מדי');
   if (gabbai.length < 2) return bad('שם הגבאי קצר מדי');
-  if (password.length < 6) return bad('הסיסמה חייבת להיות באורך 6 תווים לפחות');
+  if (!signup && password.length < 6) return bad('הסיסמה חייבת להיות באורך 6 תווים לפחות');
   if (!slugAvailable(slug)) {
     return bad('הכתובת המבוקשת אינה תקינה או שמורה — בחרו כתובת אחרת באנגלית', 400, { slug });
   }
@@ -25,7 +34,11 @@ export async function onRequestPost({ request, env }) {
   const exists = await env.DB.prepare('SELECT id FROM shuls WHERE slug = ?').bind(slug).first();
   if (exists) return bad('הכתובת הזאת כבר תפוסה', 409, { slug });
 
-  const { hash, salt } = await hashPassword(password);
+  // בהרשמה עם Google נשמרת סיסמה אקראית שאיש אינו יודע: הכניסה היא דרך Google,
+  // ומי שירצה סיסמה משותפת יקבע אחת בלשונית "חשבון" בלי להידרש לנוכחית.
+  const { hash, salt } = await hashPassword(
+    signup ? [...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16)).join('') : password
+  );
   const shulId = uuid();
   const t = now();
 
@@ -33,9 +46,9 @@ export async function onRequestPost({ request, env }) {
 
   const stmts = [
     env.DB.prepare(
-      `INSERT INTO shuls (id, slug, name, pass_hash, pass_salt, contact, status, created_at, updated_at)
-       VALUES (?,?,?,?,?,?,'active',?,?)`
-    ).bind(shulId, slug, name, hash, salt, contact, t, t),
+      `INSERT INTO shuls (id, slug, name, pass_hash, pass_salt, contact, email, has_password, status, created_at, updated_at)
+       VALUES (?,?,?,?,?,?,?,?,'active',?,?)`
+    ).bind(shulId, slug, name, hash, salt, contact, signup?.email || null, signup ? 0 : 1, t, t),
     env.DB.prepare(
       'INSERT INTO gabbaim (id, shul_id, name, is_owner, created_at) VALUES (?,?,?,1,?)'
     ).bind(uuid(), shulId, gabbai, t),
@@ -49,9 +62,20 @@ export async function onRequestPost({ request, env }) {
       )
     ),
   ];
+  await ensureShulEmail(env);
+  await ensureShulPasswordFlag(env);
   await env.DB.batch(stmts);
 
-  await logAudit(env, { shulId, gabbai, action: 'register', detail: slug, request });
+  // השיוך נוצר מיד, אחרת בית כנסת שנפתח עם Google היה נשאר בלי שום דרך להיכנס
+  if (signup) {
+    await ensureGoogleTable(env);
+    await addLink(env, { shulId, sub: signup.sub, email: signup.email, gabbai });
+    await burnSignup(env, String(body.googleToken));
+  }
+
+  await logAudit(env, {
+    shulId, gabbai, action: signup ? 'register-google' : 'register', detail: slug, request,
+  });
 
   const token = await createSession(env, { shulId, slug, gabbai });
   return json(
