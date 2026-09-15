@@ -427,11 +427,26 @@ wrangler d1 execute shul-board --local --file=schema.sql   # פעם אחת
 wrangler pages dev --port 8790
 ```
 
-פריסה:
+פריסה ידנית:
 
 ```bash
-wrangler pages deploy --project-name shul-board --branch main
+npm run deploy
 ```
+
+**פריסה אוטומטית** (`.github/workflows/deploy.yml`): דחיפה ל-`main` פורסת לבד, אחרי
+בדיקת תחביר על כל קובצי ה-JS. דורש שני סודות בריפו — `CLOUDFLARE_API_TOKEN`
+(הרשאת Account · Cloudflare Pages · Edit, ולא יותר) ו-`CLOUDFLARE_ACCOUNT_ID`.
+בלעדיהם ה-workflow נעצר בשלב הבדיקה עם הודעה מסבירה ולא מנסה לפרוס, כך שעד
+שמגדירים אותם שום דבר לא משתנה.
+
+הסיבה שזה נבנה: **סוד שמוגדר ב-Pages לא נכנס לתוקף בפריסה שכבר רצה**. כשהפריסה
+ידנית, סוד חדש נשאר בלתי-נראה ל-Function עד שמישהו זוכר לפרוס — והתכונה "לא
+עובדת" בלי שום רמז למה. פאנל "תכונות אופציונליות" בדשבורד המנהל מראה מה
+ה-Function באמת רואה.
+
+> מעבר ל-Git integration של Pages לא אפשרי כאן: פרויקט שנוצר כ-Direct Upload
+> לא ניתן להסבה, והמעבר היה מחייב פרויקט חדש — כלומר כתובת `pages.dev` חדשה,
+> וכל הצגים שתלויים בכתובת הנוכחית היו נשברים.
 
 המזהים של D1 ושל שני מרחבי ה-KV יושבים ב-`wrangler.toml`. בעותק משלכם מחליפים אותם
 במזהים של המשאבים שיצרתם.
