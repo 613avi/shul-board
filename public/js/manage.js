@@ -108,6 +108,7 @@
     renderTiles();
     renderContact();
     renderShuls();
+    renderSecrets();
     renderSpark();
     renderAudit();
     $('mg-refreshed').textContent = `עודכן ${new Date().toLocaleTimeString('he-IL')}`;
@@ -262,6 +263,33 @@
         else deleteShul(shul);
       });
     });
+  }
+
+  // אילו תכונות אופציונליות דלוקות, ואיזה סוד חסר לכל אחת
+  const FEATURES = [
+    { name: 'שחזור סיסמה במייל · ממסר Gmail', keys: ['GAS_MAIL_URL', 'GAS_MAIL_SECRET'] },
+    { name: 'שחזור סיסמה במייל · Brevo', keys: ['BREVO_API_KEY', 'MAIL_FROM'] },
+    { name: 'שחזור סיסמה במייל · Resend', keys: ['RESEND_API_KEY', 'MAIL_FROM'] },
+    { name: 'כניסה עם Google', keys: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'] },
+    { name: 'התראה על פנייה חדשה', keys: ['CONTACT_WEBHOOK'] },
+  ];
+
+  function renderSecrets() {
+    const box = $('mg-secrets');
+    if (!box) return;
+    const have = data.secrets || {};
+    box.innerHTML = FEATURES.map(f => {
+      const missing = f.keys.filter(k => !have[k]);
+      const on = missing.length === 0;
+      return `
+        <div class="mg-secret ${on ? 'on' : 'off'}">
+          <span class="mg-secret-dot">${on ? '●' : '○'}</span>
+          <span class="mg-secret-name">${esc(f.name)}</span>
+          <span class="mg-secret-keys mono">${
+            on ? 'פעיל' : `חסר: ${missing.map(esc).join(', ')}`
+          }</span>
+        </div>`;
+    }).join('');
   }
 
   function renderSpark() {

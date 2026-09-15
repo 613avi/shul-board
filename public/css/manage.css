@@ -175,3 +175,18 @@
   background: rgba(0, 0, 0, .3); color: var(--sb-gold);
 }
 .mg-newpass-note { margin-top: 8px; font-size: 13px; opacity: .8; line-height: 1.6; }
+
+/* תכונות אופציונליות — אילו סודות ה-Function רואה */
+.mg-secrets { display: flex; flex-direction: column; gap: 2px; }
+.mg-secret {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 9px 4px; border-bottom: 1px solid rgba(255, 255, 255, .06);
+}
+.mg-secret:last-child { border-bottom: 0; }
+.mg-secret-dot { font-size: 12px; }
+.mg-secret.on .mg-secret-dot { color: var(--sb-green); }
+.mg-secret.off .mg-secret-dot { color: var(--sb-dim); }
+.mg-secret-name { flex: 1; font-size: 14px; }
+.mg-secret-keys { font-size: 12.5px; direction: ltr; unicode-bidi: plaintext; }
+.mg-secret.on .mg-secret-keys { color: var(--sb-green); }
+.mg-secret.off .mg-secret-keys { color: var(--sb-dim); }

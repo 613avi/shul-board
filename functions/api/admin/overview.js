@@ -70,6 +70,15 @@ export async function onRequestGet({ request, env }) {
   return json({
     ok: true,
     totals: { ...totals, activeToday, screensLive, screensTotal, contactNew },
+    // אילו סודות אופציונליים ה-Function באמת רואה. בוליאנים בלבד — הערכים
+    // עצמם לעולם לא יוצאים מכאן. קיים כי ב-Pages קל להגדיר סוד בסביבת
+    // Preview במקום Production, או לשכוח לפרוס מחדש, ואז התכונה "לא עובדת"
+    // בלי שום רמז למה.
+    secrets: Object.fromEntries(
+      ['GAS_MAIL_URL', 'GAS_MAIL_SECRET', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET',
+       'BREVO_API_KEY', 'RESEND_API_KEY', 'MAIL_FROM', 'MAIL_FROM_NAME', 'CONTACT_WEBHOOK']
+        .map(k => [k, Boolean(env[k])])
+    ),
     // מכסות המסלול החינמי, כדי לראות כמה מרווח נשאר
     limits: {
       kvStorageBytes: 1024 ** 3,
