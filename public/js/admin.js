@@ -395,7 +395,12 @@
   }
 
   // ================= הקדשות וברכות =================
-  const DAY_NAMES = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+  // ראשי תיבות של ימי השבוע. אות בודדת היא מפתח מסוכן מדי למילון שמתרגם לפי
+  // טקסט המקור — "ש" מופיע גם בתוכן של גבאי — ולכן הבחירה כאן ולא שם.
+  const isEn = () => window.SB_I18N?.lang === 'en';
+  const dayNames = () => (isEn()
+    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    : ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳']);
 
   function cardHead(title, onDelete) {
     return el('div', { class: 'head' }, el('strong', {}, title),
@@ -460,7 +465,7 @@
       for (const f of timeFields(list, idx, renderShiurim)) time.appendChild(f);
       const days = el('div', { class: 'day-chips' });
       const active = Array.isArray(sh.days) ? sh.days : [];
-      DAY_NAMES.forEach((name, i) => {
+      dayNames().forEach((name, i) => {
         const cb = el('input', { type: 'checkbox' });
         cb.checked = active.includes(i);
         const lab = el('label', { class: cb.checked ? 'on' : '' }, cb, name);
@@ -1735,7 +1740,9 @@
     return `${amount} ${off < 0 ? 'לפני' : 'אחרי'} ${label}`;
   }
 
-  const DOW_LABELS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+  const dowLabels = () => (isEn()
+    ? ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+    : ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש']);
 
   const asEntry = (v) => (v && typeof v === 'object') ? v : { type: 'fixed', time: String(v || '') };
 
@@ -1824,7 +1831,7 @@
     const days = el('div', { class: 'tm-days' });
     days.appendChild(el('span', { class: 'tm-result' }, 'ימים:'));
     const active = Array.isArray(entry.days) ? entry.days : [];
-    DOW_LABELS.forEach((label, d) => {
+    dowLabels().forEach((label, d) => {
       const cb = el('input', { type: 'checkbox' });
       cb.checked = active.length === 0 || active.includes(d);
       const lab = el('label', { class: cb.checked ? 'on' : '' }, cb, label);
@@ -2728,7 +2735,7 @@
     // ימים — ריק או כל השבעה = תמיד
     const active = Array.isArray(screen.days) ? screen.days.map(Number).filter(d => d >= 0 && d <= 6) : [];
     const days = el('div', { class: 'tm-days' });
-    DOW_LABELS.forEach((label, d) => {
+    dowLabels().forEach((label, d) => {
       const cb = el('input', { type: 'checkbox' });
       cb.checked = active.length === 0 || active.includes(d);
       const lab = el('label', { class: cb.checked ? 'on' : '' }, cb, label);
@@ -3299,7 +3306,34 @@
   }
 
   // ---------- Boot ----------
+  // ---------- שפת הממשק ----------
+  // שפת פאנל הניהול היא העדפה של הגבאי במכשיר הזה, ולא הגדרה של בית הכנסת:
+  // גבאי אחד יכול לנהל באנגלית בזמן שהצג בבית הכנסת נשאר עברי. שפת הצג עצמה
+  // נשמרת ב-config.display.lang, בלשונית "מראה הצג".
+  const LS_UI_LANG = 'sb.admin.lang';
+
+  function initUiLang() {
+    const I = window.SB_I18N;
+    if (!I) return;
+    let saved = null;
+    try { saved = localStorage.getItem(LS_UI_LANG); } catch {}
+    I.setLang(Object.hasOwn(I.LANGS, saved || '') ? saved : I.DEFAULT);
+    // הפאנל בונה DOM מחדש בכל render; המשקיף מתרגם גם את מה שנוצר אחר כך
+    I.observe(document.body);
+    for (const sel of document.querySelectorAll('.ui-lang')) {
+      sel.value = I.lang;
+      sel.addEventListener('change', () => {
+        try { localStorage.setItem(LS_UI_LANG, sel.value); } catch {}
+        // טעינה מחדש ולא החלפה חיה: החזרה לעברית דורשת את הטקסט המקורי, והשומר
+        // של שינויים שלא נשמרו (beforeunload) ישאל לפני שמשהו הולך לאיבוד.
+        location.reload();
+      });
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
+    initUiLang();
+
     // מילוי מוקדם של טופס הכניסה (בלי סיסמה)
     qs('#login-slug').value = new URLSearchParams(location.search).get('shul')
       || localStorage.getItem(LS_SLUG) || '';

@@ -122,7 +122,7 @@
 .preset-card:hover { border-color: #b9c1d1; transform: translateY(-1px); }
 .preset-card.active { border-color: var(--ad-gold); box-shadow: 0 0 0 3px rgba(212,175,55,.25); }
 .preset-card.active::after {
-  content: '✓'; position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%;
+  content: '✓'; position: absolute; top: 6px; inset-inline-start: 6px; width: 22px; height: 22px; border-radius: 50%;
   background: var(--ad-gold); color: #0e1320; font-weight: 800; display: grid; place-items: center; font-size: 13px;
 }
 .preset-thumb {
@@ -316,7 +316,7 @@
 .tpl-card.active { border-color: var(--ad-gold); box-shadow: 0 0 0 3px rgba(212,175,55,.25); }
 .tpl-thumb.classic { display: grid; place-items: center; color: #d4af37; font-size: 13px; }
 .preset-card .preset-badge {
-  position: absolute; top: 6px; right: 6px; background: rgba(14,19,32,.85); color: #fff;
+  position: absolute; top: 6px; inset-inline-end: 6px; background: rgba(14,19,32,.85); color: #fff;
   font-size: 10.5px; padding: 2px 7px; border-radius: 999px;
 }
 .preset-card .preset-meta { padding: 0 10px 9px; font-size: 11.5px; color: var(--ad-dim); }
@@ -410,3 +410,21 @@
 #google-links li { display: flex; align-items: center; gap: 14px; justify-content: space-between; padding: 8px 0; }
 #google-links .g-mail { direction: ltr; unicode-bidi: plaintext; }
 #pick-list .btn { width: 100%; margin-bottom: 8px; justify-content: center; }
+
+/* ---------- בורר שפת הממשק ----------
+   שפת הפאנל היא העדפה של הגבאי במכשיר הזה. שפת הצג עצמו נפרדת, ב"מראה הצג". */
+.ui-lang {
+  padding: 5px 8px; font: inherit; font-size: 13px;
+  border: 1px solid var(--ad-line, #d0d4dd); border-radius: 6px;
+  background: #fff; color: inherit; cursor: pointer;
+}
+.admin-topbar .ui-lang { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.3); color: #fff; }
+.admin-topbar .ui-lang option { color: #0e1320; }
+
+/* תוכן שהגבאי הקליד עשוי להיות עברי גם כשהממשק באנגלית (ולהפך). plaintext
+   קובע את הכיוון לפי התו החזק הראשון, כך ש"חדר 2" לא מוצג כ-"2 חדר". */
+.admin-body input[type="text"],
+.admin-body input[type="search"],
+.admin-body textarea,
+.admin-body .list-item .head strong,
+.admin-body .entry-card .head strong { unicode-bidi: plaintext; }
