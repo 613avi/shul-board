@@ -190,3 +190,8 @@
 .mg-secret-keys { font-size: 12.5px; direction: ltr; unicode-bidi: plaintext; }
 .mg-secret.on .mg-secret-keys { color: var(--sb-green); }
 .mg-secret.off .mg-secret-keys { color: var(--sb-dim); }
+
+/* מייל שחזור בטבלת בתי הכנסת. הכתובת מגיעה מסוכה מהשרת — מספיק כדי לענות
+   על "למה לא הגיע מייל", בלי לחשוף כתובת של גבאי למי שקורא את הטבלה. */
+.mg-mail { font-size: 12px; white-space: nowrap; }
+.mg-mail.off { color: #b45309; }

@@ -2,6 +2,7 @@ import { json } from '../../_shared.js';
 import { requireAdmin } from '../../_admin.js';
 import { ensureScreensTable, liveCounts } from '../../_screens.js';
 import { newContactCount } from '../../_contact.js';
+import { maskEmail } from '../../_recovery.js';
 
 // כל מה שהדשבורד צריך בבקשה אחת.
 export async function onRequestGet({ request, env }) {
@@ -25,6 +26,7 @@ export async function onRequestGet({ request, env }) {
 
     env.DB.prepare(`
       SELECT s.id, s.slug, s.name, s.status, s.contact, s.created_at, s.updated_at,
+             s.email AS recovery_email,
              (SELECT COUNT(*) FROM gabbaim g WHERE g.shul_id = s.id)              AS gabbaim,
              (SELECT COUNT(*) FROM media m WHERE m.shul_id = s.id)                AS media_files,
              (SELECT COALESCE(SUM(size),0) FROM media m WHERE m.shul_id = s.id)   AS media_bytes,
@@ -54,7 +56,15 @@ export async function onRequestGet({ request, env }) {
   const shulRows = (shuls.results || []).map(s => {
     const sc = screens[s.id] || { live: 0, total: 0 };
     screensLive += sc.live; screensTotal += sc.total;
-    return { ...s, screens_live: sc.live, screens_total: sc.total };
+    // מייל השחזור יוצא מסוכה בלבד. הוא מספיק כדי לענות על "למה לא הגיע מייל",
+    // בלי לחשוף כתובת של גבאי למי שקורא את הטבלה.
+    const { recovery_email, ...rest } = s;
+    return {
+      ...rest,
+      screens_live: sc.live,
+      screens_total: sc.total,
+      recovery_email: recovery_email ? maskEmail(recovery_email) : null,
+    };
   });
 
   // הרשמות לפי יום ב-30 הימים האחרונים

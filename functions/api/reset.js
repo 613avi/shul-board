@@ -50,6 +50,13 @@ export async function onRequestPost(ctx) {
   } catch (e) {
     // תקלה אצל ספק המייל לא אמורה לגלות לפונה שבית הכנסת קיים
     console.error('reset mail', e.message);
+    // ...אבל חייבת להשאיר עקבות למי שמתחזק. בלי זה "המייל לא מגיע" הוא מבוי
+    // סתום: התשובה גנרית בכוונה, והיומן היה שותק בדיוק במקרה שבו הוא נחוץ.
+    // הודעת השגיאה היא תשובת הספק בלבד (למשל "err: bad secret"), לא הסוד.
+    await logAudit(env, {
+      shulId: shul.id, gabbai: null, action: 'password-reset-failed',
+      detail: String(e.message || '').slice(0, 200), request,
+    }).catch(() => {});
     return generic;
   }
 
