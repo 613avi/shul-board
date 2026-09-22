@@ -62,6 +62,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
+    window.SB_I18N?.boot();
     $('rs-send').addEventListener('click', requestLink);
     $('rs-slug').addEventListener('keydown', (e) => { if (e.key === 'Enter') requestLink(); });
     $('rs-save').addEventListener('click', saveNew);

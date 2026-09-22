@@ -246,3 +246,12 @@
   font-size: 14px;
 }
 .g-signed .mail { direction: ltr; unicode-bidi: plaintext; font-weight: 600; }
+
+/* בורר שפת הממשק בסרגל העליון. אותה העדפה חלה על דף הבית, השחזור והניהול —
+   שפת הצג עצמו נפרדת, והיא הגדרה של בית הכנסת. */
+.site-nav .ui-lang {
+  padding: 5px 9px; font: inherit; font-size: 13px;
+  border: 1px solid rgba(255,255,255,.28); border-radius: 7px;
+  background: rgba(255,255,255,.08); color: inherit; cursor: pointer;
+}
+.site-nav .ui-lang option { color: #0e1320; }

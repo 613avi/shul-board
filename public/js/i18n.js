@@ -250,9 +250,37 @@ window.SB_I18N = (() => {
     return lang;
   }
 
+  // ---------- הפעלה בעמוד ----------
+  // שלושת העמודים שיש בהם ממשק — דף הבית, השחזור והניהול — עושים בדיוק את
+  // אותם ארבעה דברים, ולכן הם כאן ולא משוכפלים בכל אחד מהם.
+  //
+  // השפה נשמרת פר-דפדפן ולא פר-בית-כנסת: מי שקורא אנגלית קורא אנגלית גם
+  // בדף הבית וגם בניהול. שפת הצג עצמו היא הגדרה נפרדת לגמרי של בית הכנסת
+  // (config.display.lang), כי הצג נצפה על ידי הקהילה ולא על ידי הגבאי.
+  const LS_KEY = 'sb.lang';
+
+  function boot({ onChange } = {}) {
+    let saved = null;
+    try { saved = localStorage.getItem(LS_KEY); } catch {}
+    setLang(Object.hasOwn(LANGS, saved || '') ? saved : DEFAULT);
+    observe(document.body);
+
+    for (const sel of document.querySelectorAll('.ui-lang')) {
+      sel.value = lang;
+      sel.addEventListener('change', () => {
+        try { localStorage.setItem(LS_KEY, sel.value); } catch {}
+        // טעינה מחדש ולא החלפה חיה: החזרה לעברית דורשת את הטקסט המקורי,
+        // שכבר הוחלף. העמודים האלה קלים, והמחיר זניח מול המורכבות.
+        if (onChange) onChange(sel.value); else location.reload();
+      });
+    }
+    return lang;
+  }
+
   return {
     LANGS,
     DEFAULT,
+    boot,
     t,
     has,
     apply,
