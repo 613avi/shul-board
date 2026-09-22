@@ -204,6 +204,8 @@ body[data-screens] #display-root {
 .tm-days label.on { background: #0e1320; color: #fff; border-color: #0e1320; }
 .tm-days input { display: none; }
 .tm-result { font-size: 12px; color: #6b7280; }
+/* אותו עורך זמן בתוך שדה של טופס (שיעורים) — בלי מסגרת וריפוד כפולים */
+.tm-entry.tm-inline { border: 0; background: none; padding: 0; margin: 0; }
 
 /* ---------- קוביות חדשות ----------
    כולן בנויות כ-.card כדי שערכת הצבע והסגנון (מסורתי, זכוכית, נועז...) יחולו עליהן. */

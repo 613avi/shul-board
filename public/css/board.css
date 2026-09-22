@@ -584,18 +584,16 @@ table.data-table .col-actions { width: 80px; text-align: center; }
     flex-direction: column;
     gap: 0.4rem;
 }
+/* שורת זמן של אירוע: חדר + שם תפילה, ואחריהם עורך הזמן המלא (.tm-entry).
+   העורך רחב ומשתנה לפי הסוג הנבחר, ולכן גלישה ולא רשת עמודות קשיחה. */
 .sp-time-row {
-    display: grid;
-    grid-template-columns: 1fr 1.4fr 0.8fr auto;
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.4rem;
     align-items: center;
 }
-.sp-time-row input, .sp-time-row select {
-    padding: 0.4rem 0.55rem;
-    border: 1px solid #d0d4dd;
-    border-radius: 4px;
-    font: inherit;
-}
+.sp-time-row .sp-room { flex: 0 1 140px; }
+.sp-time-row .sp-label { flex: 1 1 160px; min-width: 130px; }
 
 .empty-state {
     text-align: center;

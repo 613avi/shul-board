@@ -823,16 +823,28 @@
   function applySpecialEventsToRoom(rows, room) {
     const hdate = getEffectiveHDate();
     const gregToday = new Date().toISOString().slice(0, 10);
+    const dow = new Date().getDay();
+    // זמני החג נפתרים באותו מנגנון של חדרי התפילה, ולכן "20 דק׳ לפני השקיעה"
+    // עובד גם כאן. ההקשר של שבת נדרש רק לבסיסים של הדלקת נרות/צאת השבת.
+    const ctx = (dow === 5 || dow === 6) ? computeShabbatContext() : null;
     for (const ev of state.specialEvents) {
       if (!eventAppliesToday(ev, hdate, gregToday)) continue;
       for (const t of (ev.times || [])) {
-        if (!t.label || !t.time) continue;
+        if (!t || !t.label) continue;
         if (t.roomId && t.roomId !== '*' && t.roomId !== room.id) continue;
-        const matches = rows.filter(r => r.group === t.label);
+        // באירוע יש תאריך אחד, ולכן בוררי הימים של הרשומה לא רלוונטיים כאן
+        const r = resolveTimeEntry(t.days ? { ...t, days: [] } : t, dow, ctx);
+        if (!r) continue;
+        const matches = rows.filter(x => x.group === t.label);
         if (matches.length) {
-          rows.forEach(r => { if (r.group === t.label) { r.time = t.time; delete r.label; } });
+          rows.forEach(x => {
+            if (x.group !== t.label) return;
+            x.time = r.time;
+            x.relative = r.relative;
+            if (r.label) x.label = r.label; else delete x.label;
+          });
         } else {
-          rows.push({ group: t.label, time: t.time, eventName: ev.name });
+          rows.push({ group: t.label, time: r.time, relative: r.relative, label: r.label, eventName: ev.name });
         }
       }
     }
@@ -1341,16 +1353,28 @@
       const { card, body } = mkCard('shiurim', cardTitle(block, T('display.card.shiurim', 'שיעורים')));
       const now = new Date();
       const dow = now.getDay();
+      const ctx = (dow === 5 || dow === 6) ? computeShabbatContext() : null;
+      // לשיעור מותר להיקבע גם יחסית ("רבע שעה לפני מנחה"), ולכן הוא עובר דרך
+      // אותו פותר של זמני התפילה. המיון תמיד לפי השעה המחושבת.
       const list = (dayIdx) => state.shiurim
-        .filter(s => s && s.title && (!Array.isArray(s.days) || !s.days.length || s.days.includes(dayIdx)))
+        .filter(s => s && s.title)
+        .map(s => {
+          // בוררי הימים של השיעור הם בדיוק days של רשומת זמן, ולכן s עובר כמו שהוא
+          if (Array.isArray(s.days) && s.days.length && !s.days.includes(dayIdx)) return null;
+          const r = resolveTimeEntry(s, dayIdx, ctx);
+          // שיעור בלי שעה עדיין מוצג, כפי שהיה קודם — רק בלי שעה לצדו
+          if (!r) return s.type === 'relative' ? null : { ...s, time: '', shown: '' };
+          return { ...s, time: r.time, shown: r.label || r.time };
+        })
+        .filter(Boolean)
         .sort((a, b) => parseTime(a.time) - parseTime(b.time));
-      const row = (s) => `<div class="sr-row"><span class="sr-time">${s.time || ''}</span><span class="sr-title">${escapeText(s.title)}</span>
+      const row = (s) => `<div class="sr-row"><span class="sr-time">${escapeText(s.shown || '')}</span><span class="sr-title">${escapeText(s.title)}</span>
         ${(s.lecturer || s.place) ? `<span class="sr-meta">${[s.lecturer, s.place].filter(Boolean).map(escapeText).join(' · ')}</span>` : ''}</div>`;
       const today = list(dow), tomorrow = list((dow + 1) % 7);
       let html = '';
-      if (today.length) html += `<div class="sr-day">היום</div>` + today.map(row).join('');
-      if (tomorrow.length && (block.h >= 5 || !today.length)) html += `<div class="sr-day">מחר</div>` + tomorrow.map(row).join('');
-      body.innerHTML = html || '<div class="blk-empty">אין שיעורים היום</div>';
+      if (today.length) html += `<div class="sr-day">${escapeText(T('display.shiurim.today', 'היום'))}</div>` + today.map(row).join('');
+      if (tomorrow.length && (block.h >= 5 || !today.length)) html += `<div class="sr-day">${escapeText(T('display.shiurim.tomorrow', 'מחר'))}</div>` + tomorrow.map(row).join('');
+      body.innerHTML = html || `<div class="blk-empty">${escapeText(T('display.shiurim.empty', 'אין שיעורים היום'))}</div>`;
       wrap.appendChild(card);
     },
     text(block, wrap) {

@@ -99,6 +99,7 @@ window.SB_I18N = (() => {
     'display.learning.tomorrow': 'Tomorrow',
     'display.shiurim.today': 'Today',
     'display.shiurim.tomorrow': 'Tomorrow',
+    'display.shiurim.empty': 'No classes today',
     'display.error.load': 'Could not load the board',
     'display.error.noShul': 'Synagogue not identified',
   };

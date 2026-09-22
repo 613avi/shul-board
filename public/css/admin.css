@@ -290,7 +290,6 @@
   .zmanim-grid { grid-template-columns: 1fr; }
   .zmanim-row { grid-template-columns: 1fr auto; }
   .zmanim-row .zm-default { grid-column: 1 / -1; text-align: start; }
-  .sp-time-row { grid-template-columns: 1fr 1fr; }
   table.data-table { display: block; overflow-x: auto; }
 }
 
