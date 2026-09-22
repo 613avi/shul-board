@@ -38,7 +38,7 @@
 
         <main class="display-main">
             <section class="card zmanim-card">
-                <h2>זמני היום</h2>
+                <h2 data-i18n="display.card.zmanim">זמני היום</h2>
                 <div class="scroll-viewport">
                     <div class="scroll-inner">
                         <table id="zmanim-table"><tbody></tbody></table>
@@ -47,14 +47,14 @@
             </section>
 
             <section class="card tefillot-card">
-                <h2 id="tefillot-title">זמני תפילות</h2>
+                <h2 id="tefillot-title" data-i18n="display.card.tefillot">זמני תפילות</h2>
                 <div class="scroll-viewport">
                     <div class="scroll-inner" id="tefillot-rooms"></div>
                 </div>
             </section>
 
             <section class="card memorial-card" id="memorial-card">
-                <h2>לעילוי נשמת</h2>
+                <h2 data-i18n="display.card.memorial">לעילוי נשמת</h2>
                 <div class="scroll-viewport">
                     <ul id="memorial-list" class="scroll-inner"></ul>
                 </div>
@@ -75,6 +75,7 @@
     <div id="sleep-overlay"><span id="sleep-clock"></span></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@hebcal/core@6.9.2/dist/bundle.min.js"></script>
+    <script src="/js/i18n.js"></script>
     <script src="/js/presets.js"></script>
     <script src="/js/display.js"></script>
 </body>

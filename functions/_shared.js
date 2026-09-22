@@ -222,6 +222,7 @@ export const DEFAULTS = {
     // המיגרציה ב-_migrations.js מכבה אותן לבתי כנסת שנשמרו לפניהן.
     display: {
       showUpcoming: true, headerLogo: true,
+      lang: 'he',               // שפת הצג: he | en. הכיוון מתחלף יחד איתה
       todayLine: true,          // שורת "היום": חגים, ראש חודש, חנוכה, שבת מברכים ומולד
       fastTimes: true,          // תחילת וסיום הצום בימי תענית
       nextHighlight: true,      // הדגשת המניין הבא + "בעוד X דק׳"

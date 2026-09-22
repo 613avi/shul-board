@@ -43,6 +43,12 @@
         </a>
         <div class="hint" id="login-msg"></div>
         <div class="hint"><a href="/reset">שכחתם את הסיסמה?</a></div>
+        <div class="hint">
+            <select class="ui-lang" data-i18n-skip title="שפת הממשק" aria-label="שפת הממשק">
+                <option value="he">עברית</option>
+                <option value="en">English</option>
+            </select>
+        </div>
         <div class="hint">אין לכם עדיין בית כנסת במערכת? <a href="/#register">הרשמה — לוקח דקה</a></div>
     </div>
 </div>
@@ -143,7 +149,7 @@
                         <p class="lead">שלושה צעדים קצרים, וכל שינוי מוצג מיד בתצוגה המקדימה. הכל ניתן לשינוי גם אחר כך.</p>
 
                         <div class="wz-section">
-                            <h3><span class="num">א</span> בחרו מראה בסיסי</h3>
+                            <h3><span class="num" data-i18n="wz.step.1">א</span> בחרו מראה בסיסי</h3>
                             <div class="preset-grid" id="wz-presets"></div>
                             <div class="community-block" id="wz-community-wrap" hidden>
                                 <h4>מראות שבתי כנסת אחרים פרסמו</h4>
@@ -152,7 +158,7 @@
                         </div>
 
                         <div class="wz-section">
-                            <h3><span class="num">ב</span> התאימו אישית</h3>
+                            <h3><span class="num" data-i18n="wz.step.2">ב</span> התאימו אישית</h3>
                             <p class="desc">רוצים שהצג שלכם ייראה משלכם? החליפו ערכת צבע, גופן וצבע הדגשה.</p>
                             <div class="tune-grid">
                                 <div class="field"><label>ערכת צבע</label><div class="swatch-row" id="wz-themes"></div></div>
@@ -175,7 +181,7 @@
                         </div>
 
                         <div class="wz-section">
-                            <h3><span class="num">ג</span> לוגו ורקע</h3>
+                            <h3><span class="num" data-i18n="wz.step.3">ג</span> לוגו ורקע</h3>
                             <div class="row">
                                 <div class="field">
                                     <label>לוגו בית הכנסת</label>
@@ -310,6 +316,10 @@
     <div class="admin-topbar">
         <h1><span id="hdr-shul">…</span> <small class="hdr-sub">מחובר: <span id="hdr-gabbai">…</span></small></h1>
         <div class="actions">
+            <select class="ui-lang" data-i18n-skip title="שפת הממשק" aria-label="שפת הממשק">
+                <option value="he">עברית</option>
+                <option value="en">English</option>
+            </select>
             <a href="#" id="link-display" target="_blank" class="btn btn-ghost btn-sm">פתיחת הצג</a>
             <button class="btn btn-primary btn-sm" id="save-all-btn">שמירה ופרסום</button>
             <button class="btn btn-ghost btn-sm" id="logout-btn">יציאה</button>
@@ -670,6 +680,17 @@
             <div class="panel" id="features-panel">
                 <h2>מה מוצג על הלוח</h2>
                 <p class="small">תכונות חכמות של הצג. כל אחת משתקפת מיד בתצוגה המקדימה.</p>
+                <label class="sc-prop" style="max-width:360px;margin-bottom:14px;">
+                    שפת הצג
+                    <select id="f-lang">
+                        <option value="he">עברית</option>
+                        <option value="en">English</option>
+                    </select>
+                </label>
+                <p class="small" style="margin:-8px 0 14px;">
+                    משנה את שפת הכותרות, שמות הזמנים וימי השבוע על הצג, ואת כיוון הפריסה.
+                    התוכן שהזנתם — שמות מניינים, הנצחות, הודעות — נשאר כמו שכתבתם אותו.
+                </p>
                 <div class="feature-list">
                     <label class="check-row"><input type="checkbox" id="f-todayLine"> <span>שורת "היום" בכותרת<span class="desc">חגים, ראש חודש, חנוכה, שבת מברכים והמולד, צומות</span></span></label>
                     <label class="check-row"><input type="checkbox" id="f-fastTimes"> <span>תחילת וסיום הצום<span class="desc">בימי תענית, בלוח התפילות</span></span></label>
@@ -995,6 +1016,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@hebcal/core@5.10.1/dist/bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/i18n-admin.js"></script>
 <script src="/js/presets.js"></script>
 <script src="/js/export-offline.js"></script>
 <script src="/js/api.js"></script>

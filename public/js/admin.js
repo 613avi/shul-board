@@ -395,7 +395,12 @@
   }
 
   // ================= הקדשות וברכות =================
-  const DAY_NAMES = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+  // ראשי תיבות של ימי השבוע. אות בודדת היא מפתח מסוכן מדי למילון שמתרגם לפי
+  // טקסט המקור — "ש" מופיע גם בתוכן של גבאי — ולכן הבחירה כאן ולא שם.
+  const isEn = () => window.SB_I18N?.lang === 'en';
+  const dayNames = () => (isEn()
+    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    : ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳']);
 
   function cardHead(title, onDelete) {
     return el('div', { class: 'head' }, el('strong', {}, title),
@@ -445,7 +450,7 @@
     host.innerHTML = '';
     const list = state.data.shiurim.entries;
     if (!list.length) { host.appendChild(el('div', { class: 'empty-state' }, 'אין שיעורים — הוסיפו שיעור קבוע.')); return; }
-    list.forEach((sh) => {
+    list.forEach((sh, idx) => {
       const card = el('div', { class: 'entry-card' });
       const title = el('strong', {}, sh.title || '(ללא שם)');
       card.appendChild(el('div', { class: 'head' }, title,
@@ -455,10 +460,12 @@
       card.appendChild(el('div', { class: 'row' },
         fieldOf('נושא השיעור', inputFor(sh, 'title', 'text', 'לדוגמה: דף היומי', () => { title.textContent = sh.title || '(ללא שם)'; })),
         fieldOf('מגיד השיעור (רשות)', inputFor(sh, 'lecturer', 'text', 'הרב ...'))));
-      const time = inputFor(sh, 'time', 'time');
+      // גם לשיעור אפשר "רבע שעה לפני מנחה" — אותו עורך של זמני התפילה
+      const time = el('div', { class: 'tm-entry tm-inline' });
+      for (const f of timeFields(list, idx, renderShiurim)) time.appendChild(f);
       const days = el('div', { class: 'day-chips' });
       const active = Array.isArray(sh.days) ? sh.days : [];
-      DAY_NAMES.forEach((name, i) => {
+      dayNames().forEach((name, i) => {
         const cb = el('input', { type: 'checkbox' });
         cb.checked = active.includes(i);
         const lab = el('label', { class: cb.checked ? 'on' : '' }, cb, name);
@@ -637,6 +644,7 @@
     if (qs('#f-sleep-from')) qs('#f-sleep-from').value = sl.from || '23:30';
     if (qs('#f-sleep-to')) qs('#f-sleep-to').value = sl.to || '05:00';
     if (qs('#f-textsSeconds')) qs('#f-textsSeconds').value = d.textsSeconds || 15;
+    if (qs('#f-lang')) qs('#f-lang').value = d.lang === 'en' ? 'en' : 'he';
   }
 
   function bindFeatures() {
@@ -652,6 +660,8 @@
     };
     for (const id of ['#f-sleep', '#f-sleep-from', '#f-sleep-to']) qs(id).addEventListener('change', sleepChanged);
     qs('#f-textsSeconds').addEventListener('input', (e) => { disp().textsSeconds = Math.max(4, parseInt(e.target.value, 10) || 15); markDirty(); pushDesignPreview(); });
+    const lang = qs('#f-lang');
+    if (lang) lang.addEventListener('change', () => { disp().lang = lang.value === 'en' ? 'en' : 'he'; markDirty(); pushDesignPreview(); });
   }
 
   // תמונות הרקע — מהקבצים שהועלו
@@ -1730,26 +1740,36 @@
     return `${amount} ${off < 0 ? 'לפני' : 'אחרי'} ${label}`;
   }
 
-  const DOW_LABELS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+  const dowLabels = () => (isEn()
+    ? ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+    : ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש']);
 
   const asEntry = (v) => (v && typeof v === 'object') ? v : { type: 'fixed', time: String(v || '') };
 
-  function timeEntryRow(arr, idx, redraw) {
+  // בוררי הזמן עצמם — "שעה קבועה" מול "לפי זמן ביום" (לפני השקיעה, אחרי הנץ...).
+  // מוחזר מערך רכיבים ולא שורה שלמה, כדי שאותו עורך ישרת גם מקומות שבהם יש עוד
+  // שדות באותה שורה: זמני חגים (חדר + שם תפילה) ושיעורים.
+  //
+  // arr[idx] מוחלף באובייקט חדש כשמחליפים סוג, ולכן הוא נבנה עם ...entry —
+  // כך שדות שאינם של הזמן (roomId, label, title...) שורדים את ההחלפה.
+  function timeFields(arr, idx, redraw) {
     const entry = asEntry(arr[idx]);
     const isRel = entry.type === 'relative';
-    const row = el('div', { class: 'tm-entry' });
+    const out = [];
 
-    const kind = el('select', {});
+    const kind = el('select', { class: 'tm-kind' });
     kind.appendChild(el('option', { value: 'fixed' }, 'שעה קבועה'));
     kind.appendChild(el('option', { value: 'relative' }, 'לפי זמן ביום'));
     kind.value = isRel ? 'relative' : 'fixed';
     kind.addEventListener('change', () => {
       arr[idx] = kind.value === 'relative'
-        ? { type: 'relative', base: 'sunset', offset: -20, round: 0, show: 'time', days: entry.days || [] }
-        : { type: 'fixed', time: entry.time || '', days: entry.days || [] };
+        ? { ...entry, type: 'relative', base: entry.base || 'sunset',
+            offset: Number.isFinite(Number(entry.offset)) && entry.offset != null ? Number(entry.offset) : -20,
+            round: Number(entry.round) || 0, show: entry.show === 'text' ? 'text' : 'time' }
+        : { ...entry, type: 'fixed', time: entry.time || '' };
       markDirty(); redraw();
     });
-    row.appendChild(kind);
+    out.push(kind);
 
     if (isRel) {
       // [N דקות] [לפני/אחרי] [זמן] — נשמר כ-offset חתום (שלילי = לפני)
@@ -1761,8 +1781,8 @@
 
       const off = el('input', { type: 'number', step: '1', min: '0', title: 'דקות' });
       off.value = String(Math.abs(Number(entry.offset) || 0));
-      row.appendChild(off);
-      row.appendChild(el('span', { class: 'tm-result' }, 'דק׳'));
+      out.push(off);
+      out.push(el('span', { class: 'tm-result' }, 'דק׳'));
 
       const dir = el('select', {});
       dir.appendChild(el('option', { value: '-1' }, 'לפני'));
@@ -1771,20 +1791,20 @@
       const setOffset = () => { entry.offset = Number(dir.value) * (parseInt(off.value, 10) || 0); refresh(); };
       off.addEventListener('input', setOffset);
       dir.addEventListener('change', setOffset);
-      row.appendChild(dir);
+      out.push(dir);
 
       const base = el('select', {});
       for (const [k, label] of ZMAN_BASES) base.appendChild(el('option', { value: k }, label));
       base.value = entry.base || 'sunset';
       base.addEventListener('change', () => { entry.base = base.value; refresh(); });
-      row.appendChild(base);
+      out.push(base);
 
       const round = el('select', {});
       [[0, 'בלי עיגול'], [5, 'לעגל ל־5 דק׳'], [10, 'לעגל ל־10 דק׳'], [15, 'לעגל ל־15 דק׳']]
         .forEach(([v, label]) => round.appendChild(el('option', { value: String(v) }, label)));
       round.value = String(entry.round || 0);
       round.addEventListener('change', () => { entry.round = parseInt(round.value, 10) || 0; refresh(); });
-      row.appendChild(round);
+      out.push(round);
 
       // מה מופיע על הלוח: השעה המחושבת, או הטקסט הגולמי
       const show = el('select', {});
@@ -1792,21 +1812,26 @@
       show.appendChild(el('option', { value: 'text' }, 'על הלוח: הטקסט'));
       show.value = entry.show === 'text' ? 'text' : 'time';
       show.addEventListener('change', () => { entry.show = show.value; refresh(); });
-      row.appendChild(show);
-      row.appendChild(preview);
+      out.push(show);
       preview.textContent = entry.show === 'text' ? `יוצג: ${relativeText(entry)}` : '';
+      out.push(preview);
     } else {
       const t = el('input', { type: 'time' });
       t.value = entry.time || '';
       t.addEventListener('input', () => { entry.time = t.value; arr[idx] = entry; markDirty(); });
-      row.appendChild(t);
+      out.push(t);
     }
 
-    // ימים פעילים — ריק = כל הימים
+    return out;
+  }
+
+  // ימים פעילים — ריק = כל הימים
+  function dayChips(arr, idx) {
+    const entry = asEntry(arr[idx]);
     const days = el('div', { class: 'tm-days' });
     days.appendChild(el('span', { class: 'tm-result' }, 'ימים:'));
     const active = Array.isArray(entry.days) ? entry.days : [];
-    DOW_LABELS.forEach((label, d) => {
+    dowLabels().forEach((label, d) => {
       const cb = el('input', { type: 'checkbox' });
       cb.checked = active.length === 0 || active.includes(d);
       const lab = el('label', { class: cb.checked ? 'on' : '' }, cb, label);
@@ -1821,13 +1846,17 @@
       });
       days.appendChild(lab);
     });
-    row.appendChild(days);
+    return days;
+  }
 
+  function timeEntryRow(arr, idx, redraw) {
+    const row = el('div', { class: 'tm-entry' });
+    for (const f of timeFields(arr, idx, redraw)) row.appendChild(f);
+    row.appendChild(dayChips(arr, idx));
     row.appendChild(el('button', {
       class: 'btn btn-ghost btn-sm', type: 'button',
       onclick: () => { arr.splice(idx, 1); markDirty(); redraw(); },
     }, '×'));
-
     return row;
   }
 
@@ -2222,30 +2251,32 @@
     const timesHost = el('div', { class: 'sp-times' });
     const drawTimes = () => {
       timesHost.innerHTML = '';
-      (ev.times || []).forEach((t, idx) => {
+      const times = ev.times || (ev.times = []);
+      times.forEach((t, idx) => {
         const roomSel = document.createElement('select');
+        roomSel.className = 'sp-room';
         roomSel.appendChild(el('option', { value: '' }, 'כל החדרים'));
         for (const r of state.data.rooms.rooms) roomSel.appendChild(el('option', { value: r.id }, r.name));
         roomSel.value = t.roomId || '';
-        roomSel.addEventListener('change', () => { t.roomId = roomSel.value; markDirty(); });
+        roomSel.addEventListener('change', () => { times[idx].roomId = roomSel.value; markDirty(); });
         const labelInp = document.createElement('input');
         labelInp.type = 'text';
+        labelInp.className = 'sp-label';
         labelInp.placeholder = 'שם התפילה (למשל: שחרית)';
         labelInp.value = t.label || '';
-        labelInp.addEventListener('input', () => { t.label = labelInp.value; markDirty(); });
-        const timeInp = document.createElement('input');
-        timeInp.type = 'text';
-        timeInp.placeholder = 'HH:MM';
-        timeInp.value = t.time || '';
-        timeInp.addEventListener('input', () => { t.time = timeInp.value; markDirty(); });
+        labelInp.addEventListener('input', () => { times[idx].label = labelInp.value; markDirty(); });
         const rm = el('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => {
-          ev.times.splice(idx, 1); markDirty(); drawTimes();
+          times.splice(idx, 1); markDirty(); drawTimes();
         }}, '×');
-        timesHost.appendChild(el('div', { class: 'sp-time-row' }, roomSel, labelInp, timeInp, rm));
+        // אותו עורך של חדרי התפילה: שעה קבועה, או "20 דק׳ לפני השקיעה" וכדומה.
+        // אין כאן בוררי ימים — לאירוע יש תאריך אחד, והיום שלו נקבע ממנו.
+        const row = el('div', { class: 'sp-time-row tm-entry' }, roomSel, labelInp);
+        for (const f of timeFields(times, idx, drawTimes)) row.appendChild(f);
+        row.appendChild(rm);
+        timesHost.appendChild(row);
       });
       const add = el('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => {
-        ev.times = ev.times || [];
-        ev.times.push({ roomId: '', label: '', time: '' });
+        times.push({ roomId: '', label: '', type: 'fixed', time: '' });
         markDirty(); drawTimes();
       }}, '+ שעת תפילה');
       timesHost.appendChild(add);
@@ -2704,7 +2735,7 @@
     // ימים — ריק או כל השבעה = תמיד
     const active = Array.isArray(screen.days) ? screen.days.map(Number).filter(d => d >= 0 && d <= 6) : [];
     const days = el('div', { class: 'tm-days' });
-    DOW_LABELS.forEach((label, d) => {
+    dowLabels().forEach((label, d) => {
       const cb = el('input', { type: 'checkbox' });
       cb.checked = active.length === 0 || active.includes(d);
       const lab = el('label', { class: cb.checked ? 'on' : '' }, cb, label);
@@ -3275,7 +3306,34 @@
   }
 
   // ---------- Boot ----------
+  // ---------- שפת הממשק ----------
+  // שפת פאנל הניהול היא העדפה של הגבאי במכשיר הזה, ולא הגדרה של בית הכנסת:
+  // גבאי אחד יכול לנהל באנגלית בזמן שהצג בבית הכנסת נשאר עברי. שפת הצג עצמה
+  // נשמרת ב-config.display.lang, בלשונית "מראה הצג".
+  const LS_UI_LANG = 'sb.admin.lang';
+
+  function initUiLang() {
+    const I = window.SB_I18N;
+    if (!I) return;
+    let saved = null;
+    try { saved = localStorage.getItem(LS_UI_LANG); } catch {}
+    I.setLang(Object.hasOwn(I.LANGS, saved || '') ? saved : I.DEFAULT);
+    // הפאנל בונה DOM מחדש בכל render; המשקיף מתרגם גם את מה שנוצר אחר כך
+    I.observe(document.body);
+    for (const sel of document.querySelectorAll('.ui-lang')) {
+      sel.value = I.lang;
+      sel.addEventListener('change', () => {
+        try { localStorage.setItem(LS_UI_LANG, sel.value); } catch {}
+        // טעינה מחדש ולא החלפה חיה: החזרה לעברית דורשת את הטקסט המקורי, והשומר
+        // של שינויים שלא נשמרו (beforeunload) ישאל לפני שמשהו הולך לאיבוד.
+        location.reload();
+      });
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
+    initUiLang();
+
     // מילוי מוקדם של טופס הכניסה (בלי סיסמה)
     qs('#login-slug').value = new URLSearchParams(location.search).get('shul')
       || localStorage.getItem(LS_SLUG) || '';

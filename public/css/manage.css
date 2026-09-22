@@ -79,7 +79,7 @@
 .mg-table-wrap { overflow-x: auto; }
 .mg-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 720px; }
 .mg-table th, .mg-table td {
-  text-align: right; padding: 10px 12px; border-bottom: 1px solid var(--sb-line);
+  text-align: start; padding: 10px 12px; border-bottom: 1px solid var(--sb-line);
   white-space: nowrap;
 }
 .mg-table th { font-size: 12.5px; color: var(--sb-dim); font-weight: 600; }
