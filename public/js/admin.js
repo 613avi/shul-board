@@ -3306,33 +3306,12 @@
   }
 
   // ---------- Boot ----------
-  // ---------- שפת הממשק ----------
-  // שפת פאנל הניהול היא העדפה של הגבאי במכשיר הזה, ולא הגדרה של בית הכנסת:
-  // גבאי אחד יכול לנהל באנגלית בזמן שהצג בבית הכנסת נשאר עברי. שפת הצג עצמה
-  // נשמרת ב-config.display.lang, בלשונית "מראה הצג".
-  const LS_UI_LANG = 'sb.admin.lang';
-
-  function initUiLang() {
-    const I = window.SB_I18N;
-    if (!I) return;
-    let saved = null;
-    try { saved = localStorage.getItem(LS_UI_LANG); } catch {}
-    I.setLang(Object.hasOwn(I.LANGS, saved || '') ? saved : I.DEFAULT);
-    // הפאנל בונה DOM מחדש בכל render; המשקיף מתרגם גם את מה שנוצר אחר כך
-    I.observe(document.body);
-    for (const sel of document.querySelectorAll('.ui-lang')) {
-      sel.value = I.lang;
-      sel.addEventListener('change', () => {
-        try { localStorage.setItem(LS_UI_LANG, sel.value); } catch {}
-        // טעינה מחדש ולא החלפה חיה: החזרה לעברית דורשת את הטקסט המקורי, והשומר
-        // של שינויים שלא נשמרו (beforeunload) ישאל לפני שמשהו הולך לאיבוד.
-        location.reload();
-      });
-    }
-  }
-
   document.addEventListener('DOMContentLoaded', () => {
-    initUiLang();
+    // שפת הפאנל היא העדפה של הגבאי בדפדפן הזה, ולא הגדרה של בית הכנסת: גבאי
+    // אחד יכול לנהל באנגלית בזמן שהצג בבית הכנסת נשאר עברי. שפת הצג עצמה
+    // נשמרת ב-config.display.lang, בלשונית "מראה הצג".
+    // ההחלפה טוענת מחדש, ו-beforeunload ישאל לפני ששינוי שלא נשמר הולך לאיבוד.
+    window.SB_I18N?.boot();
 
     // מילוי מוקדם של טופס הכניסה (בלי סיסמה)
     qs('#login-slug').value = new URLSearchParams(location.search).get('shul')

@@ -200,6 +200,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    window.SB_I18N?.boot();
     setupBanner();
     initGoogleSignup();
     renderPreview();
