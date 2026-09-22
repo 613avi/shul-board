@@ -242,6 +242,11 @@
         <td><span class="mg-pill ${s.status}">${s.status === 'active' ? 'פעיל' : 'מושהה'}</span></td>
         <td class="mg-live ${s.screens_live ? 'on' : ''}">${s.screens_live ? `● ${s.screens_live}` : '—'}${(s.screens_total || 0) > (s.screens_live || 0) ? `<span class="dim"> / ${s.screens_total}</span>` : ''}</td>
         <td>${s.gabbaim}</td>
+        <td class="mg-mail ${s.recovery_email ? 'on' : 'off'}">${
+          s.recovery_email
+            ? `<span class="mono">${esc(s.recovery_email)}</span>`
+            : '<span title="הגבאי לא יוכל לאפס סיסמה לבד">אין</span>'
+        }</td>
         <td>${s.media_files ? `${s.media_files} · ${fmtBytes(s.media_bytes)}` : '—'}</td>
         <td>${fmtDate(s.created_at)}</td>
         <td>${fmtAgo(s.last_active)}</td>
