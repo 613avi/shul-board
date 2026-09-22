@@ -4,6 +4,9 @@
 (() => {
   const _offline = (() => { try { return window.SHUL_OFFLINE || null; } catch { return null; } })();
   const { HDate, GeoLocation, Zmanim, HebrewCalendar, flags, Locale, gematriya, Molad, Location } = window.hebcal;
+  // תרגום עם נפילה לאחור: בעברית, ובכל מפתח שאין לו תרגום, מוחזר הטקסט שכבר
+  // כתוב כאן. כך מחרוזת חדשה אף פעם לא מופיעה כמפתח חשוף על הצג.
+  const T = (key, heb, vars) => (window.SB_I18N?.has(key) ? window.SB_I18N.t(key, vars) : heb);
   const P = window.SB_PRESETS || null;
   const stripNikud = (t) => String(t || '').replace(/[\u0591-\u05BD\u05BF-\u05C7]/g, '');
   const FLAG_PARSHA = (flags && flags.PARSHA_HASHAVUA) || 1024;
@@ -28,6 +31,11 @@
   };
 
   const HEB_DOW = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const dowName = (i) => T(`display.dow.${i}`, HEB_DOW[i]);
+  const uiLang = () => (window.SB_I18N?.lang === 'en' ? 'en' : 'he');
+  const uiLocale = () => (uiLang() === 'en' ? 'en-US' : 'he-IL');
+  // באנגלית "כ״ו אֱלוּל תשפ״ו" לא אומר כלום; hebcal יודע להחזיר 26th of Elul, 5786
+  const hebDateText = (hd) => (uiLang() === 'en' ? hd.render('en') : hd.renderGematriya());
 
   const state = {
     config: null,
@@ -344,9 +352,12 @@
     qs('#synagogue-name').textContent = state.config.synagogueName || '';
     const now = new Date();
     const hdate = getEffectiveHDate();
-    qs('#hebrew-date').textContent = hdate.renderGematriya();
-    const dow = HEB_DOW[now.getDay()];
-    qs('#gregorian-date').textContent = `יום ${dow}, ${now.toLocaleDateString('he-IL', {day:'numeric', month:'long', year:'numeric'})}`;
+    qs('#hebrew-date').textContent = hebDateText(hdate);
+    const dow = dowName(now.getDay());
+    // בעברית "יום שני, 22 בספטמבר"; באנגלית "Monday, September 22" בלי מילת הקישור
+    qs('#gregorian-date').textContent = uiLang() === 'en'
+      ? `${dow}, ${now.toLocaleDateString('en-US', {day:'numeric', month:'long', year:'numeric'})}`
+      : `יום ${dow}, ${now.toLocaleDateString('he-IL', {day:'numeric', month:'long', year:'numeric'})}`;
 
     const parashaText = findParashaText(hdate, now);
     qs('#parasha').textContent = parashaText;
@@ -401,7 +412,7 @@
         const nm = m === months ? 1 : m + 1;
         const ny = m === months ? y + 1 : y;
         const molad = new Molad(ny, nm);
-        const dow = HEB_DOW[molad.getDow()];
+        const dow = dowName(molad.getDow());
         const hh = String(molad.getHour()).padStart(2, '0'), mm = String(molad.getMinutes()).padStart(2, '0');
         items.push({ text: `המולד: יום ${dow}, ${hh}:${mm} ו-${molad.getChalakim()} חלקים` });
       } catch {}
@@ -472,14 +483,14 @@
       (m === 7 && d >= 22) ||
       (m >= 8 && m <= 13) ||
       (m === 1 && d <= 14);
-    out.push(isWinter ? 'משיב הרוח ומוריד הגשם' : 'מוריד הטל');
+    out.push(isWinter ? T('display.mention.moridHaGeshem', 'משיב הרוח ומוריד הגשם') : T('display.mention.moridHaTal', 'מוריד הטל'));
 
     // ותן טל ומטר (Israel): 7 Cheshvan → 14 Nisan; else ותן ברכה
     const rainRequest =
       (m === 8 && d >= 7) ||
       (m >= 9 && m <= 13) ||
       (m === 1 && d <= 14);
-    out.push(rainRequest ? 'ותן טל ומטר לברכה' : 'ותן ברכה');
+    out.push(rainRequest ? T('display.mention.talUmatar', 'ותן טל ומטר לברכה') : T('display.mention.veTenBracha', 'ותן ברכה'));
 
     // יעלה ויבוא (Rosh Chodesh or Chol Hamoed in Israel)
     let yaaleh = false;
@@ -493,7 +504,7 @@
     // Chol hamoed (Israel): Nisan 16-20, Tishrei 16-21
     if (m === 1 && d >= 16 && d <= 20) yaaleh = true;
     if (m === 7 && d >= 16 && d <= 21) yaaleh = true;
-    if (yaaleh) out.push('יעלה ויבוא');
+    if (yaaleh) out.push(T('display.mention.yaaleVeyavo', 'יעלה ויבוא'));
 
     // על הניסים — Chanukah (25 Kislev through 2-3 Tevet) and Purim (14-15 Adar last-Adar)
     let alHanisim = false;
@@ -504,7 +515,7 @@
       catch { return 12; }
     })();
     if (m === lastAdar && (d === 14 || d === 15)) alHanisim = true; // Purim + Shushan Purim
-    if (alHanisim) out.push('על הניסים');
+    if (alHanisim) out.push(T('display.mention.alHanisim', 'על הניסים'));
 
     if (flag('extendedMentions')) {
       const leap = (() => { try { return HDate.isLeapYear(hdate.getFullYear()); } catch { return false; } })();
@@ -514,12 +525,12 @@
       const rc = d === 1 || (d === 30);
       // הלל
       let hallel = '';
-      if (m === 1 && d === 15) hallel = 'הלל שלם';
-      else if (m === 1 && d >= 16 && d <= 21) hallel = 'חצי הלל';
-      else if (m === 3 && d === 6) hallel = 'הלל שלם';
-      else if (m === 7 && d >= 15 && d <= 22) hallel = 'הלל שלם';
-      else if (isChanukah) hallel = 'הלל שלם';
-      else if (rc) hallel = 'חצי הלל';
+      if (m === 1 && d === 15) hallel = T('display.mention.fullHallel', 'הלל שלם');
+      else if (m === 1 && d >= 16 && d <= 21) hallel = T('display.mention.halfHallel', 'חצי הלל');
+      else if (m === 3 && d === 6) hallel = T('display.mention.fullHallel', 'הלל שלם');
+      else if (m === 7 && d >= 15 && d <= 22) hallel = T('display.mention.fullHallel', 'הלל שלם');
+      else if (isChanukah) hallel = T('display.mention.fullHallel', 'הלל שלם');
+      else if (rc) hallel = T('display.mention.halfHallel', 'חצי הלל');
       if (hallel) out.push(hallel);
       // תחנון — הכללים ניתנים לכיבוי בניהול, ואפשר להוסיף ימים של הקהילה
       const t = { m, d, rc, isChanukah, leap, lastAdar, dow: hdate.getDay() };
@@ -531,7 +542,7 @@
         noTachanun = (Array.isArray(tcfg.extra) ? tcfg.extra : [])
           .some(e => hebrewDateMatches(e, hdate));
       }
-      if (noTachanun) out.push('אין תחנון');
+      if (noTachanun) out.push(T('display.mention.noTachanun', 'אין תחנון'));
     }
 
     return out;
@@ -620,7 +631,7 @@
       if (!r.time) continue;
       const tr = document.createElement('tr');
       const mark = r.isOverride ? '<span class="ov" title="ערך מותאם אישית">*</span>' : '';
-      tr.innerHTML = `<td>${def.label}${mark}</td><td>${r.time}</td>`;
+      tr.innerHTML = `<td>${T(`display.zmanim.${def.key}`, def.label)}${mark}</td><td>${r.time}</td>`;
       tbody.appendChild(tr);
     }
     updateAutoScroll(qs('.zmanim-card'));
@@ -783,20 +794,20 @@
   function buildWeekdayRows(room) {
     const rows = [];
     const dow = new Date().getDay();
-    pushEntries(rows, room.weekday.shacharit, 'שחרית', dow);
-    pushEntries(rows, room.weekday.mincha,    'מנחה',   dow);
-    pushEntries(rows, room.weekday.arvit,     'ערבית',  dow);
+    pushEntries(rows, room.weekday.shacharit, T('display.prayer.shacharit', 'שחרית'), dow);
+    pushEntries(rows, room.weekday.mincha,    T('display.prayer.mincha',    'מנחה'),   dow);
+    pushEntries(rows, room.weekday.arvit,     T('display.prayer.arvit',     'ערבית'),  dow);
     return rows;
   }
 
   function buildShabbatRows(room, ctx) {
     const rows = [];
     const dow = new Date().getDay();
-    pushEntries(rows, room.shabbat.kabbalat,            'קבלת שבת',      dow, ctx);
-    pushEntries(rows, room.shabbat.minchaErevOffsets,   'מנחה ערב שבת',  dow, ctx);
-    pushEntries(rows, room.shabbat.shacharit,           'שחרית שבת',     dow, ctx);
-    pushEntries(rows, room.shabbat.mincha,              'מנחה שבת',      dow, ctx);
-    pushEntries(rows, room.shabbat.arvitMotzashOffsets, 'ערבית מוצ״ש',   dow, ctx);
+    pushEntries(rows, room.shabbat.kabbalat,            T('display.prayer.kabbalat',       'קבלת שבת'),     dow, ctx);
+    pushEntries(rows, room.shabbat.minchaErevOffsets,   T('display.prayer.minchaErev',     'מנחה ערב שבת'), dow, ctx);
+    pushEntries(rows, room.shabbat.shacharit,           T('display.prayer.shacharitShab',  'שחרית שבת'),    dow, ctx);
+    pushEntries(rows, room.shabbat.mincha,              T('display.prayer.minchaShab',     'מנחה שבת'),     dow, ctx);
+    pushEntries(rows, room.shabbat.arvitMotzashOffsets, T('display.prayer.arvitMotzash',   'ערבית מוצ״ש'),  dow, ctx);
     return rows;
   }
 
@@ -861,9 +872,12 @@
     const isErevShabbat = dow === 5;
     const shabbatCtx = (isShabbat || isErevShabbat) ? computeShabbatContext() : null;
 
-    let title = isShabbat || isErevShabbat ? 'זמני תפילות שבת' : 'זמני תפילות';
+    let title = isShabbat || isErevShabbat
+      ? T('display.card.tefillotShabbat', 'זמני תפילות שבת')
+      : T('display.card.tefillot', 'זמני תפילות');
     const eventName = currentEventName();
-    if (eventName) title = `זמני תפילות — ${eventName}`;
+    // שם האירוע הוא תוכן של הגבאי ולכן נשאר כמו שנכתב, בכל שפה
+    if (eventName) title = `${T('display.card.tefillot', 'זמני תפילות')} — ${eventName}`;
     qs('#tefillot-title').textContent = _blockTitles.get('tefillot') || title;
 
     // Shared shabbat row at top
@@ -1032,25 +1046,46 @@
       const now = new Date();
       const hdate = getEffectiveHDate();
       const end = new HDate(new Date(now.getTime() + 14 * 86400000));
+      const loc = uiLang();
       const events = HebrewCalendar.calendar({
-        start: hdate, end, il: true, locale: 'he',
+        start: hdate, end, il: true, locale: loc,
         candlelighting: false, sedrot: false, omer: false,
       });
       const upcoming = events.find(e => (e.getFlags() & FLAG_CHAG));
       if (!upcoming) { qs('#upcoming-event').textContent = ''; return; }
-      // hebcal מחזיר למשל "רֹאשׁ הַשָּׁנָה 5787": מורידים ניקוד וכותבים את השנה באותיות
-      const name = upcoming.render('he')
-        .replace(/[\u0591-\u05C7]/g, '')
-        .replace(/\b5\d{3}\b/, y => hebDay(Number(y) % 1000))
-        .trim();
+      // בעברית hebcal מחזיר למשל "רֹאשׁ הַשָּׁנָה 5787": מורידים ניקוד וכותבים
+      // את השנה באותיות. באנגלית השם כבר קריא כמו שהוא.
+      const name = loc === 'en'
+        ? upcoming.render('en').trim()
+        : upcoming.render('he')
+          .replace(/[\u0591-\u05C7]/g, '')
+          .replace(/\b5\d{3}\b/, y => hebDay(Number(y) % 1000))
+          .trim();
       const days = upcoming.getDate().abs() - hdate.abs();
-      const when = days <= 0 ? 'היום' : days === 1 ? 'מחר' : `בעוד ${days} ימים`;
-      qs('#upcoming-event').textContent = `${name} · ${when}`;
+      const line = days <= 0 ? T('display.upcoming.today', `${name} · היום`, { name })
+        : days === 1 ? T('display.upcoming.tomorrow', `${name} · מחר`, { name })
+        : T('display.upcoming.in', `${name} · בעוד ${days} ימים`, { name, days });
+      qs('#upcoming-event').textContent = line;
     } catch { /* ignore */ }
   }
 
+  // שפת הצג היא הגדרה של בית הכנסת ולא של הדפדפן — על מסך בקיר אין מי שילחץ.
+  function applyLang() {
+    const want = state.config?.display?.lang === 'en' ? 'en' : 'he';
+    if (!window.SB_I18N || window.SB_I18N.lang === want) return;
+    window.SB_I18N.setLang(want);
+    // תוויות הזמנים, התאריך העברי והפרשה כבר צוירו בשפה הקודמת — מציירים שוב.
+    // הדגל מונע לולאה: applyDesign קורא לכאן, וכאן חוזרים רק לציור.
+    if (!_langSwitching && state.config) {
+      _langSwitching = true;
+      try { lightRefresh(); safe('upcoming', renderUpcoming); applyScreens(); } finally { _langSwitching = false; }
+    }
+  }
+  let _langSwitching = false;
+
   function applyDesign() {
     if (!state.config) return;
+    applyLang();
     // הקטלוג המשותף (js/presets.js) משלים כל שדה חסר מהמראה שנבחר,
     // כך שהגדרות ישנות ממשיכות לעבוד וגם design ריק מקבל מראה סביר.
     const d = window.SB_PRESETS
@@ -1191,7 +1226,7 @@
           ? `<div class="big-time flip"><span class="fd" data-d="0">0</span><span class="fd" data-d="1">0</span><i>:</i><span class="fd" data-d="2">0</span><span class="fd" data-d="3">0</span>${showSec ? '<span class="fd fd-s" data-d="4">0</span><span class="fd fd-s" data-d="5">0</span>' : ''}</div>`
           : `<div class="big-time">${face === 'seven' ? '<span class="ghost">88:88</span>' : ''}<span class="bt-hm">00:00</span>${showSec ? '<small class="bt-s">00</small>' : ''}</div>`;
         const dateLine = block.showDate
-          ? `<div class="bt-date">${getEffectiveHDate().renderGematriya()} · יום ${HEB_DOW[new Date().getDay()]}</div>` : '';
+          ? `<div class="bt-date">${hebDateText(getEffectiveHDate())} · ${dowName(new Date().getDay())}</div>` : '';
         body.innerHTML = digits + dateLine;
       }
       wrap.appendChild(card);
@@ -1212,7 +1247,7 @@
       const now = new Date();
       const par = findParashaText(hdate, now);
       body.innerHTML = `<div class="d-heb">${hdate.renderGematriya()}</div>
-        <div class="d-greg">יום ${HEB_DOW[now.getDay()]}, ${now.toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <div class="d-greg">${dowName(now.getDay())}, ${now.toLocaleDateString(uiLocale(), { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         ${par ? `<div class="d-parasha">${stripNikud(par)}</div>` : ''}`;
       wrap.appendChild(card);
       fitFont(body.querySelector('.d-heb'), wrap, 0.085, 0.3);
@@ -1220,7 +1255,7 @@
       const p = body.querySelector('.d-parasha'); if (p) fitFont(p, wrap, 0.05, 0.18);
     },
     shabbat(block, wrap) {
-      const { card, body } = mkCard('shabbat', cardTitle(block, 'שבת קודש'));
+      const { card, body } = mkCard('shabbat', cardTitle(block, T('display.card.shabbat', 'שבת קודש')));
       try {
         const ctx = computeShabbatContext();
         const shabbatHd = new HDate(ctx.saturday);
@@ -1249,7 +1284,7 @@
     },
     today(block, wrap) {
       const inline = block.h <= 2;
-      const { card, body } = mkCard('today', inline ? '' : cardTitle(block, 'היום'), inline ? 'blk-inline' : '');
+      const { card, body } = mkCard('today', inline ? '' : cardTitle(block, T('display.card.today', 'היום')), inline ? 'blk-inline' : '');
       const hdate = getEffectiveHDate();
       const items = computeTodayItems(hdate).map(i => i.text);
       const fast = fastTimesToday(hdate, true);
@@ -1262,7 +1297,7 @@
       wrap.appendChild(card);
     },
     learning(block, wrap) {
-      const { card, body } = mkCard('learning', cardTitle(block, 'לימוד יומי'));
+      const { card, body } = mkCard('learning', cardTitle(block, T('display.card.learning', 'לימוד יומי')));
       const ids = (state.config.display && Array.isArray(state.config.display.learning) && state.config.display.learning.length)
         ? state.config.display.learning : ['dafyomi'];
       if (!window.hebcal.DailyLearning || !window.hebcal.DailyLearning.getCalendars().length) {
@@ -1286,7 +1321,7 @@
       wrap.appendChild(card);
     },
     dedications(block, wrap) {
-      const { card, body } = mkCard('dedications', cardTitle(block, 'הקדשות וברכות'));
+      const { card, body } = mkCard('dedications', cardTitle(block, T('display.card.dedications', 'הקדשות וברכות')));
       const items = activeDedications();
       if (!items.length) body.innerHTML = '<div class="blk-empty">אין הקדשות פעילות</div>';
       else {
@@ -1303,7 +1338,7 @@
       wrap.appendChild(card);
     },
     shiurim(block, wrap) {
-      const { card, body } = mkCard('shiurim', cardTitle(block, 'שיעורים'));
+      const { card, body } = mkCard('shiurim', cardTitle(block, T('display.card.shiurim', 'שיעורים')));
       const now = new Date();
       const dow = now.getDay();
       const list = (dayIdx) => state.shiurim
@@ -1350,7 +1385,7 @@
       wrap.appendChild(card);
     },
     weather(block, wrap) {
-      const { card, body } = mkCard('weather', cardTitle(block, 'מזג אוויר'));
+      const { card, body } = mkCard('weather', cardTitle(block, T('display.card.weather', 'מזג אוויר')));
       const w = _weather;
       if (!w) { body.innerHTML = '<div class="blk-empty">טוען…</div>'; fetchWeather(); }
       else {
@@ -1467,7 +1502,7 @@
       const res = await fetch(url);
       const j = await res.json();
       const days = (j.daily?.time || []).slice(1, 4).map((t, i) => ({
-        name: HEB_DOW[new Date(t + 'T12:00:00').getDay()],
+        name: dowName(new Date(t + 'T12:00:00').getDay()),
         code: j.daily.weather_code[i + 1], max: j.daily.temperature_2m_max[i + 1], min: j.daily.temperature_2m_min[i + 1],
       }));
       _weather = { temp: j.current?.temperature_2m, code: j.current?.weather_code, days };

@@ -91,11 +91,12 @@ window.SB_OFFLINE = (() => {
     if (!slug) throw new Error('חסר מזהה בית כנסת');
 
     onStep('קורא את הצג');
-    const [html, cssBoard, cssTraditional, cssScreens, jsPresets, jsDisplay] = await Promise.all([
+    const [html, cssBoard, cssTraditional, cssScreens, jsI18n, jsPresets, jsDisplay] = await Promise.all([
       text('/display.html'),
       text('/css/board.css'),
       text('/css/traditional.css'),
       text('/css/screens.css'),
+      text('/js/i18n.js'),
       text('/js/presets.js'),
       text('/js/display.js'),
     ]);
@@ -169,6 +170,8 @@ window.SB_OFFLINE = (() => {
       // מוקטנת לא תבלע את התג הבא.
       .replace(/[ \t]*<script src="https:\/\/cdn\.jsdelivr\.net[^>]*><\/script>\s*/,
         put(`<script>\n${forScript(jsCore)}\n</script>\n<script>\n${forScript(jsLearning)}\n</script>\n`))
+      .replace(/[ \t]*<script src="\/js\/i18n\.js"><\/script>\s*/,
+        put(`<script>\n${forScript(jsI18n)}\n</script>\n`))
       .replace(/[ \t]*<script src="\/js\/presets\.js"><\/script>\s*/,
         put(`<script>\n${forScript(jsPresets)}\n</script>\n`))
       .replace(/[ \t]*<script src="\/js\/display\.js"><\/script>\s*/,

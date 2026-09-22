@@ -278,7 +278,7 @@ body[data-screens] #display-root {
     font-size: calc(var(--fs, 1) * clamp(0.95rem, 1.35vw, 1.6rem)); }
 .blk-learning .ln-row:last-child { border-bottom: 0; }
 .blk-learning .ln-name { color: var(--text-dim); white-space: nowrap; }
-.blk-learning .ln-val { color: var(--text); font-weight: 700; text-align: left; }
+.blk-learning .ln-val { color: var(--text); font-weight: 700; text-align: end; }
 
 /* הקדשות וברכות */
 .blk-dedications .blk-body { align-items: center; text-align: center; justify-content: center; }

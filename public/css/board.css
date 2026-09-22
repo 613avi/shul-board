@@ -42,7 +42,7 @@ body { min-height: 100vh; }
     grid-template-columns: 1fr auto;
 }
 
-.display-header .brand { text-align: right; display: flex; align-items: center; gap: 1.2vw; min-width: 0; }
+.display-header .brand { text-align: start; display: flex; align-items: center; gap: 1.2vw; min-width: 0; }
 .display-header .brand-text { min-width: 0; }
 /* לוגו בכותרת — מוצג כשנבחר לוגו ואין קוביית לוגו נפרדת במסך */
 .header-logo {
@@ -178,7 +178,7 @@ body { min-height: 100vh; }
 }
 .zmanim-card tr:last-child td, .tefillot-card tr:last-child td { border-bottom: none; }
 .zmanim-card td:first-child, .tefillot-card td:first-child {
-    text-align: right;
+    text-align: start;
     font-weight: 600;
     color: var(--text);
 }
@@ -471,7 +471,7 @@ table.data-table {
 table.data-table th, table.data-table td {
     padding: 0.5rem 0.6rem;
     border-bottom: 1px solid #e6e9f0;
-    text-align: right;
+    text-align: start;
 }
 table.data-table th { background: #f4f6fa; font-weight: 700; font-size: 0.9rem; }
 table.data-table input {
@@ -509,7 +509,7 @@ table.data-table .col-actions { width: 80px; text-align: center; }
     color: #856404;
     padding: 0.5rem 1rem;
     border-radius: 6px;
-    border-right: 4px solid #ffc107;
+    border-inline-start: 4px solid #ffc107;
     display: none;
     margin-bottom: 1rem;
 }
@@ -853,11 +853,11 @@ body[data-custom-bg="1"] #display-root {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
     align-content: start;
-    text-align: right;
+    text-align: start;
     gap: 2rem;
 }
 #display-root[data-layout="sidebar-right"] .display-header .brand {
-    text-align: right;
+    text-align: start;
 }
 #display-root[data-layout="sidebar-right"] .clock {
     justify-content: flex-start;
@@ -889,11 +889,11 @@ body[data-custom-bg="1"] #display-root {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
     align-content: start;
-    text-align: right;
+    text-align: start;
     gap: 2rem;
 }
 #display-root[data-layout="sidebar-left"] .display-header .brand {
-    text-align: right;
+    text-align: start;
 }
 #display-root[data-layout="sidebar-left"] .clock {
     justify-content: flex-start;
@@ -1225,6 +1225,24 @@ body[data-theme="parchment"] #display-root[data-style="glass"] .card {
 #display-root[data-style="pearl"] .announcements-container {
     border: 1px solid var(--pearl-line);
     border-radius: 12px;
+}
+
+/* ===== כיווניות =====
+   הממשק והצג עוברים בין עברית (RTL) לאנגלית (LTR) לפי dir על <html>. רוב הכללים
+   כבר לוגיים (inline-start/end), וכאן יושבים המקומות שבהם הכיוון באמת חשוב.
+
+   תאי השעה מחזיקים direction: ltr כדי שהספרות יוצגו נכון, ולכן start/end בתוכם
+   נקבעים לפי ltr ולא לפי כיוון הלוח. מיישרים אותם במפורש לקצה החיצוני של השורה. */
+[dir="ltr"] .zmanim-card td:last-child,
+[dir="ltr"] .tefillot-card td:last-child,
+[dir="ltr"] .tefillot-card .prayer-block td.ptime { text-align: right; }
+
+/* פס ההודעות רץ לכיוון הקריאה: בעברית משמאל לימין, באנגלית ההפך. */
+[dir="ltr"] #announcements-ticker { padding-right: 0; padding-left: 100%; }
+[dir="ltr"] #announcements-ticker { animation-name: ticker-ltr; }
+@keyframes ticker-ltr {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
 }
 
 /* ===== גופנים — גל שני ===== */

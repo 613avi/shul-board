@@ -637,6 +637,7 @@
     if (qs('#f-sleep-from')) qs('#f-sleep-from').value = sl.from || '23:30';
     if (qs('#f-sleep-to')) qs('#f-sleep-to').value = sl.to || '05:00';
     if (qs('#f-textsSeconds')) qs('#f-textsSeconds').value = d.textsSeconds || 15;
+    if (qs('#f-lang')) qs('#f-lang').value = d.lang === 'en' ? 'en' : 'he';
   }
 
   function bindFeatures() {
@@ -652,6 +653,8 @@
     };
     for (const id of ['#f-sleep', '#f-sleep-from', '#f-sleep-to']) qs(id).addEventListener('change', sleepChanged);
     qs('#f-textsSeconds').addEventListener('input', (e) => { disp().textsSeconds = Math.max(4, parseInt(e.target.value, 10) || 15); markDirty(); pushDesignPreview(); });
+    const lang = qs('#f-lang');
+    if (lang) lang.addEventListener('change', () => { disp().lang = lang.value === 'en' ? 'en' : 'he'; markDirty(); pushDesignPreview(); });
   }
 
   // תמונות הרקע — מהקבצים שהועלו

@@ -117,7 +117,7 @@
   font-weight: 900; margin: 0 0 10px;
 }
 .contact .lead { max-width: 620px; margin: 0 auto 24px; }
-.contact-form { text-align: right; max-width: 620px; }
+.contact-form { text-align: start; max-width: 620px; }
 .contact-form .c-row { display: grid; gap: 0 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .contact-form textarea, .contact-form select {
   width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 15px;

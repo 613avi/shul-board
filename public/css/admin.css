@@ -38,7 +38,7 @@
   padding: 12px 10px 4px; text-transform: uppercase;
 }
 .admin-nav button {
-  display: flex; align-items: center; gap: 9px; width: 100%; text-align: right;
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: start;
   background: transparent; border: 0; border-radius: 9px; padding: 9px 10px;
   font: inherit; font-size: 14.5px; color: var(--ad-ink); cursor: pointer;
 }
@@ -117,7 +117,7 @@
 }
 .preset-card {
   border: 2px solid var(--ad-line); border-radius: 12px; overflow: hidden; background: #fff;
-  cursor: pointer; text-align: right; padding: 0; font: inherit; transition: .15s; position: relative;
+  cursor: pointer; text-align: start; padding: 0; font: inherit; transition: .15s; position: relative;
 }
 .preset-card:hover { border-color: #b9c1d1; transform: translateY(-1px); }
 .preset-card.active { border-color: var(--ad-gold); box-shadow: 0 0 0 3px rgba(212,175,55,.25); }
@@ -188,7 +188,7 @@
 .tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
 .tpl-card {
   border: 2px solid var(--ad-line); border-radius: 10px; background: #fff; padding: 8px; cursor: pointer;
-  text-align: right; font: inherit; transition: .15s;
+  text-align: start; font: inherit; transition: .15s;
 }
 .tpl-card:hover { border-color: var(--ad-gold); }
 .tpl-thumb {
@@ -289,7 +289,7 @@
   .quick-actions { grid-template-columns: 1fr; }
   .zmanim-grid { grid-template-columns: 1fr; }
   .zmanim-row { grid-template-columns: 1fr auto; }
-  .zmanim-row .zm-default { grid-column: 1 / -1; text-align: right; }
+  .zmanim-row .zm-default { grid-column: 1 / -1; text-align: start; }
   .sp-time-row { grid-template-columns: 1fr 1fr; }
   table.data-table { display: block; overflow-x: auto; }
 }
@@ -368,7 +368,7 @@
 
 /* פלטת הקוביות — מקובצת */
 .sc-palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
-.sc-palette button { text-align: right; display: flex; flex-direction: column; gap: 1px; }
+.sc-palette button { text-align: start; display: flex; flex-direction: column; gap: 1px; }
 .sc-palette button small { font-size: 11px; color: #6b7280; font-weight: 400; }
 
 /* "מה מוצג" — רשימת תכונות */
