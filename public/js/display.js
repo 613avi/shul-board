@@ -640,22 +640,38 @@
   // ---------- seamless loop scroll ----------
   // Clones the content once; animates translateY 0 -> -50% (one full content height)
   // infinitely, so as the original scrolls off the top the clone enters from the bottom.
+  // מהירות הגלילה (או כיבוי) לפי block.scroll של הקובייה במסך: slow / fast / off.
+  const SCROLL_SPEED = { slow: 18, fast: 45 };   // פיקסלים לשנייה; ברירת המחדל 28
+  // הלוח מצויר מחדש כל דקה. כדי שהגלילה לא תקפוץ להתחלה בכל ציור, זוכרים
+  // מתי התחילה, וממשיכים מאותה נקודה כל עוד הגבהים לא השתנו.
+  const _scrollPhase = new Map();
   function updateAutoScroll(cardEl) {
     if (!cardEl) return;
     const viewport = cardEl.querySelector('.scroll-viewport');
     const inner = viewport && viewport.querySelector('.scroll-inner');
     if (!viewport || !inner) return;
+    const wrap = cardEl.closest('.screen-block');
+    const mode = wrap?._block?.scroll;
+    const key = wrap?._block?.id || wrap?.dataset.type || cardEl.className;
 
     // Reset
     inner.classList.remove('scrolling');
+    viewport.classList.remove('is-scrolling');
     inner.style.animationDuration = '';
+    inner.style.animationDelay = '';
     inner.removeAttribute('data-cloned');
     inner.querySelectorAll(':scope > [data-clone="1"]').forEach(c => c.remove());
+    // שתי קריאות באותו פריים (ציור הכרטיס + שיבוצו בקובייה) — רק האחרונה מודדת,
+    // אחרת השנייה מודדת גם את השכפול ומכפילה את התוכן
+    const token = inner._scrollToken = (inner._scrollToken || 0) + 1;
+    if (mode === 'off') { _scrollPhase.delete(key); return; }
 
     requestAnimationFrame(() => {
+      if (inner._scrollToken !== token) return;
       const vh = viewport.clientHeight;
       const ch = inner.scrollHeight;
-      if (ch <= vh + 2) return;
+      if (ch <= vh + 2) { _scrollPhase.delete(key); return; }
+      viewport.classList.add('is-scrolling');
 
       // Clone current children into a single wrapper and append
       const wrap = document.createElement(inner.tagName === 'UL' ? 'li' : 'div');
@@ -677,9 +693,15 @@
       }
       inner.setAttribute('data-cloned', '1');
 
-      // Speed: ~40px per second (slow, readable)
-      const duration = Math.max(ch / 28, 20);
+      const speed = SCROLL_SPEED[mode] || 28;
+      const duration = Math.max(ch / speed, 20 * 28 / speed);
+      const prev = _scrollPhase.get(key);
+      const now = performance.now();
+      let start = now;
+      if (prev && prev.duration === duration && prev.vh === vh) start = prev.start;
+      _scrollPhase.set(key, { start, duration, vh });
       inner.style.animationDuration = `${duration}s`;
+      inner.style.animationDelay = `-${(((now - start) / 1000) % duration).toFixed(2)}s`;
       inner.classList.add('scrolling');
     });
   }
@@ -1165,13 +1187,25 @@
     return t || fallback;
   };
 
-  function mkCard(type, title, extraClass = '') {
+  // scroll: התוכן נעטף בחלון גלילה כמו בזמני היום, ונגלל כשהוא לא נכנס בקובייה.
+  // הגלילה עצמה מופעלת ב-paintScreen / rerenderBlocks אחרי שהקובייה נצבעה.
+  function mkCard(type, title, extraClass = '', scroll = false) {
     const card = document.createElement('section');
     card.className = `card blk blk-${type} ${extraClass}`.trim();
     if (title) { const h = document.createElement('h2'); h.textContent = title; card.appendChild(h); }
     const body = document.createElement('div');
     body.className = 'blk-body';
-    card.appendChild(body);
+    if (scroll) {
+      const viewport = document.createElement('div');
+      viewport.className = 'blk-viewport scroll-viewport';
+      const inner = document.createElement('div');
+      inner.className = 'scroll-inner';
+      inner.appendChild(body);
+      viewport.appendChild(inner);
+      card.appendChild(viewport);
+    } else {
+      card.appendChild(body);
+    }
     return { card, body };
   }
 
@@ -1266,8 +1300,11 @@
       fitFont(body.querySelector('.d-greg'), wrap, 0.045, 0.16);
       const p = body.querySelector('.d-parasha'); if (p) fitFont(p, wrap, 0.05, 0.18);
     },
+    // הגדרות הקובייה: fixedParasha (ברירת מחדל כן) — שם השבת והפרשה נשארים ככותרת
+    // מעל הגלילה; next — '' לפי "הדגשת התפילה הבאה" הכללית, 'on' / 'off';
+    // rows — 'zmanim' מצייר את השורות בעיצוב של זמני היום (לפי סגנון הלוח).
     shabbat(block, wrap) {
-      const { card, body } = mkCard('shabbat', cardTitle(block, T('display.card.shabbat', 'שבת קודש')));
+      const { card, body } = mkCard('shabbat', cardTitle(block, T('display.card.shabbat', 'שבת קודש')), '', true);
       try {
         const ctx = computeShabbatContext();
         const shabbatHd = new HDate(ctx.saturday);
@@ -1276,27 +1313,56 @@
           .map(e => stripNikud(e.render('he'))).slice(0, 2);
         const room = state.rooms[0];
         const rows = [];
-        // הרשומה הראשונה שחלה ביום המבוקש; טקסט גולמי מוצג כמו שהוא
-        const first = (list, dow) => {
-          for (const e of (list || [])) { const r = resolveTimeEntry(e, dow, ctx); if (r) return r.label || r.time; }
-          return null;
+        // השעה המלאה של רשומה ביום שישי / בשבת — להדגשת התפילה הבאה
+        const at = (dow, hm) => {
+          const m = String(hm || '').match(/^(\d{1,2}):(\d{2})$/);
+          if (!m) return null;
+          const d = new Date(dow === 5 ? ctx.friday : ctx.saturday);
+          d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+          return d;
         };
-        const erev = room && first(room.shabbat.minchaErevOffsets, 5);
-        if (erev) rows.push(['מנחה ערב שבת', erev]);
-        rows.push(['הדלקת נרות', fmtTime(ctx.candle)]);
-        const shach = room && first(room.shabbat.shacharit, 6); if (shach) rows.push(['שחרית', shach]);
-        const minch = room && first(room.shabbat.mincha, 6);    if (minch) rows.push(['מנחה', minch]);
-        rows.push(['צאת השבת', fmtTime(ctx.havdalah)]);
-        if (ctx.havdalahRT) rows.push(['צאת השבת (ר״ת)', fmtTime(ctx.havdalahRT)]);
-        const motz = room && first(room.shabbat.arvitMotzashOffsets, 6); if (motz) rows.push(['ערבית מוצ״ש', motz]);
-        body.innerHTML = `${par ? `<div class="sh-parasha">${stripNikud(par)}${special.length ? ' · ' + special.join(' · ') : ''}</div>` : ''}` +
-          rows.map(([k, v]) => `<div class="sh-row"><span>${k}</span><b>${v}</b></div>`).join('');
+        // הרשומה הראשונה שחלה ביום המבוקש; טקסט גולמי מוצג כמו שהוא
+        const add = (label, list, dow) => {
+          if (!room) return;
+          for (const e of (list || [])) {
+            const r = resolveTimeEntry(e, dow, ctx);
+            if (r) { rows.push({ label, shown: r.label || r.time, at: at(dow, r.time) }); return; }
+          }
+        };
+        const addFixed = (label, d) => rows.push({ label, shown: fmtTime(d), at: d });
+        add('מנחה ערב שבת', room?.shabbat.minchaErevOffsets, 5);
+        addFixed('הדלקת נרות', ctx.candle);
+        add('שחרית', room?.shabbat.shacharit, 6);
+        add('מנחה', room?.shabbat.mincha, 6);
+        addFixed('צאת השבת', ctx.havdalah);
+        if (ctx.havdalahRT) addFixed('צאת השבת (ר״ת)', ctx.havdalahRT);
+        add('ערבית מוצ״ש', room?.shabbat.arvitMotzashOffsets, 6);
+
+        // התפילה הבאה — רק בשישי ובשבת, כשהזמנים הם של היום עצמו
+        const now = new Date();
+        const nextOn = block.next === 'on' || (block.next !== 'off' && flag('nextHighlight'));
+        const live = nextOn && (now.getDay() === 5 || now.getDay() === 6);
+        const today = now.toDateString();
+        const next = live ? rows.find(r => r.at && r.at.toDateString() === today && r.at >= now) : null;
+        const cls = (r) => !live ? '' : r === next ? 'next-minyan' : (r.at && r.at < now ? 'past-minyan' : '');
+        const badge = (r) => r === next ? `<span class="next-in">${untilText(Math.round((r.at - now) / 60000))}</span>` : '';
+
+        const parHtml = par ? `<div class="sh-parasha">${stripNikud(par)}${special.length ? ' · ' + special.join(' · ') : ''}</div>` : '';
+        const rowsHtml = block.rows === 'zmanim'
+          ? `<table class="sh-table"><tbody>${rows.map(r => `<tr class="${cls(r)}"><td>${r.label}${badge(r)}</td><td>${r.shown}</td></tr>`).join('')}</tbody></table>`
+          : rows.map(r => `<div class="sh-row ${cls(r)}"><span>${r.label}${badge(r)}</span><b>${r.shown}</b></div>`).join('');
+        if (block.fixedParasha !== false && parHtml) {
+          card.querySelector('.blk-viewport').insertAdjacentHTML('beforebegin', parHtml);
+          body.innerHTML = rowsHtml;
+        } else {
+          body.innerHTML = parHtml + rowsHtml;
+        }
       } catch { body.innerHTML = '<div class="blk-empty">—</div>'; }
       wrap.appendChild(card);
     },
     today(block, wrap) {
       const inline = block.h <= 2;
-      const { card, body } = mkCard('today', inline ? '' : cardTitle(block, T('display.card.today', 'היום')), inline ? 'blk-inline' : '');
+      const { card, body } = mkCard('today', inline ? '' : cardTitle(block, T('display.card.today', 'היום')), inline ? 'blk-inline' : '', true);
       const hdate = getEffectiveHDate();
       const items = computeTodayItems(hdate).map(i => i.text);
       const fast = fastTimesToday(hdate, true);
@@ -1309,7 +1375,7 @@
       wrap.appendChild(card);
     },
     learning(block, wrap) {
-      const { card, body } = mkCard('learning', cardTitle(block, T('display.card.learning', 'לימוד יומי')));
+      const { card, body } = mkCard('learning', cardTitle(block, T('display.card.learning', 'לימוד יומי')), '', true);
       const ids = (state.config.display && Array.isArray(state.config.display.learning) && state.config.display.learning.length)
         ? state.config.display.learning : ['dafyomi'];
       if (!window.hebcal.DailyLearning || !window.hebcal.DailyLearning.getCalendars().length) {
@@ -1333,7 +1399,7 @@
       wrap.appendChild(card);
     },
     dedications(block, wrap) {
-      const { card, body } = mkCard('dedications', cardTitle(block, T('display.card.dedications', 'הקדשות וברכות')));
+      const { card, body } = mkCard('dedications', cardTitle(block, T('display.card.dedications', 'הקדשות וברכות')), '', true);
       const items = activeDedications();
       if (!items.length) body.innerHTML = '<div class="blk-empty">אין הקדשות פעילות</div>';
       else {
@@ -1350,7 +1416,7 @@
       wrap.appendChild(card);
     },
     shiurim(block, wrap) {
-      const { card, body } = mkCard('shiurim', cardTitle(block, T('display.card.shiurim', 'שיעורים')));
+      const { card, body } = mkCard('shiurim', cardTitle(block, T('display.card.shiurim', 'שיעורים')), '', true);
       const now = new Date();
       const dow = now.getDay();
       const ctx = (dow === 5 || dow === 6) ? computeShabbatContext() : null;
@@ -1379,7 +1445,7 @@
     },
     text(block, wrap) {
       const items = state.texts.filter(t => t && (t.body || t.title));
-      const { card, body } = mkCard('text', cardTitle(block, ''));
+      const { card, body } = mkCard('text', cardTitle(block, ''), '', true);
       if (!items.length) body.innerHTML = '<div class="blk-empty">לא הוזנו טקסטים</div>';
       else {
         const it = items[_rotIndex % items.length];
@@ -1409,7 +1475,7 @@
       wrap.appendChild(card);
     },
     weather(block, wrap) {
-      const { card, body } = mkCard('weather', cardTitle(block, T('display.card.weather', 'מזג אוויר')));
+      const { card, body } = mkCard('weather', cardTitle(block, T('display.card.weather', 'מזג אוויר')), '', true);
       const w = _weather;
       if (!w) { body.innerHTML = '<div class="blk-empty">טוען…</div>'; fetchWeather(); }
       else {
@@ -1494,6 +1560,7 @@
       const block = wrap._block || { type, h: 5 };
       wrap.innerHTML = '';
       try { _blockRenderers[type](block, wrap); } catch (e) { console.error('block', type, e); }
+      updateAutoScroll(wrap.querySelector('.blk'));
     }
   }
   function renderDynamicBlocks() {
@@ -1736,6 +1803,7 @@
       _stage.appendChild(wrap);
       if (_blockRenderers[block.type]) {
         try { _blockRenderers[block.type](block, wrap); } catch (e) { console.error('block', block.type, e); }
+        updateAutoScroll(wrap.querySelector('.blk'));
       } else if (block.type === 'media') {
         wrap.appendChild(buildMediaWindow(block));
       } else if (block.type === 'logo') {
@@ -1758,6 +1826,8 @@
         }
         if (home.h2) home.h2.textContent = cardTitle(block, home.h2Text);
         wrap.appendChild(home.el);
+        // נמדד מחדש בגודל הקובייה ולפי הגדרת הגלילה שלה (כשהכרטיס צויר, ייתכן שהיה מוסתר)
+        updateAutoScroll(home.el);
       }
     }
 

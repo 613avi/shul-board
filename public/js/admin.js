@@ -2921,6 +2921,10 @@
     clock: 'בלי כותרת', date: 'בלי כותרת',
   };
 
+  // קוביות שהתוכן שלהן נגלל כשהוא לא נכנס — updateAutoScroll ב-display.js
+  const SCROLL_BLOCKS = new Set(['zmanim', 'tefillot', 'memorial', 'shabbat', 'today', 'learning',
+    'dedications', 'shiurim', 'text', 'weather']);
+
   // מראות של קוביית השעון — הציור עצמו ב-display.js
   const CLOCK_FACES = {
     digital: [['plain', 'רגיל'], ['thin', 'דק'], ['seven', 'לד (שעון מעורר)'], ['flip', 'קלפים מתהפכים']],
@@ -2978,6 +2982,50 @@
         markDirty(); pushScreensPreview();
       });
       box.appendChild(el('label', { class: 'sc-prop' }, 'כותרת', t));
+    }
+
+    if (SCROLL_BLOCKS.has(block.type)) {
+      const sc = el('select', {});
+      [['', 'רגילה'], ['slow', 'איטית'], ['fast', 'מהירה'], ['off', 'בלי גלילה (התוכן נחתך)']]
+        .forEach(([v, l]) => sc.appendChild(el('option', { value: v }, l)));
+      sc.value = ['slow', 'fast', 'off'].includes(block.scroll) ? block.scroll : '';
+      sc.addEventListener('change', () => {
+        if (sc.value) block.scroll = sc.value; else delete block.scroll;
+        markDirty(); pushScreensPreview();
+      });
+      box.appendChild(el('label', { class: 'sc-prop' }, 'גלילה', sc));
+      box.appendChild(el('div', { class: 'sc-hint' }, 'כשהתוכן ארוך מהקובייה הוא נגלל למעלה בלולאה. תוכן שנכנס כולו לא זז.'));
+    }
+
+    if (block.type === 'shabbat') {
+      const fixed = el('input', { type: 'checkbox' });
+      fixed.checked = block.fixedParasha !== false;
+      fixed.addEventListener('change', () => {
+        if (fixed.checked) delete block.fixedParasha; else block.fixedParasha = false;
+        markDirty(); pushScreensPreview();
+      });
+      box.appendChild(el('label', { class: 'sc-prop' }, 'שם השבת והפרשה קבועים למעלה', fixed));
+
+      const rows = el('select', {});
+      [['', 'שורות פשוטות'], ['zmanim', 'כמו זמני היום (לפי סגנון הלוח)']]
+        .forEach(([v, l]) => rows.appendChild(el('option', { value: v }, l)));
+      rows.value = block.rows === 'zmanim' ? 'zmanim' : '';
+      rows.addEventListener('change', () => {
+        if (rows.value) block.rows = rows.value; else delete block.rows;
+        markDirty(); pushScreensPreview();
+      });
+      box.appendChild(el('label', { class: 'sc-prop' }, 'עיצוב השורות', rows));
+
+      const next = el('select', {});
+      [['', 'לפי ההגדרה הכללית'], ['on', 'מודגשת'], ['off', 'בלי הדגשה']]
+        .forEach(([v, l]) => next.appendChild(el('option', { value: v }, l)));
+      next.value = ['on', 'off'].includes(block.next) ? block.next : '';
+      next.addEventListener('change', () => {
+        if (next.value) block.next = next.value; else delete block.next;
+        markDirty(); pushScreensPreview();
+      });
+      box.appendChild(el('label', { class: 'sc-prop' }, 'התפילה הבאה', next));
+      box.appendChild(el('div', { class: 'sc-hint' }, 'בשישי ובשבת התפילה הקרובה מודגשת עם "בעוד X דק׳", ומה שעבר מעומעם.'));
     }
 
     if (block.type === 'clock') {

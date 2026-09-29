@@ -167,22 +167,22 @@ body { min-height: 100vh; }
     margin-top: 1rem;
 }
 
-.zmanim-card table, .tefillot-card table {
+.zmanim-card table, .tefillot-card table, .blk-shabbat .sh-table {
     width: 100%;
     border-collapse: collapse;
     font-size: calc(var(--fs, 1) * clamp(1rem, 1.4vw, 1.6rem));
 }
-.zmanim-card td, .tefillot-card td {
+.zmanim-card td, .tefillot-card td, .blk-shabbat .sh-table td {
     padding: 0.55rem 0.3rem;
     border-bottom: 1px solid var(--border);
 }
-.zmanim-card tr:last-child td, .tefillot-card tr:last-child td { border-bottom: none; }
-.zmanim-card td:first-child, .tefillot-card td:first-child {
+.zmanim-card tr:last-child td, .tefillot-card tr:last-child td, .blk-shabbat .sh-table tr:last-child td { border-bottom: none; }
+.zmanim-card td:first-child, .tefillot-card td:first-child, .blk-shabbat .sh-table td:first-child {
     text-align: start;
     font-weight: 600;
     color: var(--text);
 }
-.zmanim-card td:last-child, .tefillot-card td:last-child {
+.zmanim-card td:last-child, .tefillot-card td:last-child, .blk-shabbat .sh-table td:last-child {
     text-align: left;
     direction: ltr;
     color: var(--accent);
@@ -1121,6 +1121,7 @@ body[data-theme="parchment"] #display-root[data-style="glass"] .card {
     border-bottom: 0; letter-spacing: 0.02em; margin-bottom: 0.6rem;
 }
 #display-root[data-style="bold"] .zmanim-card table,
+#display-root[data-style="bold"] .blk-shabbat .sh-table,
 #display-root[data-style="bold"] .tefillot-card table { font-size: calc(var(--fs, 1) * clamp(1.15rem, 1.7vw, 1.9rem)); }
 #display-root[data-style="bold"] .display-header h1 { font-size: calc(var(--fs, 1) * clamp(2.4rem, 4.2vw, 4.4rem)); }
 #display-root[data-style="bold"] #current-time { font-weight: 900; }
@@ -1181,33 +1182,39 @@ body[data-theme="parchment"] #display-root[data-style="glass"] .card {
 }
 /* שורות: קופסה בהירה עם פס זהב בקצה הפותח, והשעה בשבב נפרד בקצה השני. */
 #display-root[data-style="pearl"] .zmanim-card table,
+#display-root[data-style="pearl"] .blk-shabbat .sh-table,
 #display-root[data-style="pearl"] .tefillot-card table {
     border-collapse: separate;
     border-spacing: 0 0.32rem;
 }
 #display-root[data-style="pearl"] .zmanim-card td,
+#display-root[data-style="pearl"] .blk-shabbat .sh-table td,
 #display-root[data-style="pearl"] .tefillot-card td {
     border-bottom: none;
     background: var(--pearl-row);
     padding: 0.42rem 0.7rem;
 }
 #display-root[data-style="pearl"] .zmanim-card td:first-child,
+#display-root[data-style="pearl"] .blk-shabbat .sh-table td:first-child,
 #display-root[data-style="pearl"] .tefillot-card td:first-child {
     border-inline-start: 3px solid var(--accent);
     border-start-start-radius: 7px;
     border-end-start-radius: 7px;
 }
 #display-root[data-style="pearl"] .zmanim-card td:last-child,
-#display-root[data-style="pearl"] .tefillot-card td:last-child {
+#display-root[data-style="pearl"] .tefillot-card td:last-child,
+#display-root[data-style="pearl"] .blk-shabbat .sh-table td:last-child {
     border-start-end-radius: 7px;
     border-end-end-radius: 7px;
 }
 #display-root[data-style="pearl"] .zmanim-card td:last-child,
-#display-root[data-style="pearl"] .tefillot-card td:last-child {
+#display-root[data-style="pearl"] .tefillot-card td:last-child,
+#display-root[data-style="pearl"] .blk-shabbat .sh-table td:last-child {
     width: 1%;
     white-space: nowrap;
 }
-#display-root[data-style="pearl"] .zmanim-card td:last-child {
+#display-root[data-style="pearl"] .zmanim-card td:last-child,
+#display-root[data-style="pearl"] .blk-shabbat .sh-table td:last-child {
     background: var(--pearl-chip);
     box-shadow: inset 0 0 0 1px var(--pearl-band);
 }
@@ -1215,7 +1222,8 @@ body[data-theme="parchment"] #display-root[data-style="glass"] .card {
 #display-root[data-style="pearl"] .tefillot-card .room-block h3 {
     border-color: var(--pearl-line);
 }
-#display-root[data-style="pearl"] .tefillot-card tr.next-minyan td {
+#display-root[data-style="pearl"] .tefillot-card tr.next-minyan td,
+#display-root[data-style="pearl"] .blk-shabbat .sh-table tr.next-minyan td {
     background: color-mix(in srgb, var(--accent) 18%, transparent);
     box-shadow: inset 0 0 0 1px var(--pearl-line);
 }
@@ -1232,6 +1240,7 @@ body[data-theme="parchment"] #display-root[data-style="glass"] .card {
    תאי השעה מחזיקים direction: ltr כדי שהספרות יוצגו נכון, ולכן start/end בתוכם
    נקבעים לפי ltr ולא לפי כיוון הלוח. מיישרים אותם במפורש לקצה החיצוני של השורה. */
 [dir="ltr"] .zmanim-card td:last-child,
+[dir="ltr"] .blk-shabbat .sh-table td:last-child,
 [dir="ltr"] .tefillot-card td:last-child,
 [dir="ltr"] .tefillot-card .prayer-block td.ptime { text-align: right; }
 
@@ -1273,19 +1282,19 @@ body[data-theme="parchment"] #display-root[data-style="glass"] .card {
 .display-header .sub.today-line span + span::before { content: '•'; opacity: 0.5; margin-inline-end: 0.9rem; }
 
 /* ===== התפילה הבאה ===== */
-.tefillot-card tr.next-minyan td { color: var(--accent-2); }
-.tefillot-card tr.next-minyan td.ptime {
+.tefillot-card tr.next-minyan td, .blk-shabbat tr.next-minyan td { color: var(--accent-2); }
+.tefillot-card tr.next-minyan td.ptime, .blk-shabbat tr.next-minyan td:last-child {
     color: var(--accent);
     text-shadow: 0 0 1.2vmin color-mix(in srgb, var(--accent) 55%, transparent);
 }
-.tefillot-card .next-in {
+.tefillot-card .next-in, .blk-shabbat .next-in {
     display: inline-block; margin-inline-start: 0.6rem;
     font-size: 0.72em; font-weight: 700; color: var(--accent-2);
     background: color-mix(in srgb, var(--accent-2) 14%, transparent);
     border: 1px solid color-mix(in srgb, var(--accent-2) 40%, transparent);
     border-radius: 999px; padding: 0.05em 0.6em; vertical-align: middle; white-space: nowrap;
 }
-.tefillot-card tr.past-minyan td { opacity: 0.45; }
+.tefillot-card tr.past-minyan td, .blk-shabbat tr.past-minyan td { opacity: 0.45; }
 /* זמן יחסי שמוצג כטקסט ("45 דק׳ לפני הנץ החמה") במקום שעה */
 .tefillot-card td.ptime .ptime-text {
     display: inline-block; direction: rtl; unicode-bidi: isolate;

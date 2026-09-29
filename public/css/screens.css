@@ -212,6 +212,13 @@ body[data-screens] #display-root {
 .blk { display: flex; flex-direction: column; min-height: 0; }
 .blk h2 { flex: 0 0 auto; }
 .blk .blk-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+/* חלון גלילה של קובייה (mkCard עם scroll): התוכן ממורכז כשהוא נכנס,
+   ונגלל מלמעלה כמו זמני היום כשהוא ארוך מהקובייה */
+.blk .blk-viewport { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+.blk .blk-viewport > .scroll-inner { flex: 0 0 auto; }
+.blk .blk-viewport.is-scrolling { justify-content: flex-start; }
+.blk .blk-viewport:not(.is-scrolling) { -webkit-mask-image: none; mask-image: none; }
+.blk .blk-viewport .blk-body { overflow: visible; }
 .blk-empty { color: var(--text-dim); text-align: center; font-size: calc(var(--fs, 1) * 1.6vmin); padding: 1vmin; }
 
 /* שעון גדול */
@@ -268,6 +275,13 @@ body[data-screens] #display-root {
 .blk-shabbat .sh-row b { color: var(--accent); direction: ltr; font-variant-numeric: tabular-nums; }
 .blk-shabbat .sh-parasha { text-align: center; color: var(--accent-2); font-weight: 700; margin-bottom: 0.6vmin;
     font-size: calc(var(--fs, 1) * clamp(1.1rem, 1.7vw, 2rem)); }
+
+/* שם השבת כשהוא קבוע מעל הגלילה, והתפילה הבאה בתצוגת השורות */
+.blk-shabbat > .sh-parasha { flex: 0 0 auto; }
+.blk-shabbat .sh-row.next-minyan span { color: var(--accent-2); }
+.blk-shabbat .sh-row.next-minyan b { text-shadow: 0 0 1.2vmin color-mix(in srgb, var(--accent) 55%, transparent); }
+.blk-shabbat .sh-row.past-minyan { opacity: 0.45; }
+.blk-shabbat .sh-table td:first-child { white-space: normal; }
 
 /* היום */
 .blk-today .blk-body { justify-content: center; gap: 0.5vmin; }
@@ -338,7 +352,7 @@ body[data-screens] #display-root [hidden] { display: none !important; }
 .screen-block .card.blk { padding: clamp(0.6rem, 1.2vw, 1.4rem); }
 .blk .blk-body { overflow: hidden; }
 .blk-inline { padding: 0.4vmin 1.5vmin !important; }
-.blk-shabbat .blk-body, .blk-learning .blk-body, .blk-shiurim .blk-body { justify-content: flex-start; }
+.blk-shabbat .blk-viewport, .blk-learning .blk-viewport, .blk-shiurim .blk-viewport { justify-content: flex-start; }
 .blk-shabbat .sh-row { padding: 0.35vmin 0; font-size: calc(var(--fs, 1) * clamp(0.9rem, 1.3vw, 1.55rem)); }
 .blk-weather .wx-icon { font-size: calc(var(--fs, 1) * clamp(1.6rem, 3vw, 3.8rem)); }
 .blk-weather .wx-temp { font-size: calc(var(--fs, 1) * clamp(1.6rem, 3vw, 3.6rem)); }
