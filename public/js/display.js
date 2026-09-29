@@ -335,16 +335,16 @@
     } catch { return ''; }
   }
 
-  function findParashaText(hdate, now) {
+  // פרשת השבת הקרובה לתאריך העברי (היום, אם הוא שבת). שבת שחלה בחג או בחול המועד
+  // קוראת בענייני החג ואין לה פרשה — מחזירים ריק, ולא את פרשת השבוע שאחריה
+  // (כך הופיעה "בראשית" בשבת שמיני עצרת). התאריך העברי כבר מתקדם בשקיעה,
+  // ולכן במוצאי שבת מוצגת הפרשה של השבוע החדש.
+  function findParashaText(hdate) {
     try {
-      const events = HebrewCalendar.calendar({ start: hdate, end: hdate, sedrot: true, il: true, locale: 'he' });
-      const parashaEv = events.find(e => e.getFlags && (e.getFlags() & FLAG_PARSHA));
-      if (parashaEv) return parashaEv.render('he');
-      const daysToShabbat = (6 - now.getDay() + 7) % 7 || 7;
-      const shabbat = new HDate(new Date(now.getTime() + daysToShabbat * 86400000));
-      const wkEvents = HebrewCalendar.calendar({ start: shabbat, end: shabbat, sedrot: true, il: true, locale: 'he' });
-      const pEv = wkEvents.find(e => e.getFlags && (e.getFlags() & FLAG_PARSHA));
-      return pEv ? pEv.render('he') : '';
+      const shabbat = hdate.getDay() === 6 ? hdate : hdate.onOrAfter(6);
+      const events = HebrewCalendar.calendar({ start: shabbat, end: shabbat, sedrot: true, il: true, locale: 'he' });
+      const ev = events.find(e => e.getFlags && (e.getFlags() & FLAG_PARSHA));
+      return ev ? ev.render('he') : '';
     } catch { return ''; }
   }
 
@@ -359,7 +359,7 @@
       ? `${dow}, ${now.toLocaleDateString('en-US', {day:'numeric', month:'long', year:'numeric'})}`
       : `יום ${dow}, ${now.toLocaleDateString('he-IL', {day:'numeric', month:'long', year:'numeric'})}`;
 
-    const parashaText = findParashaText(hdate, now);
+    const parashaText = findParashaText(hdate);
     qs('#parasha').textContent = parashaText;
     qs('.parasha-sep').style.display = parashaText ? '' : 'none';
 
@@ -1291,7 +1291,7 @@
       const { card, body } = mkCard('date', cardTitle(block, ''));
       const hdate = getEffectiveHDate();
       const now = new Date();
-      const par = findParashaText(hdate, now);
+      const par = findParashaText(hdate);
       body.innerHTML = `<div class="d-heb">${hdate.renderGematriya()}</div>
         <div class="d-greg">${dowName(now.getDay())}, ${now.toLocaleDateString(uiLocale(), { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         ${par ? `<div class="d-parasha">${stripNikud(par)}</div>` : ''}`;
@@ -1308,7 +1308,7 @@
       try {
         const ctx = computeShabbatContext();
         const shabbatHd = new HDate(ctx.saturday);
-        const par = findParashaText(shabbatHd, ctx.saturday);
+        const par = findParashaText(shabbatHd);
         const special = todayEvents(shabbatHd).filter(e => e.getFlags() & (flags.SPECIAL_SHABBAT | flags.CHAG | flags.ROSH_CHODESH))
           .map(e => stripNikud(e.render('he'))).slice(0, 2);
         const room = state.rooms[0];
@@ -1347,7 +1347,8 @@
         const cls = (r) => !live ? '' : r === next ? 'next-minyan' : (r.at && r.at < now ? 'past-minyan' : '');
         const badge = (r) => r === next ? `<span class="next-in">${untilText(Math.round((r.at - now) / 60000))}</span>` : '';
 
-        const parHtml = par ? `<div class="sh-parasha">${stripNikud(par)}${special.length ? ' · ' + special.join(' · ') : ''}</div>` : '';
+        const parLine = [par && stripNikud(par), ...special].filter(Boolean).join(' · ');
+        const parHtml = parLine ? `<div class="sh-parasha">${parLine}</div>` : '';
         const rowsHtml = block.rows === 'zmanim'
           ? `<table class="sh-table"><tbody>${rows.map(r => `<tr class="${cls(r)}"><td>${r.label}${badge(r)}</td><td>${r.shown}</td></tr>`).join('')}</tbody></table>`
           : rows.map(r => `<div class="sh-row ${cls(r)}"><span>${r.label}${badge(r)}</span><b>${r.shown}</b></div>`).join('');
