@@ -600,6 +600,7 @@
     const pct = Math.round((d.scale || 1) * 100);
     qs('#d-scale').value = pct;
     qs('#d-scale-val').textContent = pct + '%';
+    qs('#d-density').value = d.density || 'auto';
 
     qs('#d-bg-image').value = d.backgroundImage || '';
     const ov = Math.round((d.backgroundOverlay ?? 0.45) * 100);
@@ -914,6 +915,10 @@
     qs('#d-scale').addEventListener('input', (e) => {
       design().scale = parseInt(e.target.value, 10) / 100;
       qs('#d-scale-val').textContent = e.target.value + '%';
+      markDirty(); pushDesignPreview();
+    });
+    qs('#d-density').addEventListener('change', (e) => {
+      design().density = e.target.value;
       markDirty(); pushDesignPreview();
     });
     qs('#d-bg-image').addEventListener('change', (e) => {

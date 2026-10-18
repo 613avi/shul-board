@@ -309,6 +309,7 @@ window.SB_PRESETS = (() => {
       font:   byId(FONTS, d.font) ? d.font : preset.font,
       accent: /^#[0-9a-f]{6}$/i.test(d.accent || '') ? d.accent : '',
       scale:  typeof d.scale === 'number' ? Math.min(1.5, Math.max(0.7, d.scale)) : 1,
+      density: ['auto', 'normal', 'compact', 'dense'].includes(d.density) ? d.density : 'auto',
       backgroundImage: typeof d.backgroundImage === 'string' ? d.backgroundImage.trim() : '',
       backgroundOverlay: typeof d.backgroundOverlay === 'number' ? d.backgroundOverlay : 0.45,
       backgroundFit: ['cover', 'contain', 'stretch', 'tile'].includes(d.backgroundFit) ? d.backgroundFit : 'cover',

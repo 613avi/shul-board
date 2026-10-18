@@ -37,7 +37,7 @@ const DEMO_DATA = {
     },
     "displayedZmanim": {
       "alotHaShachar": true,
-      "misheyakir": false,
+      "misheyakir": true,
       "sunrise": true,
       "sofZmanShmaMGA": true,
       "sofZmanShma": true,
@@ -191,7 +191,8 @@ const DEMO_DATA = {
         "weekday": {
           "shacharit": [
             "06:15",
-            "07:30"
+            "07:00",
+            "08:00"
           ],
           "mincha": [
             "13:45",
@@ -216,7 +217,15 @@ const DEMO_DATA = {
         },
         "shabbat": {
           "kabbalat": [],
-          "minchaErevOffsets": [],
+          "minchaErevOffsets": [
+            {
+              "type": "relative",
+              "base": "candle",
+              "offset": 0,
+              "round": 0,
+              "days": []
+            }
+          ],
           "shacharit": [
             "07:00",
             "09:00"

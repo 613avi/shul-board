@@ -711,6 +711,45 @@
   // הלוח מצויר מחדש כל דקה. כדי שהגלילה לא תקפוץ להתחלה בכל ציור, זוכרים
   // מתי התחילה, וממשיכים מאותה נקודה כל עוד הגבהים לא השתנו.
   const _scrollPhase = new Map();
+  // ---------- צפיפות ----------
+  // "אוטומטית" מתחילה בצפוף מאוד במסך קטן, ובמסך גדול ברגילה — ועולה רמה בכל
+  // פעם שלוח כלשהו לא נכנס בקובייה שלו, במקום שהוא יגלול. הרמה נזכרת לכל מסך
+  // בנפרד, כך שהציור מחדש כל כמה דקות לא מקפיץ את הלוח בין רמות.
+  const DENSITY = ['normal', 'compact', 'dense'];
+  const _densityFor = new Map();
+  let _densityKey = 'classic', _densityBase = '', _densityBump = false;
+  const densitySetting = () => (P ? P.resolveDesign(state.config?.design).density : state.config?.design?.density) || 'auto';
+  // מחשב נייד, מסך קטן, או טלוויזיה ש-Windows מגדיל בה הכל ב-150%
+  const smallScreen = () => Math.min(window.innerHeight, window.innerWidth * 9 / 16) < 800;
+  function densityLevel() {
+    const set = densitySetting();
+    if (set !== 'auto') return set;
+    return _densityFor.get(_densityKey) || (smallScreen() ? 'dense' : 'normal');
+  }
+  function applyDensity(key = _densityKey) {
+    _densityKey = key;
+    const base = `${densitySetting()}|${smallScreen()}`;
+    if (base !== _densityBase) { _densityBase = base; _densityFor.clear(); }
+    qs('#display-root')?.setAttribute('data-density', densityLevel());
+  }
+  // לוח שלא נכנס: באוטומטית עולים רמה אחת ומודדים מחדש את כל הלוחות. true = טופל
+  function densityOverflow() {
+    if (densitySetting() !== 'auto') return false;
+    const i = DENSITY.indexOf(densityLevel());
+    if (i < 0 || i >= DENSITY.length - 1) return false;
+    if (_densityBump) return true;   // כבר עולים; המדידה מחדש תכסה גם את הלוח הזה
+    _densityBump = true;
+    _densityFor.set(_densityKey, DENSITY[i + 1]);
+    applyDensity();
+    requestAnimationFrame(() => {
+      _densityBump = false;
+      document.querySelectorAll('#display-root .card').forEach(c => {
+        if (c.querySelector('.scroll-viewport') && !c.closest('[hidden]')) updateAutoScroll(c);
+      });
+    });
+    return true;
+  }
+
   function updateAutoScroll(cardEl) {
     if (!cardEl) return;
     const viewport = cardEl.querySelector('.scroll-viewport');
@@ -737,6 +776,7 @@
       const vh = viewport.clientHeight;
       const ch = inner.scrollHeight;
       if (ch <= vh + 2) { _scrollPhase.delete(key); return; }
+      if (densityOverflow()) return;
       viewport.classList.add('is-scrolling');
 
       // Clone current children into a single wrapper and append
@@ -1136,7 +1176,25 @@
     });
     if (!active.length) { container.style.display = 'none'; return; }
     container.style.display = 'block';
-    ticker.textContent = active.map(a => a.text).join('   •   ');
+    const text = active.map(a => a.text).join('   •   ');
+    if (ticker.textContent !== text) ticker.textContent = text;
+    requestAnimationFrame(fitTicker);
+  }
+
+  // מהירות קבועה ולא זמן קבוע: עם 30 שניות לסיבוב, כל הודעה שנוספה האיצה את הפס.
+  // מילה חוצה את הפס בכ-20 שניות, וההשהיה השלילית מתחילה כשחצי הפס כבר מלא —
+  // אחרת אחרי כל החלפת מסך הוא נשאר ריק עד שהטקסט נכנס מהקצה
+  function fitTicker() {
+    const container = qs('#announcements-container');
+    const ticker = qs('#announcements-ticker');
+    const cw = container && container.clientWidth;
+    if (!cw) return;
+    const speed = cw / 20;
+    const dur = `${(ticker.scrollWidth / speed).toFixed(1)}s`;
+    if (ticker.style.animationDuration !== dur) {
+      ticker.style.animationDuration = dur;
+      ticker.style.animationDelay = `-${(cw * 0.5 / speed).toFixed(1)}s`;
+    }
   }
 
   const showUpcoming = () => !state.config || !state.config.display || state.config.display.showUpcoming !== false;
@@ -1207,6 +1265,7 @@
       if (d.font === 'elegant' || d.style === 'gilded') ensureFont('elegant', 'family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600;1,700&family=Inter:wght@200;300;400;500;600');
       root.style.setProperty('--fs', String(d.scale || 1));
     }
+    applyDensity();
 
     // לוגו בכותרת (במצב מסכים קוביית לוגו נפרדת מסתירה אותו דרך body.logo-block)
     const logoEl = qs('#header-logo');
@@ -1745,6 +1804,7 @@
   }
 
   function restoreClassic() {
+    applyDensity('classic');
     if (_homes) {
       for (const { el, parent, next, h2, h2Text } of _homes.values()) {
         el.style.cssText = '';
@@ -1863,6 +1923,7 @@
   function paintScreen(cfg, index) {
     const screen = cfg.screens[index];
     if (!screen) return;
+    applyDensity(screen.id || String(index));
 
     // הכל מוסתר, ומה שנמצא במסך הנוכחי יוחזר לתצוגה
     for (const { el } of _homes.values()) el.hidden = true;
@@ -1921,6 +1982,7 @@
 
     startMediaRotation();
     startRotation();
+    requestAnimationFrame(fitTicker);   // הפס עבר לקובייה ברוחב אחר
   }
 
   // ---------- חלון המודעות ----------

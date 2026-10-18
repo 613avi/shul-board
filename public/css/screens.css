@@ -358,3 +358,42 @@ body[data-screens] #display-root [hidden] { display: none !important; }
 .blk-weather .wx-temp { font-size: calc(var(--fs, 1) * clamp(1.6rem, 3vw, 3.6rem)); }
 .blk-weather .wx-day { font-size: calc(var(--fs, 1) * clamp(0.75rem, 1vw, 1.15rem)); }
 .blk-weather .wx-day .ic { font-size: 1.4em; }
+
+/* ---------- צפיפות (design.density) ----------
+   "צפופה" ו"צפופה מאוד" מקטינות את מה שתופס מקום בלי להיות תוכן: ריווח הכרטיס,
+   הכותרת והקישוט שמעליה, והרווח בין השורות. גודל הטקסט עצמו נשאר בידי scale.
+   [data-style][data-layout] רק מעלים את הספציפיות מעל כללי הסגנונות. */
+#display-root[data-density="compact"][data-style][data-layout] .screen-block { padding: 0.3vmin; }
+#display-root[data-density="compact"][data-style][data-layout] .card { padding: 1.1vmin 1.4vmin; }
+#display-root[data-density="compact"][data-style][data-layout] .card h2 {
+  margin-bottom: 0.6vmin; padding-bottom: 0.3vmin; font-size: calc(var(--fs, 1) * 2.9vmin);
+}
+#display-root[data-density="compact"][data-style="traditional"][data-layout] .card h2 { padding-top: 1.9vmin; }
+#display-root[data-density="compact"][data-style="traditional"][data-layout] .card h2::before { height: 1.6vmin; width: 5.4vmin; top: 0; }
+#display-root[data-density="compact"][data-style][data-layout] td { padding-top: 0.32vmin; padding-bottom: 0.32vmin; }
+#display-root[data-density="compact"][data-style][data-layout] table { border-spacing: 0 0.18vmin; }
+#display-root[data-density="compact"][data-style][data-layout] .tefillot-card .prayer-block { margin-bottom: 0.5vmin; }
+#display-root[data-density="compact"][data-style][data-layout] .tefillot-card h3 { margin-top: 0.2vmin; margin-bottom: 0.2vmin; }
+#display-root[data-density="compact"][data-style][data-layout] .sr-row,
+#display-root[data-density="compact"][data-style][data-layout] .ln-row,
+#display-root[data-density="compact"][data-style][data-layout] .sh-row,
+#display-root[data-density="compact"][data-style][data-layout] #memorial-list li { padding-top: 0.35vmin; padding-bottom: 0.35vmin; }
+
+#display-root[data-density="dense"][data-style][data-layout] .screen-block { padding: 0.2vmin; }
+#display-root[data-density="dense"][data-style][data-layout] .card { padding: 0.7vmin 1vmin; border-radius: 0.8vmin; }
+#display-root[data-density="dense"][data-style][data-layout] .card h2 {
+  margin-bottom: 0.35vmin; padding-bottom: 0.15vmin; font-size: calc(var(--fs, 1) * 2.5vmin);
+}
+/* הכתר של "מסורתי" והזוויות של "פנינה" יושבים בתוך הריווח שהוקטן */
+#display-root[data-density="dense"][data-style="traditional"][data-layout] .card h2 { padding-top: 0.2vmin; }
+#display-root[data-density="dense"][data-style="traditional"][data-layout] .card h2::before { display: none; }
+#display-root[data-density="dense"][data-style="pearl"][data-layout] .card::before { inset: 4px; --arm: 1.4rem; }
+#display-root[data-density="dense"][data-style][data-layout] td { padding-top: 0.18vmin; padding-bottom: 0.18vmin; }
+#display-root[data-density="dense"][data-style][data-layout] table { border-spacing: 0 0.1vmin; }
+#display-root[data-density="dense"][data-style][data-layout] .tefillot-card .prayer-block { margin-bottom: 0.25vmin; }
+#display-root[data-density="dense"][data-style][data-layout] .tefillot-card h3 { margin-top: 0; margin-bottom: 0.1vmin; }
+#display-root[data-density="dense"][data-style][data-layout] .sr-row,
+#display-root[data-density="dense"][data-style][data-layout] .ln-row,
+#display-root[data-density="dense"][data-style][data-layout] .sh-row,
+#display-root[data-density="dense"][data-style][data-layout] #memorial-list li { padding-top: 0.2vmin; padding-bottom: 0.2vmin; }
+#display-root[data-density="dense"][data-style][data-layout] .sr-day { margin-top: 0.3vmin; margin-bottom: 0.1vmin; }
