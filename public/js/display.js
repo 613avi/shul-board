@@ -20,6 +20,43 @@
     try { return gematriya(Number(n) || 0); }
     catch { return String(n); }
   };
+  // שעון בית הכנסת. hebcal ו-Date עובדים בשעון הדפדפן, אז מי שפותח צג של בית כנסת
+  // באזור זמן אחר (לוח ההדגמה בניו ג׳רזי, מישראל) ראה זריחה ב-14:10. כל הקוד כאן
+  // עובד ב"שעון קיר" מוזז: now() ותוצאות hebcal זזים באותו הפרש, וההשוואות ביניהם
+  // נשארות נכונות. בצג שעומד בבית הכנסת עצמו ההפרש הוא אפס.
+  let _shift = 0, _shiftAt = 0;
+  function tzShift() {
+    const t = Date.now();
+    if (t - _shiftAt < 10 * 60000) return _shift;
+    _shiftAt = t;
+    _shift = 0;
+    const tz = state.config?.location?.timezone;
+    if (!tz) return 0;
+    try {
+      const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: 'numeric', minute: 'numeric', second: 'numeric',
+      }).formatToParts(new Date(t)).map(x => [x.type, x.value]));
+      const wall = Date.UTC(+p.year, p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+      const local = new Date(t);
+      const browser = Date.UTC(local.getFullYear(), local.getMonth(), local.getDate(),
+        local.getHours(), local.getMinutes(), local.getSeconds());
+      _shift = Math.round((wall - browser) / 60000) * 60000;
+    } catch {}
+    return _shift;
+  }
+  const now = () => new Date(Date.now() + tzShift());
+  const shifted = (d) => (d instanceof Date && !isNaN(d) ? new Date(d.getTime() + tzShift()) : d);
+  // Zmanim שכל זמן שהוא מחזיר כבר בשעון בית הכנסת
+  const zmanimFor = (geo, date) => {
+    const z = new Zmanim(geo, date);
+    return new Proxy(z, {
+      get: (t, k) => (typeof t[k] === 'function' ? (...a) => shifted(t[k](...a)) : t[k]),
+    });
+  };
+  const localDateStr = (d = now()) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
   const makeGeo = () => {
     const { latitude, longitude, timezone } = state.config.location;
     return new GeoLocation(
@@ -71,6 +108,16 @@
     if (!d || !(d instanceof Date) || isNaN(d)) return '';
     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   };
+  // "18:24" → "6:24 PM" כשבית הכנסת בחר שעון 12 שעות (מקובל בחו״ל). כל שעה
+  // שמוצגת על הצג עוברת כאן; החישובים וההשוואות נשארים ב-24 שעות.
+  const time12 = () => flag('time12');
+  const showT = (v, { suffix = true } = {}) => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(v || '').trim());
+    if (!m || !time12()) return v;
+    const h = Number(m[1]);
+    const h12 = h % 12 || 12;
+    return suffix ? `${h12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}` : `${h12}:${m[2]}`;
+  };
   const parseTime = (s) => {
     const m = /^(\d{1,2}):(\d{2})$/.exec(String(s || '').trim());
     if (!m) return NaN;
@@ -81,11 +128,11 @@
 
   // Effective Hebrew date: after sunset at current location we're already on the next Hebrew day.
   function getEffectiveHDate() {
-    const now = new Date();
+    const now = new Date(Date.now() + tzShift());
     let hd = new HDate(now);
     if (state.config && state.config.location) {
       try {
-        const sunset = new Zmanim(makeGeo(), now).sunset();
+        const sunset = zmanimFor(makeGeo(), now).sunset();
         if (sunset && now >= sunset) hd = hd.next();
       } catch {}
     }
@@ -368,7 +415,7 @@
 
   function renderHeader() {
     qs('#synagogue-name').textContent = state.config.synagogueName || '';
-    const now = new Date();
+    const now = new Date(Date.now() + tzShift());
     const hdate = getEffectiveHDate();
     qs('#hebrew-date').textContent = hebDateText(hdate);
     const dow = dowName(now.getDay());
@@ -448,7 +495,7 @@
       const evs = HebrewCalendar.calendar({ start: hdate, end: hdate, il: true, locale: 'he', location: loc, candlelighting: true });
       const fast = evs.find(e => e.getFlags() & (flags.MINOR_FAST | flags.MAJOR_FAST));
       if (!fast) return null;
-      const t = (e) => e && e.eventTime ? fmtTime(e.eventTime) : '';
+      const t = (e) => e && e.eventTime ? showT(fmtTime(shifted(e.eventTime))) : '';
       const start = t(fast.startEvent), end = t(fast.endEvent);
       if (!start && !end) return null;
       return { name: evText(fast), start, end };
@@ -581,11 +628,11 @@
   }
 
   function renderClock() {
-    const now = new Date();
+    const now = new Date(Date.now() + tzShift());
     const h = String(now.getHours()).padStart(2,'0');
     const m = String(now.getMinutes()).padStart(2,'0');
     const s = String(now.getSeconds()).padStart(2,'0');
-    qs('#current-time').textContent = `${h}:${m}`;
+    qs('#current-time').textContent = showT(`${h}:${m}`, { suffix: false });
     qs('#current-seconds').textContent = s;
   }
 
@@ -609,9 +656,9 @@
   ];
 
   function computeZmanim() {
-    const z = new Zmanim(makeGeo(), new Date());
+    const z = zmanimFor(makeGeo(), now());
     const globalOv = state.config.zmanimOverrides || {};
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localDateStr();
     const perDateOv = (state.zmanimCalendar && state.zmanimCalendar[todayStr]) || {};
     const out = {};
     const isTime = (v) => typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v.trim());
@@ -650,7 +697,7 @@
       if (!r.time) continue;
       const tr = document.createElement('tr');
       const mark = r.isOverride ? '<span class="ov" title="ערך מותאם אישית">*</span>' : '';
-      tr.innerHTML = `<td>${T(`display.zmanim.${def.key}`, def.label)}${mark}</td><td>${r.time}</td>`;
+      tr.innerHTML = `<td>${T(`display.zmanim.${def.key}`, def.label)}${mark}</td><td>${showT(r.time)}</td>`;
       tbody.appendChild(tr);
     }
     updateAutoScroll(qs('.zmanim-card'));
@@ -728,7 +775,7 @@
   // ---------- tefillot (always all-rooms) ----------
   function computeShabbatContext() {
     const geo = makeGeo();
-    const now = new Date();
+    const now = new Date(Date.now() + tzShift());
     const dow = now.getDay();
     let friday = new Date(now);
     if (dow === 6) friday.setDate(now.getDate() - 1);
@@ -739,8 +786,8 @@
     }
     friday.setHours(12, 0, 0, 0);
     const saturday = new Date(friday); saturday.setDate(friday.getDate() + 1);
-    const zFri = new Zmanim(geo, friday);
-    const zSat = new Zmanim(geo, saturday);
+    const zFri = zmanimFor(geo, friday);
+    const zSat = zmanimFor(geo, saturday);
     const candleMinutes = Number(state.config.location.candleLightingMinutes) || 18;
     const candle = addMinutes(zFri.sunset(), -candleMinutes);
     const havdalah = zSat.tzeit(8.5);
@@ -758,7 +805,7 @@
   let _zmCache = null, _zmCacheKey = '';
 
   function zmanimToday() {
-    const key = new Date().toISOString().slice(0, 10);
+    const key = localDateStr();
     if (!_zmCache || _zmCacheKey !== key) {
       try { _zmCache = computeZmanim(); _zmCacheKey = key; } catch { return {}; }
     }
@@ -768,7 +815,7 @@
   function parseHM(str) {
     const m = String(str || '').match(/^(\d{1,2}):(\d{2})$/);
     if (!m) return null;
-    const d = new Date();
+    const d = now();
     d.setHours(Number(m[1]), Number(m[2]), 0, 0);
     return d;
   }
@@ -834,7 +881,7 @@
 
   function buildWeekdayRows(room) {
     const rows = [];
-    const dow = new Date().getDay();
+    const dow = now().getDay();
     pushEntries(rows, room.weekday.shacharit, T('display.prayer.shacharit', 'שחרית'), dow);
     pushEntries(rows, room.weekday.mincha,    T('display.prayer.mincha',    'מנחה'),   dow);
     pushEntries(rows, room.weekday.arvit,     T('display.prayer.arvit',     'ערבית'),  dow);
@@ -843,7 +890,7 @@
 
   function buildShabbatRows(room, ctx) {
     const rows = [];
-    const dow = new Date().getDay();
+    const dow = now().getDay();
     pushEntries(rows, room.shabbat.kabbalat,            T('display.prayer.kabbalat',       'קבלת שבת'),     dow, ctx);
     pushEntries(rows, room.shabbat.minchaErevOffsets,   T('display.prayer.minchaErev',     'מנחה ערב שבת'), dow, ctx);
     pushEntries(rows, room.shabbat.shacharit,           T('display.prayer.shacharitShab',  'שחרית שבת'),    dow, ctx);
@@ -863,8 +910,8 @@
 
   function applySpecialEventsToRoom(rows, room) {
     const hdate = getEffectiveHDate();
-    const gregToday = new Date().toISOString().slice(0, 10);
-    const dow = new Date().getDay();
+    const gregToday = localDateStr();
+    const dow = now().getDay();
     // זמני החג נפתרים באותו מנגנון של חדרי התפילה, ולכן "20 דק׳ לפני השקיעה"
     // עובד גם כאן. ההקשר של שבת נדרש רק לבסיסים של הדלקת נרות/צאת השבת.
     const ctx = (dow === 5 || dow === 6) ? computeShabbatContext() : null;
@@ -906,7 +953,7 @@
 
   function currentEventName() {
     const hdate = getEffectiveHDate();
-    const gregToday = new Date().toISOString().slice(0, 10);
+    const gregToday = localDateStr();
     const match = state.specialEvents.find(ev => eventAppliesToday(ev, hdate, gregToday) && ev.name);
     return match ? match.name : '';
   }
@@ -919,7 +966,7 @@
       return;
     }
 
-    const now = new Date();
+    const now = new Date(Date.now() + tzShift());
     const dow = now.getDay();
     const isShabbat = dow === 6;
     const isErevShabbat = dow === 5;
@@ -938,8 +985,8 @@
       const shared = document.createElement('div');
       shared.className = 'shabbat-shared';
       shared.innerHTML = `
-        <div><span>הדלקת נרות</span><b>${fmtTime(shabbatCtx.candle)}</b></div>
-        <div><span>צאת השבת</span><b>${fmtTime(shabbatCtx.havdalah)}</b></div>
+        <div><span>הדלקת נרות</span><b>${showT(fmtTime(shabbatCtx.candle))}</b></div>
+        <div><span>צאת השבת</span><b>${showT(fmtTime(shabbatCtx.havdalah))}</b></div>
       `;
       container.appendChild(shared);
     }
@@ -983,7 +1030,7 @@
         const isNext = next && next.group === group && next.time === m.time && next.roomName === m.roomName;
         const isPast = flag('nextHighlight') && !isNaN(mins) && mins < nowMin;
         const badge = isNext ? `<span class="next-in">${untilText(next.minutes)}</span>` : '';
-        const shown = m.label ? `<span class="ptime-text">${m.label}</span>` : (m.time || '—');
+        const shown = m.label ? `<span class="ptime-text">${m.label}</span>` : (showT(m.time) || '—');
         return `<tr class="${isNext ? 'next-minyan' : isPast ? 'past-minyan' : ''}"><td class="ptime">${shown}${badge}</td>${showRoomCol ? `<td class="proom">${m.roomName}</td>` : ''}</tr>`;
       }).join('');
       block.innerHTML = `<h3>${group}</h3><table><tbody>${rowsHtml}</tbody></table>`;
@@ -998,7 +1045,7 @@
 
   // כל המניינים של היום, שטוחים — לחישוב "התפילה הבאה"
   function allMinyansToday() {
-    const now = new Date();
+    const now = new Date(Date.now() + tzShift());
     const dow = now.getDay();
     const shabbat = dow === 6 || dow === 5;
     const ctx = shabbat ? computeShabbatContext() : null;
@@ -1012,7 +1059,7 @@
   }
 
   function nextMinyan() {
-    const now = new Date();
+    const now = new Date(Date.now() + tzShift());
     const nowMin = now.getHours() * 60 + now.getMinutes();
     const m = allMinyansToday().find(r => parseTime(r.time) >= nowMin);
     if (!m) return null;
@@ -1081,7 +1128,7 @@
   function renderAnnouncements() {
     const container = qs('#announcements-container');
     const ticker = qs('#announcements-ticker');
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateStr();
     const active = state.announcements.filter(a => {
       const startOk = !a.startDate || a.startDate <= today;
       const endOk = !a.endDate || a.endDate >= today;
@@ -1099,7 +1146,7 @@
     document.body.classList.toggle('no-upcoming', !showUpcoming());
     if (!showUpcoming()) { qs('#upcoming-event').textContent = ''; return; }
     try {
-      const now = new Date();
+      const now = new Date(Date.now() + tzShift());
       const hdate = getEffectiveHDate();
       const end = new HDate(new Date(now.getTime() + 14 * 86400000));
       const loc = uiLang();
@@ -1156,6 +1203,8 @@
       root.setAttribute('data-layout', d.layout);
       root.setAttribute('data-style', d.style);
       root.setAttribute('data-font', d.font || 'classic');
+      // גופנים שלא נטענים מראש עם הדף (display.html) — רק למי שבחר בהם
+      if (d.font === 'elegant' || d.style === 'gilded') ensureFont('elegant', 'family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600;1,700&family=Inter:wght@200;300;400;500;600');
       root.style.setProperty('--fs', String(d.scale || 1));
     }
 
@@ -1169,8 +1218,12 @@
     }
 
     // צבע הדגשה מותאם: inline על ה-html גובר על הערכה, ריק = צבע הערכה
-    if (d.accent) document.documentElement.style.setProperty('--accent', d.accent);
-    else document.documentElement.style.removeProperty('--accent');
+    // גם על body: הערכות מגדירות את --accent על html ועל body, וזו של body גוברת על
+    // כל מה שבתוכה — בלי זה צבע ההדגשה שנבחר בניהול לא הגיע לצג בכלל
+    for (const n of [document.documentElement, document.body]) {
+      if (d.accent) n.style.setProperty('--accent', d.accent);
+      else n.style.removeProperty('--accent');
+    }
 
     const bgImage = (d.backgroundImage || '').trim();
     if (bgImage) {
@@ -1294,7 +1347,7 @@
           ? `<div class="big-time flip"><span class="fd" data-d="0">0</span><span class="fd" data-d="1">0</span><i>:</i><span class="fd" data-d="2">0</span><span class="fd" data-d="3">0</span>${showSec ? '<span class="fd fd-s" data-d="4">0</span><span class="fd fd-s" data-d="5">0</span>' : ''}</div>`
           : `<div class="big-time">${face === 'seven' ? '<span class="ghost">88:88</span>' : ''}<span class="bt-hm">00:00</span>${showSec ? '<small class="bt-s">00</small>' : ''}</div>`;
         const dateLine = block.showDate
-          ? `<div class="bt-date">${hebDateText(getEffectiveHDate())} · ${dowName(new Date().getDay())}</div>` : '';
+          ? `<div class="bt-date">${hebDateText(getEffectiveHDate())} · ${dowName(now().getDay())}</div>` : '';
         body.innerHTML = digits + dateLine;
       }
       wrap.appendChild(card);
@@ -1312,7 +1365,7 @@
     date(block, wrap) {
       const { card, body } = mkCard('date', cardTitle(block, ''));
       const hdate = getEffectiveHDate();
-      const now = new Date();
+      const now = new Date(Date.now() + tzShift());
       const par = findParashaText(hdate);
       body.innerHTML = `<div class="d-heb">${hebDateText(hdate)}</div>
         <div class="d-greg">${dowName(now.getDay())}, ${now.toLocaleDateString(uiLocale(), { day: 'numeric', month: 'long', year: 'numeric' })}</div>
@@ -1354,10 +1407,10 @@
           if (!room) return;
           for (const e of (list || [])) {
             const r = resolveTimeEntry(e, dow, ctx);
-            if (r) { rows.push({ label, shown: r.label || r.time, at: at(dow, r.time) }); return; }
+            if (r) { rows.push({ label, shown: r.label || showT(r.time), at: at(dow, r.time) }); return; }
           }
         };
-        const addFixed = (label, d) => rows.push({ label, shown: fmtTime(d), at: d });
+        const addFixed = (label, d) => rows.push({ label, shown: showT(fmtTime(d)), at: d });
         add(T('display.prayer.minchaErev', 'מנחה ערב שבת'), room?.shabbat.minchaErevOffsets, 5);
         addFixed(T('display.shabbat.candles', 'הדלקת נרות'), ctx.candle);
         add(T('display.prayer.shacharit', 'שחרית'), room?.shabbat.shacharit, 6);
@@ -1367,7 +1420,7 @@
         add(T('display.prayer.arvitMotzash', 'ערבית מוצ״ש'), room?.shabbat.arvitMotzashOffsets, 6);
 
         // התפילה הבאה — רק בשישי ובשבת, כשהזמנים הם של היום עצמו
-        const now = new Date();
+        const now = new Date(Date.now() + tzShift());
         const nextOn = block.next === 'on' || (block.next !== 'off' && flag('nextHighlight'));
         const live = nextOn && (now.getDay() === 5 || now.getDay() === 6);
         const today = now.toDateString();
@@ -1408,35 +1461,37 @@
       const ids = (state.config.display && Array.isArray(state.config.display.learning) && state.config.display.learning.length)
         ? state.config.display.learning : ['dafyomi'];
       if (!window.hebcal.DailyLearning || !window.hebcal.DailyLearning.getCalendars().length) {
-        body.innerHTML = '<div class="blk-empty">טוען…</div>';
+        body.innerHTML = `<div class="blk-empty">${escapeText(T('display.loading', 'טוען…'))}</div>`;
         ensureLearning().then(() => renderDynamicBlocks());
       } else {
         const hdate = getEffectiveHDate();
         const rows = [];
         for (const id of ids) {
-          const name = (P && P.LEARNING.find(l => l.id === id)?.name) || id;
+          const name = T(`display.learning.${id}`, (P && P.LEARNING.find(l => l.id === id)?.name) || id);
           try {
             const ev = window.hebcal.DailyLearning.lookup(id, hdate, true);
             if (!ev) continue;
-            let text = stripNikud(ev.render('he'));
+            let text = uiLang() === 'en' ? ev.render('ashkenazi') : stripNikud(ev.render('he'));
             if (id === 'dafyomi') text = text.replace(/^[^:\d]{2,20}:\s*/, '');
+            // hebcal מקדים את שם הספר, שכבר כתוב בעמודה שלצדו
+            if (id === 'kitzurshulchanaruch') text = text.replace(/^(?:Kitzur Shulchan Arukh|קיצור שולחן ערוך)\s*/, '');
             rows.push(`<div class="ln-row"><span class="ln-name">${name}</span><span class="ln-val">${text}</span></div>`);
           } catch {}
         }
-        body.innerHTML = rows.join('') || '<div class="blk-empty">אין לימוד להיום</div>';
+        body.innerHTML = rows.join('') || `<div class="blk-empty">${escapeText(T('display.learning.empty', 'אין לימוד להיום'))}</div>`;
       }
       wrap.appendChild(card);
     },
     dedications(block, wrap) {
       const { card, body } = mkCard('dedications', cardTitle(block, T('display.card.dedications', 'הקדשות וברכות')), '', true);
       const items = activeDedications();
-      if (!items.length) body.innerHTML = '<div class="blk-empty">אין הקדשות פעילות</div>';
+      if (!items.length) body.innerHTML = `<div class="blk-empty">${escapeText(T('display.dedications.empty', 'אין הקדשות פעילות'))}</div>`;
       else {
         const i = _rotIndex % items.length;
         const it = items[i];
         const type = (P && P.DEDICATION_TYPES.find(t => t.id === it.type)) || { name: it.type || '', icon: '' };
         body.innerHTML = `<div class="dd-fade">
-          <div class="dd-type">${type.icon} ${type.name}</div>
+          <div class="dd-type">${type.icon} ${escapeText(type.id ? T(`display.dedication.${type.id}`, type.name) : type.name)}</div>
           <div class="dd-text">${escapeText(it.text)}</div>
           ${it.from ? `<div class="dd-by">${escapeText(it.from)}</div>` : ''}
           ${items.length > 1 ? `<div class="dd-dots">${items.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>` : ''}
@@ -1446,7 +1501,7 @@
     },
     shiurim(block, wrap) {
       const { card, body } = mkCard('shiurim', cardTitle(block, T('display.card.shiurim', 'שיעורים')), '', true);
-      const now = new Date();
+      const now = new Date(Date.now() + tzShift());
       const dow = now.getDay();
       const ctx = (dow === 5 || dow === 6) ? computeShabbatContext() : null;
       // לשיעור מותר להיקבע גם יחסית ("רבע שעה לפני מנחה"), ולכן הוא עובר דרך
@@ -1459,7 +1514,7 @@
           const r = resolveTimeEntry(s, dayIdx, ctx);
           // שיעור בלי שעה עדיין מוצג, כפי שהיה קודם — רק בלי שעה לצדו
           if (!r) return s.type === 'relative' ? null : { ...s, time: '', shown: '' };
-          return { ...s, time: r.time, shown: r.label || r.time };
+          return { ...s, time: r.time, shown: r.label || showT(r.time) };
         })
         .filter(Boolean)
         .sort((a, b) => parseTime(a.time) - parseTime(b.time));
@@ -1475,7 +1530,7 @@
     text(block, wrap) {
       const items = state.texts.filter(t => t && (t.body || t.title));
       const { card, body } = mkCard('text', cardTitle(block, ''), '', true);
-      if (!items.length) body.innerHTML = '<div class="blk-empty">לא הוזנו טקסטים</div>';
+      if (!items.length) body.innerHTML = `<div class="blk-empty">${escapeText(T('display.texts.empty', 'לא הוזנו טקסטים'))}</div>`;
       else {
         const it = items[_rotIndex % items.length];
         body.innerHTML = `<div class="dd-fade">${it.title ? `<div class="tx-title">${escapeText(it.title)}</div>` : ''}<div class="tx-body">${escapeText(it.body || '')}</div></div>`;
@@ -1506,7 +1561,8 @@
     weather(block, wrap) {
       const { card, body } = mkCard('weather', cardTitle(block, T('display.card.weather', 'מזג אוויר')), '', true);
       const w = _weather;
-      if (!w) { body.innerHTML = '<div class="blk-empty">טוען…</div>'; fetchWeather(); }
+      fetchWeather();   // מוגבל לפעם בחצי שעה, אלא אם היחידה השתנתה
+      if (!w) { body.innerHTML = `<div class="blk-empty">${escapeText(T('display.loading', 'טוען…'))}</div>`; }
       else {
         body.innerHTML = `<div class="wx-now"><span class="wx-icon">${wmoIcon(w.code)}</span><span class="wx-temp">${Math.round(w.temp)}°</span></div>
           <div class="wx-desc">${wmoText(w.code)}</div>
@@ -1526,17 +1582,18 @@
   const escapeText = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   function activeDedications() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateStr();
     return state.dedications.filter(d => d && d.text &&
       (!d.startDate || d.startDate <= today) && (!d.endDate || d.endDate >= today));
   }
 
   // ---------- שעונים וספירה לאחור — כל שנייה ----------
   function tickClocks() {
-    const now = new Date();
+    const now = new Date(Date.now() + tzShift());
     const hm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const ss = String(now.getSeconds()).padStart(2, '0');
-    document.querySelectorAll('.blk-clock .bt-hm').forEach(e => { e.textContent = hm; });
+    const hmShown = showT(hm, { suffix: false });
+    document.querySelectorAll('.blk-clock .bt-hm').forEach(e => { e.textContent = hmShown; });
     document.querySelectorAll('.blk-clock .bt-s').forEach(e => { e.textContent = ss; });
     const flipDigits = hm.replace(':', '') + ss;
     document.querySelectorAll('.blk-clock .flip .fd').forEach(e => {
@@ -1554,14 +1611,14 @@
       const next = nextMinyan();
       cds.forEach(c => {
         const label = c.querySelector('.cd-label'), name = c.querySelector('.cd-name'), time = c.querySelector('.cd-time'), at = c.querySelector('.cd-at');
-        if (!next) { label.textContent = 'התפילה הבאה'; name.textContent = 'אין עוד תפילות היום'; time.textContent = ''; at.textContent = ''; return; }
+        if (!next) { label.textContent = T('display.countdown.next', 'התפילה הבאה'); name.textContent = T('display.countdown.none', 'אין עוד תפילות היום'); time.textContent = ''; at.textContent = ''; return; }
         const target = parseHM(next.time);
         const diff = Math.max(0, Math.floor((target - now) / 1000));
         const hh = Math.floor(diff / 3600), mm = Math.floor((diff % 3600) / 60), sec = diff % 60;
-        label.textContent = 'התפילה הבאה';
+        label.textContent = T('display.countdown.next', 'התפילה הבאה');
         name.textContent = `${next.group}${state.rooms.length > 1 ? ' · ' + next.roomName : ''}`;
         time.textContent = hh ? `${hh}:${String(mm).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${String(mm).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-        at.textContent = `בשעה ${next.time}`;
+        at.textContent = T('display.countdown.at', `בשעה ${showT(next.time)}`, { time: showT(next.time) });
       });
     }
     checkSleep(now);
@@ -1612,13 +1669,16 @@
   }
 
   // ---------- מזג אוויר (Open-Meteo, בלי מפתח) ----------
-  let _weather = null, _weatherAt = 0;
+  let _weather = null, _weatherAt = 0, _weatherUnit = '';
   async function fetchWeather() {
-    if (Date.now() - _weatherAt < 30 * 60 * 1000) return;
+    const fahrenheit = state.config.display?.weather?.unit === 'f';
+    // החלפת יחידה בניהול מביאה תחזית מחדש מיד, בלי לחכות חצי שעה
+    if (Date.now() - _weatherAt < 30 * 60 * 1000 && _weatherUnit === (fahrenheit ? 'f' : 'c')) return;
     _weatherAt = Date.now();
+    _weatherUnit = fahrenheit ? 'f' : 'c';
     try {
       const { latitude, longitude } = state.config.location;
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${Number(latitude)}&longitude=${Number(longitude)}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=4`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${Number(latitude)}&longitude=${Number(longitude)}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=4${fahrenheit ? '&temperature_unit=fahrenheit' : ''}`;
       const res = await fetch(url);
       const j = await res.json();
       const days = (j.daily?.time || []).slice(1, 4).map((t, i) => ({
@@ -1630,21 +1690,23 @@
     } catch (e) { console.error('weather', e); }
   }
   const wmoIcon = (c) => c === 0 ? '☀️' : c <= 2 ? '🌤️' : c === 3 ? '☁️' : c <= 49 ? '🌫️' : c <= 59 ? '🌦️' : c <= 69 ? '🌧️' : c <= 79 ? '🌨️' : c <= 84 ? '🌦️' : c <= 94 ? '⛈️' : '⛈️';
-  const wmoText = (c) => c === 0 ? 'בהיר' : c <= 2 ? 'מעונן חלקית' : c === 3 ? 'מעונן' : c <= 49 ? 'ערפל' : c <= 59 ? 'טפטוף' : c <= 69 ? 'גשם' : c <= 79 ? 'שלג' : c <= 84 ? 'ממטרים' : 'סופת רעמים';
+  const wmoKey = (c) => c === 0 ? ['clear', 'בהיר'] : c <= 2 ? ['partly', 'מעונן חלקית'] : c === 3 ? ['cloudy', 'מעונן'] : c <= 49 ? ['fog', 'ערפל']
+    : c <= 59 ? ['drizzle', 'טפטוף'] : c <= 69 ? ['rain', 'גשם'] : c <= 79 ? ['snow', 'שלג'] : c <= 84 ? ['showers', 'ממטרים'] : ['storm', 'סופת רעמים'];
+  const wmoText = (c) => { const [k, he] = wmoKey(c); return T(`display.weather.${k}`, he); };
 
   // ---------- מצב שינה ----------
-  function checkSleep(now = new Date()) {
+  function checkSleep(at = now()) {
     const s = state.config?.display?.sleep;
     let sleeping = false;
     if (s && s.enabled && !_previewMode) {
-      const cur = now.getHours() * 60 + now.getMinutes();
+      const cur = at.getHours() * 60 + at.getMinutes();
       const from = parseTime(s.from), to = parseTime(s.to);
       if (!isNaN(from) && !isNaN(to)) sleeping = from <= to ? (cur >= from && cur < to) : (cur >= from || cur < to);
     }
     document.body.classList.toggle('sleeping', sleeping);
     if (sleeping) {
       const c = qs('#sleep-clock');
-      if (c) c.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      if (c) c.textContent = `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
     }
   }
 
@@ -1704,16 +1766,13 @@
   }
 
   // ---------- מתי כל מסך מוצג ----------
-  const localDateStr = (d = new Date()) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
   const hasSchedule = (sc) => !!(
     (Array.isArray(sc?.days) && sc.days.length && sc.days.length < 7) ||
     sc?.from || sc?.to || sc?.fromTime || sc?.toTime);
 
   // היום נמדד כמו בלוח: אחרי השקיעה זה כבר היום הבא, כך ש"שבת" כולל את ליל שבת
   function effectiveDow() {
-    try { return getEffectiveHDate().getDay(); } catch { return new Date().getDay(); }
+    try { return getEffectiveHDate().getDay(); } catch { return now().getDay(); }
   }
 
   function screenActive(sc) {
@@ -1725,7 +1784,7 @@
     if (sc.from && today < sc.from) return false;
     if (sc.to && today > sc.to) return false;
 
-    const now = new Date();
+    const now = new Date(Date.now() + tzShift());
     const nowMin = now.getHours() * 60 + now.getMinutes();
     const toMin = (v) => {
       const m = /^(\d{1,2}):(\d{2})$/.exec(String(v || '').trim());

@@ -26,6 +26,7 @@ window.SB_PRESETS = (() => {
     { id: 'charcoal',  name: 'פחם',            swatch: { bg: '#111214', card: 'rgba(255,255,255,.06)', text: '#fafafa', accent: '#ffffff' } },
     { id: 'olive',     name: 'זית',            swatch: { bg: '#eef0e3', card: 'rgba(60,80,30,.08)', text: '#24301a', accent: '#5c7a2a' } },
     { id: 'sunset',    name: 'שקיעה',          swatch: { bg: '#2b1620', card: 'rgba(0,0,0,.3)', text: '#fff1e6', accent: '#ff9f43' } },
+    { id: 'onyx',      name: 'אוניקס',         swatch: { bg: '#07090f', card: 'rgba(255,255,255,.035)', text: '#f4efe4', accent: '#d9b46a' } },
   ];
 
   // ---------- סגנון האלמנטים (data-style) ----------
@@ -38,6 +39,7 @@ window.SB_PRESETS = (() => {
     { id: 'glass',       name: 'זכוכית',       desc: 'לוחות שקופים עם טשטוש רקע' },
     { id: 'bold',        name: 'נועז',         desc: 'כותרות גדולות, פס עבה, ניגודיות גבוהה' },
     { id: 'pearl',       name: 'פנינה',        desc: 'מסגרת זהב דקה, זוויות פינה ושורות על רקע בהיר' },
+    { id: 'gilded',      name: 'מוזהב',        desc: 'קווי זהב דקים, ספרות גדולות ודקות, התפילה הבאה בזוהר' },
   ];
 
   // ---------- פריסת הצג הקלאסי (data-layout) ----------
@@ -61,6 +63,7 @@ window.SB_PRESETS = (() => {
     { id: 'secular', name: 'סקולר',        desc: 'שלטים ולוחות — עבה ובולט',      sample: "'Secular One', sans-serif" },
     { id: 'alef',    name: 'אלף',          desc: 'קלאסי-מודרני, קריא מאוד',       sample: "'Alef', sans-serif" },
     { id: 'varela',  name: 'ורלה',         desc: 'רך ועגול',                      sample: "'Varela Round', sans-serif" },
+    { id: 'elegant', name: 'אלגנטי',       desc: 'כותרות סריף וספרות נקיות — ללוח באנגלית', sample: "'Cormorant Garamond', serif" },
   ];
 
   // ---------- מראות מוכנים ----------
@@ -68,6 +71,7 @@ window.SB_PRESETS = (() => {
   // accent ריק = צבע הערכה; ערך = דריסה.
   const DESIGN_PRESETS = [
     { id: 'jerusalem',   name: 'ירושלים',        desc: 'אבן ירושלמית עם עיטורים מסורתיים', theme: 'stone',     style: 'traditional', layout: '3col',       font: 'classic' },
+    { id: 'gilded',      name: 'לילה מוזהב',     desc: 'שחור עמוק, קווי זהב דקים והתפילה הבאה בזוהר — מרשים במיוחד באנגלית', theme: 'onyx', style: 'gilded', layout: '3col', font: 'elegant' },
     { id: 'pearl',       name: 'פנינה',          desc: 'מסגרת זהב דקה על קלף בהיר — שקט ויוקרתי', theme: 'ivory',     style: 'pearl',       layout: '3col',       font: 'classic' },
     { id: 'classic',     name: 'קלאסי כהה',      desc: 'הלוח המוכר — כהה, זהב ונקי',        theme: 'dark',      style: 'classic',     layout: '3col',       font: 'classic' },
     { id: 'midnight',    name: 'חצות',           desc: 'כחול לילה עמוק וזהב חם',            theme: 'midnight',  style: 'modern',      layout: '3col',       font: 'classic' },

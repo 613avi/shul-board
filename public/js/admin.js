@@ -620,7 +620,7 @@
   }
 
   // ---------- "מה מוצג על הלוח": תכונות הצג ----------
-  const FEATURE_FLAGS = ['todayLine', 'fastTimes', 'nextHighlight', 'hidePast', 'extendedMentions'];
+  const FEATURE_FLAGS = ['todayLine', 'fastTimes', 'nextHighlight', 'hidePast', 'extendedMentions', 'time12'];
   const disp = () => {
     const c = state.data.config;
     if (!c.display || typeof c.display !== 'object') c.display = {};
@@ -632,6 +632,7 @@
     const d = disp();
     for (const k of FEATURE_FLAGS) { const cb = qs(`#f-${k}`); if (cb) cb.checked = !!d[k]; }
     const w = qs('#f-weather'); if (w) w.checked = !!(d.weather && d.weather.enabled);
+    const wf = qs('#f-weatherF'); if (wf) wf.checked = d.weather?.unit === 'f';
     const chips = qs('#f-learning');
     if (chips) {
       const sel = Array.isArray(d.learning) ? d.learning : ['dafyomi'];
@@ -662,6 +663,7 @@
       if (cb) cb.addEventListener('change', () => { disp()[k] = cb.checked; markDirty(); pushDesignPreview(); });
     }
     qs('#f-weather').addEventListener('change', (e) => { disp().weather = { ...(disp().weather || {}), enabled: e.target.checked }; markDirty(); pushDesignPreview(); });
+    qs('#f-weatherF')?.addEventListener('change', (e) => { disp().weather = { ...(disp().weather || {}), unit: e.target.checked ? 'f' : 'c' }; markDirty(); pushDesignPreview(); });
     const sleepChanged = () => {
       disp().sleep = { enabled: qs('#f-sleep').checked, from: qs('#f-sleep-from').value || '23:30', to: qs('#f-sleep-to').value || '05:00' };
       markDirty(); pushDesignPreview();
@@ -1675,12 +1677,18 @@
         loc.timezone || 'Asia/Jerusalem'
       );
       const z = new h.Zmanim(geo, new Date());
+      // בשעון בית הכנסת, לא של הדפדפן: גבאי בחו״ל, או לוח ההדגמה שבניו ג׳רזי
+      let hm;
+      try {
+        const f = new Intl.DateTimeFormat('en-GB', { timeZone: loc.timezone || 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+        hm = (d) => f.format(d);
+      } catch {
+        hm = (d) => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      }
       for (const key of Object.keys(ZMANIM_FN)) {
         try {
           const d = ZMANIM_FN[key](z);
-          if (d instanceof Date && !isNaN(d)) {
-            out[key] = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-          }
+          if (d instanceof Date && !isNaN(d)) out[key] = hm(d);
         } catch {}
       }
     } catch {}

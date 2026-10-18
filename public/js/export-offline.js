@@ -91,10 +91,11 @@ window.SB_OFFLINE = (() => {
     if (!slug) throw new Error('חסר מזהה בית כנסת');
 
     onStep('קורא את הצג');
-    const [html, cssBoard, cssTraditional, cssScreens, jsI18n, jsPresets, jsDisplay] = await Promise.all([
+    const [html, cssBoard, cssTraditional, cssGilded, cssScreens, jsI18n, jsPresets, jsDisplay] = await Promise.all([
       text('/display.html'),
       text('/css/board.css'),
       text('/css/traditional.css'),
+      text('/css/gilded.css'),
       text('/css/screens.css'),
       text('/js/i18n.js'),
       text('/js/presets.js'),
@@ -115,6 +116,10 @@ window.SB_OFFLINE = (() => {
     let fontsUrl = (html.match(/https:\/\/fonts\.googleapis\.com\/css2\?[^"']+/) || [])[0] || '';
     if (fontsUrl && !/family=Orbitron/.test(fontsUrl)) {
       fontsUrl = fontsUrl.replace('&display=swap', '&family=Orbitron:wght@700&display=swap');
+    }
+    // הגופן "אלגנטי" נטען בצג רק לפי דרישה (ensureFont), וקובץ לא מקוון לא יכול להוריד אותו
+    if (fontsUrl && !/family=Cormorant/.test(fontsUrl)) {
+      fontsUrl = fontsUrl.replace('&display=swap', '&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600;1,700&family=Inter:wght@200;300;400;500;600&display=swap');
     }
     const fontCss = fontsUrl ? await inlineFonts(fontsUrl, onStep) : '';
 
@@ -155,6 +160,8 @@ window.SB_OFFLINE = (() => {
         put(`<style>\n${cssBoard}\n</style>\n`))
       .replace(/[ \t]*<link rel="stylesheet" href="\/css\/traditional\.css">\s*/,
         put(`<style>\n${cssTraditional}\n</style>\n`))
+      .replace(/[ \t]*<link rel="stylesheet" href="\/css\/gilded\.css">\s*/,
+        put(`<style>\n${cssGilded}\n</style>\n`))
       .replace(/[ \t]*<link rel="stylesheet" href="\/css\/screens\.css">\s*/,
         put(`<style>\n${cssScreens}\n</style>\n`))
       // Google Fonts: שני ה-preconnect וה-link יורדים יחד

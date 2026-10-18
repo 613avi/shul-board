@@ -16,10 +16,13 @@ const DEMO_DATA = {
   "announcements": {
     "entries": [
       {
-        "text": "הקידוש בשבת הקרובה בחסות משפחת פרידמן לרגל בר המצווה של בנם. מזל טוב!"
+        "text": "Kiddush this Shabbos is sponsored by the Friedman family in honor of their son Moshe's Bar Mitzvah. Mazal Tov!"
       },
       {
-        "text": "סדר ערב בימים ב'-ה' 20:30-22:00 בבית המדרש. יש חברותות, פנו לגבאי."
+        "text": "Night Seder Mon–Thu, 8:30–10:00 PM in the Beis Medrash. Chavrusos available — see the Gabbai."
+      },
+      {
+        "text": "Pre-Chanukah Toy Drive: drop off new, wrapped toys in the lobby through Rosh Chodesh Kislev."
       }
     ]
   },
@@ -34,19 +37,19 @@ const DEMO_DATA = {
     },
     "displayedZmanim": {
       "alotHaShachar": true,
-      "misheyakir": true,
+      "misheyakir": false,
       "sunrise": true,
+      "sofZmanShmaMGA": true,
       "sofZmanShma": true,
+      "sofZmanTfillaMGA": false,
       "sofZmanTfilla": true,
       "chatzot": true,
       "minchaGedola": true,
-      "minchaKetana": true,
+      "minchaKetana": false,
       "plagHaMincha": true,
       "sunset": true,
       "tzeit": true,
-      "sofZmanShmaMGA": true,
-      "sofZmanTfillaMGA": true,
-      "tzeit72": false,
+      "tzeit72": true,
       "chatzotNight": false
     },
     "theme": {
@@ -60,12 +63,12 @@ const DEMO_DATA = {
     "zmanimOverrides": {},
     "design": {
       "preset": "pearl",
-      "theme": "ivory",
+      "theme": "midnight",
       "style": "pearl",
       "layout": "3col",
       "font": "classic",
-      "accent": "",
-      "scale": 1,
+      "accent": "#d9b46a",
+      "scale": 0.9,
       "backgroundImage": "",
       "backgroundOverlay": 0.45,
       "backgroundFit": "cover",
@@ -76,18 +79,23 @@ const DEMO_DATA = {
     },
     "display": {
       "showUpcoming": true,
-      "headerLogo": true,
-      "lang": "he",
+      "headerLogo": false,
+      "lang": "en",
+      "time12": true,
       "todayLine": true,
       "fastTimes": true,
       "nextHighlight": true,
       "hidePast": false,
       "extendedMentions": true,
       "learning": [
-        "dafyomi"
+        "dafyomi",
+        "mishnayomi",
+        "nachyomi",
+        "kitzurshulchanaruch"
       ],
       "weather": {
-        "enabled": false
+        "enabled": true,
+        "unit": "f"
       },
       "sleep": {
         "enabled": false,
@@ -122,7 +130,23 @@ const DEMO_DATA = {
     "schemaVersion": 5
   },
   "dedications": {
-    "entries": []
+    "entries": [
+      {
+        "type": "neshama",
+        "text": "Reb Yaakov Moshe ben Reb Avraham z\"l",
+        "from": "Sponsored by his children"
+      },
+      {
+        "type": "refua",
+        "text": "Chaya Rivka bas Leah",
+        "from": "Please include her in your tefillos"
+      },
+      {
+        "type": "mazal",
+        "text": "The Friedman family on the Bar Mitzvah of Moshe",
+        "from": "From all your friends at the shul"
+      }
+    ]
   },
   "media-playlist": {
     "seconds": 12,
@@ -132,27 +156,27 @@ const DEMO_DATA = {
   "memorial": {
     "entries": [
       {
-        "name": "ר' יעקב משה ב\"ר אברהם ז\"ל",
-        "hebrewDay": 8,
+        "name": "Reb Yaakov Moshe ben Reb Avraham z\"l",
+        "hebrewDay": 7,
         "hebrewMonth": "חשון"
       },
       {
-        "name": "חיה שרה בת ר' ישראל ע\"ה",
+        "name": "Chaya Sarah bas Reb Yisroel a\"h",
         "hebrewDay": 12,
         "hebrewMonth": "חשון"
       },
       {
-        "name": "ר' שמואל דוד ב\"ר אליעזר ז\"ל",
+        "name": "Reb Shmuel Dovid ben Reb Eliezer z\"l",
         "hebrewDay": 19,
         "hebrewMonth": "חשון"
       },
       {
-        "name": "רבקה בת ר' חיים ע\"ה",
+        "name": "Rivka bas Reb Chaim a\"h",
         "hebrewDay": 3,
         "hebrewMonth": "כסלו"
       },
       {
-        "name": "ר' מרדכי ב\"ר יוסף ז\"ל",
+        "name": "Reb Mordechai ben Reb Yosef z\"l",
         "hebrewDay": 22,
         "hebrewMonth": "כסלו"
       }
@@ -162,55 +186,56 @@ const DEMO_DATA = {
     "rooms": [
       {
         "id": "main",
-        "name": "היכל מרכזי",
+        "name": "Main Shul",
         "notes": "",
         "weekday": {
           "shacharit": [
             "06:15",
-            "07:00",
-            "07:45",
-            "08:30"
+            "07:30"
           ],
           "mincha": [
             "13:45",
-            "16:45"
+            {
+              "type": "relative",
+              "base": "sunset",
+              "offset": -15,
+              "round": 5,
+              "days": []
+            }
           ],
           "arvit": [
-            "19:45",
-            "21:45",
-            "22:30"
+            {
+              "type": "relative",
+              "base": "tzeit",
+              "offset": 0,
+              "round": 5,
+              "days": []
+            },
+            "21:45"
           ]
         },
         "shabbat": {
           "kabbalat": [],
-          "minchaErevOffsets": [
-            {
-              "type": "relative",
-              "base": "candle",
-              "offset": 0,
-              "round": 0,
-              "days": []
-            }
-          ],
+          "minchaErevOffsets": [],
           "shacharit": [
             "07:00",
             "09:00"
           ],
-          "mincha": [],
-          "arvitMotzashOffsets": [
+          "mincha": [
             {
               "type": "relative",
-              "base": "havdalah",
-              "offset": 0,
-              "round": 0,
+              "base": "sunset",
+              "offset": -20,
+              "round": 5,
               "days": []
             }
-          ]
+          ],
+          "arvitMotzashOffsets": []
         }
       },
       {
         "id": "bm",
-        "name": "בית המדרש",
+        "name": "Beis Medrash",
         "notes": "",
         "weekday": {
           "shacharit": [
@@ -239,70 +264,70 @@ const DEMO_DATA = {
     "screens": [
       {
         "id": "main",
-        "name": "מסך ראשי",
-        "seconds": 20,
+        "name": "Main",
+        "seconds": 30,
         "blocks": [
+          {
+            "id": "b-header",
+            "type": "header",
+            "x": 0,
+            "y": 0,
+            "w": 11,
+            "h": 3,
+            "showClock": false,
+            "showSub": false
+          },
+          {
+            "id": "b-date",
+            "type": "date",
+            "x": 11,
+            "y": 0,
+            "w": 7,
+            "h": 3
+          },
           {
             "id": "b-clock",
             "type": "clock",
             "x": 18,
             "y": 0,
             "w": 6,
-            "h": 4,
+            "h": 3,
             "variant": "digital",
             "face": "plain",
-            "seconds": false,
+            "seconds": true,
             "showDate": false
           },
           {
-            "id": "b-date",
-            "type": "date",
-            "x": 6,
-            "y": 0,
-            "w": 12,
-            "h": 4
+            "id": "b-tefillot",
+            "type": "tefillot",
+            "x": 0,
+            "y": 3,
+            "w": 8,
+            "h": 13
           },
           {
-            "id": "b-header",
-            "type": "header",
-            "x": 0,
-            "y": 0,
-            "w": 6,
-            "h": 4,
-            "showClock": false,
-            "showSub": false
+            "id": "b-countdown",
+            "type": "countdown",
+            "x": 8,
+            "y": 3,
+            "w": 8,
+            "h": 6
+          },
+          {
+            "id": "b-shabbat",
+            "type": "shabbat",
+            "x": 8,
+            "y": 9,
+            "w": 8,
+            "h": 7
           },
           {
             "id": "b-zmanim",
             "type": "zmanim",
             "x": 16,
-            "y": 4,
+            "y": 3,
             "w": 8,
-            "h": 12
-          },
-          {
-            "id": "b-tefillot",
-            "type": "tefillot",
-            "x": 8,
-            "y": 4,
-            "w": 8,
-            "h": 12
-          },
-          {
-            "id": "b-shabbat",
-            "type": "shabbat",
-            "x": 0,
-            "y": 4,
-            "w": 8,
-            "h": 6
-          },
-          {
-            "id": "b-shiurim",
-            "type": "shiurim",
-            "x": 0,
-            "y": 10,
-            "w": 8,
-            "h": 6
+            "h": 13
           },
           {
             "id": "b-mentions",
@@ -321,25 +346,144 @@ const DEMO_DATA = {
             "h": 1
           }
         ]
+      },
+      {
+        "id": "learning",
+        "name": "Learning & Community",
+        "seconds": 20,
+        "blocks": [
+          {
+            "id": "c-header",
+            "type": "header",
+            "x": 0,
+            "y": 0,
+            "w": 11,
+            "h": 3,
+            "showClock": false,
+            "showSub": false
+          },
+          {
+            "id": "c-date",
+            "type": "date",
+            "x": 11,
+            "y": 0,
+            "w": 7,
+            "h": 3
+          },
+          {
+            "id": "c-clock",
+            "type": "clock",
+            "x": 18,
+            "y": 0,
+            "w": 6,
+            "h": 3,
+            "variant": "digital",
+            "face": "plain",
+            "seconds": true,
+            "showDate": false
+          },
+          {
+            "id": "c-shiurim",
+            "type": "shiurim",
+            "x": 0,
+            "y": 3,
+            "w": 8,
+            "h": 13
+          },
+          {
+            "id": "c-learning",
+            "type": "learning",
+            "x": 8,
+            "y": 3,
+            "w": 8,
+            "h": 6
+          },
+          {
+            "id": "c-dedications",
+            "type": "dedications",
+            "x": 8,
+            "y": 9,
+            "w": 8,
+            "h": 7
+          },
+          {
+            "id": "c-memorial",
+            "type": "memorial",
+            "x": 16,
+            "y": 3,
+            "w": 8,
+            "h": 7
+          },
+          {
+            "id": "c-weather",
+            "type": "weather",
+            "x": 16,
+            "y": 10,
+            "w": 8,
+            "h": 6
+          },
+          {
+            "id": "c-mentions",
+            "type": "mentions",
+            "x": 0,
+            "y": 16,
+            "w": 24,
+            "h": 1
+          },
+          {
+            "id": "c-announcements",
+            "type": "announcements",
+            "x": 0,
+            "y": 17,
+            "w": 24,
+            "h": 1
+          }
+        ]
       }
     ]
   },
   "shiurim": {
     "entries": [
       {
-        "title": "דף היומי",
-        "lecturer": "הרב דוד קליין",
-        "time": "20:30",
-        "days": []
+        "title": "Daf Yomi",
+        "lecturer": "Rabbi Dovid Klein",
+        "time": "05:45",
+        "days": [],
+        "place": "Beis Medrash"
       },
       {
-        "title": "שיעור הלכה - הלכות שבת",
-        "lecturer": "הרב אליעזר גולד",
+        "title": "Halacha Shiur — Hilchos Shabbos",
+        "lecturer": "Rabbi Eliezer Gold",
         "time": "21:30",
         "days": [
           1,
           3
         ]
+      },
+      {
+        "title": "Chumash with Rashi",
+        "lecturer": "Rabbi Yehuda Stern",
+        "time": "20:00",
+        "days": [
+          0,
+          2,
+          4
+        ]
+      },
+      {
+        "title": "Mishna Brura Chabura (before Mincha)",
+        "lecturer": "",
+        "type": "relative",
+        "base": "sunset",
+        "offset": -35,
+        "round": 5,
+        "days": []
+      },
+      {
+        "title": "Daf Yomi (evening)",
+        "lecturer": "Rabbi Dovid Klein",
+        "time": "21:00",
+        "days": []
       }
     ]
   },
@@ -347,7 +491,16 @@ const DEMO_DATA = {
     "entries": []
   },
   "texts": {
-    "entries": []
+    "entries": [
+      {
+        "title": "Halacha of the Day",
+        "body": "One who forgot to say Mashiv Haruach and has already concluded the bracha must go back to the beginning of Shemoneh Esrei."
+      },
+      {
+        "title": "A Thought on the Parsha",
+        "body": "Lech Lecha — Avraham's greatness was not that he heard the call, but that he went without knowing where."
+      }
+    ]
   },
   "zmanim-calendar": {
     "entries": {}

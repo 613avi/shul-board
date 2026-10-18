@@ -1241,8 +1241,10 @@ body[data-theme="parchment"] #display-root[data-style="glass"] .card {
    נקבעים לפי ltr ולא לפי כיוון הלוח. מיישרים אותם במפורש לקצה החיצוני של השורה. */
 [dir="ltr"] .zmanim-card td:last-child,
 [dir="ltr"] .blk-shabbat .sh-table td:last-child,
-[dir="ltr"] .tefillot-card td:last-child,
-[dir="ltr"] .tefillot-card .prayer-block td.ptime { text-align: right; }
+[dir="ltr"] .tefillot-card td:last-child { text-align: right; }
+/* השעה היא העמודה הראשונה בתפילות, ולכן הקצה החיצוני שלה ב-ltr הוא השמאלי —
+   גם כשהיא העמודה היחידה (בית כנסת עם חדר אחד) */
+[dir="ltr"] .tefillot-card .prayer-block td.ptime { text-align: left; }
 
 /* פס ההודעות רץ לכיוון הקריאה: בעברית משמאל לימין, באנגלית ההפך. */
 [dir="ltr"] #announcements-ticker { padding-right: 0; padding-left: 100%; }
