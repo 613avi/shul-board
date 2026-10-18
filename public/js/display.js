@@ -273,6 +273,9 @@
     return body;
   }
 
+  const DEMO_SLUG = 'demo-shul';
+  const DEMO_KEY = 'sb_demo_data';
+
   async function fetchBundle() {
     if (_offline) return offlineBundle();
     const slug = currentSlug();
@@ -290,6 +293,11 @@
 
     const body = await res.json();
     if (!body.ok) throw new Error(body.error || 'שגיאה בטעינה');
+
+    // לוח ההדגמה: מה שהמבקר "שמר" בניהול נשאר בדפדפן שלו (api.js), ונראה רק כאן
+    if (body.slug === DEMO_SLUG) {
+      try { body.data = { ...(body.data || {}), ...(JSON.parse(localStorage.getItem(DEMO_KEY)) || {}) }; } catch {}
+    }
 
     // פרסנו גרסת קוד חדשה? הדף נטען מחדש כדי שקוד ישן לא ירוץ מול נתונים חדשים.
     // בתצוגה המקדימה של הניהול לא — זה היה מוחק שינויים שטרם נשמרו.
@@ -2003,6 +2011,11 @@
     setInterval(checkForUpdates, 3 * 60 * 1000);
     // דופק ראשון מיד אחרי הטעינה, כדי שהמסך יופיע בניהול בלי לחכות 3 דקות
     checkForUpdates();
+
+    // הצג של ההדגמה פתוח בלשונית אחרת: שמירה בניהול מתעדכנת מיד, בלי לחכות לסבב
+    window.addEventListener('storage', (event) => {
+      if (event.key === DEMO_KEY && currentSlug() === DEMO_SLUG && !_previewMode) refreshAll();
+    });
 
     // Listen for design preview updates from admin page
     window.addEventListener('message', (event) => {

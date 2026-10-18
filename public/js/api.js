@@ -36,7 +36,27 @@ window.Api = (() => {
 
   const j = (v) => JSON.stringify(v);
 
+  // לוח ההדגמה: השרת חוסם כל שמירה, אז השמירה נשארת בדפדפן הזה. הצג של
+  // demo-shul (display.js) קורא את אותו מפתח, ושום לוח אחר לא נוגע בו.
+  const DEMO_KEY = 'sb_demo_data';
+  let demo = false;
+  const demoRead = () => {
+    try { return JSON.parse(localStorage.getItem(DEMO_KEY)) || {}; } catch { return {}; }
+  };
+  function demoSave(section, data) {
+    const all = demoRead();
+    all[section] = data;
+    try { localStorage.setItem(DEMO_KEY, j(all)); } catch {
+      throw new Error('הדפדפן לא מאפשר לשמור את השינויים של לוח ההדגמה');
+    }
+    return { ok: true, demo: true };
+  }
+
   return {
+    // ---- לוח ההדגמה ----
+    setDemo: (on) => { demo = !!on; },
+    demoReset: () => { try { localStorage.removeItem(DEMO_KEY); } catch {} },
+
     // ---- חשבון ----
     register: (payload) => call('/api/register', { method: 'POST', body: j(payload) }),
     checkSlug: (slug) => call(`/api/register?slug=${encodeURIComponent(slug)}`),
@@ -59,9 +79,13 @@ window.Api = (() => {
     googlePick: (payload) => call('/api/auth/google/pick', { method: 'POST', body: j(payload) }),
 
     // ---- הגדרות ----
-    loadAll: () => call('/api/data'),
-    saveSection: (section, data) =>
-      call(`/api/data/${encodeURIComponent(section)}`, { method: 'PUT', body: j(data) }),
+    loadAll: async () => {
+      const res = await call('/api/data');
+      if (demo) res.data = { ...(res.data || {}), ...demoRead() };
+      return res;
+    },
+    saveSection: async (section, data) => demo ? demoSave(section, data)
+      : call(`/api/data/${encodeURIComponent(section)}`, { method: 'PUT', body: j(data) }),
 
     // ---- מדיה ----
     listMedia: () => call('/api/media'),

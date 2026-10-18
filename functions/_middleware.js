@@ -31,9 +31,14 @@ function toEnglish(res, isHome) {
 // לסשן ההדגמה. היציאה מותרת, וגם שיוך Google (בקשת GET שמתחילה כתיבה) נחסם.
 const READ = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+// נתיבים שלא נוגעים בסשן הגבאי, ולכן עוגיית הדגמה שנשארה בדפדפן לא תחסום אותם:
+// כניסה והרשמה (מחליפות את הסשן), מנהל-העל (עוגייה משלו), שחזור סיסמה, טופס
+// הפנייה והדופק של הצג. כל נתיב אחר — גם עתידי — נשאר חסום.
+const DEMO_FREE = /^\/api\/(?:logout|login|register|reset|reset-confirm|contact|admin\/.*|auth\/google\/pick|heartbeat\/[^/]+)$/;
+
 async function demoBlocked(request, env) {
   const url = new URL(request.url);
-  if (!url.pathname.startsWith('/api/') || url.pathname === '/api/logout') return false;
+  if (!url.pathname.startsWith('/api/') || DEMO_FREE.test(url.pathname)) return false;
   const linking = url.pathname === '/api/auth/google/start' && url.searchParams.get('mode') === 'link';
   if (READ.has(request.method) && !linking) return false;
   if (!(request.headers.get('cookie') || '').includes('sb_session=')) return false;

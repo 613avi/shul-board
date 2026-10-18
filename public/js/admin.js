@@ -183,6 +183,7 @@
   async function enterApp() {
     const me = await Api.me();
     state.me = me;
+    Api.setDemo(me.demo);
     await loadData();
     qs('#login-view').style.display = 'none';
     renderIdentity();
@@ -2427,7 +2428,9 @@
       renderHome();
       status('נשמר ופורסם ✓', 'success');
       const when = new Date().toLocaleString('he-IL');
-      qs('#last-save-status').textContent = `נשמר בהצלחה ב־${when}. הצג יתעדכן תוך עד 3 דקות.`;
+      qs('#last-save-status').textContent = state.me?.demo
+        ? 'נשמר בדפדפן הזה בלבד: הצג של ההדגמה יתעדכן כאן, ואצל אחרים הלוח לא משתנה.'
+        : `נשמר בהצלחה ב־${when}. הצג יתעדכן תוך עד 3 דקות.`;
       Api.me().then(me => { state.me = me; renderIdentity(); }).catch(() => {});
     } catch (e) {
       if (e.status === 401) {
@@ -3388,6 +3391,7 @@
     });
 
     qs('#logout-btn').addEventListener('click', logout);
+    qs('#demo-reset')?.addEventListener('click', () => { Api.demoReset(); location.reload(); });
     qs('#save-all-btn').addEventListener('click', saveAll);
     qs('#save-float-btn').addEventListener('click', saveAll);
 

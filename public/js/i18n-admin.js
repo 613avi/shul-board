@@ -383,7 +383,10 @@
     'לעילוי נשמת': 'L’iluy Nishmas',
     // ב-<code>, שהמשקיף מדלג עליו — ולכן לפי מפתח
     'admin.live.screenParam': '?screen=name',
-    'זה לוח הדגמה: אפשר לשחק עם הכל ולראות את התוצאה בתצוגה המקדימה, אבל שום שינוי לא נשמר.': 'This is a demo board: play with anything and watch the preview, but nothing gets saved.',
+    'זה לוח הדגמה: אפשר לשחק עם הכל. מה ששומרים נשמר רק בדפדפן הזה — גם הצג של ההדגמה יציג את זה כאן, ואצל אחרים הלוח לא משתנה.': 'This is a demo board: play with anything. What you save stays in this browser only — the demo display shows it here, and nobody else’s board changes.',
+    'חזרה ללוח המקורי': 'Back to the original board',
+    'נשמר בדפדפן הזה בלבד: הצג של ההדגמה יתעדכן כאן, ואצל אחרים הלוח לא משתנה.': 'Saved in this browser only: the demo display updates here, and nobody else’s board changes.',
+    'הדפדפן לא מאפשר לשמור את השינויים של לוח ההדגמה': 'This browser doesn’t allow saving the demo board’s changes',
     'רוצים לוח משלכם? פתיחת בית כנסת — חינם': 'Want one for your shul? Open one — free',
     'זה לוח הדגמה — אפשר לשחק עם הכל ולראות בתצוגה המקדימה, אבל שום שינוי לא נשמר.': 'This is a demo board — play with anything and watch the preview, but nothing gets saved.',
     'מאת / הערה (רשות)': 'From / note (optional)',
