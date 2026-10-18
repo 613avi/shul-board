@@ -383,7 +383,9 @@
     'לעילוי נשמת': 'L’iluy Nishmas',
     // ב-<code>, שהמשקיף מדלג עליו — ולכן לפי מפתח
     'admin.live.screenParam': '?screen=name',
-    'מסך ראשי': 'Main screen',
+    'זה לוח הדגמה: אפשר לשחק עם הכל ולראות את התוצאה בתצוגה המקדימה, אבל שום שינוי לא נשמר.': 'This is a demo board: play with anything and watch the preview, but nothing gets saved.',
+    'רוצים לוח משלכם? פתיחת בית כנסת — חינם': 'Want one for your shul? Open one — free',
+    'זה לוח הדגמה — אפשר לשחק עם הכל ולראות בתצוגה המקדימה, אבל שום שינוי לא נשמר.': 'This is a demo board — play with anything and watch the preview, but nothing gets saved.',
     'מאת / הערה (רשות)': 'From / note (optional)',
     'לדוגמה: נתרם ע״י משפחת לוי': 'For example: donated by the Levi family',
     'הלכה יומית, פסוק, דבר תורה קצר, פנינה — מתחלפים בסבב בקוביית "טקסט מתחלף". קצב ההחלפה ב"מראה הצג" → "מה מוצג על הלוח".': 'A daily halacha, a verse, a short dvar Torah, an insight — rotating in the “Rotating text” block. The rotation speed is under “Board appearance” → “What appears on the board”.',

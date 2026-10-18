@@ -1,4 +1,5 @@
 import { json, requireAuth, ensureShulEmail, ensureShulPasswordFlag } from '../_shared.js';
+import { isDemo } from '../_demo.js';
 
 // מצב ההתחברות + הקשר בית הכנסת, לטעינת ממשק הניהול.
 export async function onRequestGet({ request, env }) {
@@ -20,6 +21,7 @@ export async function onRequestGet({ request, env }) {
   return json({
     ok: true,
     gabbai: session.gabbai,
+    demo: isDemo(session),
     shul: {
       slug: shul.slug,
       name: shul.name,

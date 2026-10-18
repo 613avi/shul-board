@@ -1,4 +1,8 @@
-// כותרות אבטחה לכל התשובות + מדידת זמן בקצה + אנגלית כברירת מחדל מחוץ לישראל.
+// כותרות אבטחה לכל התשובות + מדידת זמן בקצה + אנגלית כברירת מחדל מחוץ לישראל
+// + חסימת כל כתיבה של סשן ההדגמה.
+
+import { bad, readSession } from './_shared.js';
+import { isDemo } from './_demo.js';
 
 // העמודים שיש בהם בורר שפה. הצג לא כאן: השפה שלו היא הגדרה של בית הכנסת.
 const UI_PAGES = /^\/(?:(?:index|admin|reset)(?:\.html)?)?$/;
@@ -23,8 +27,24 @@ function toEnglish(res, isHome) {
   return rw.transform(res);
 }
 
-export async function onRequest({ request, next }) {
+// בדיקה אחת כאן ולא בכל נתיב: כל כתיבה תחת /api — גם נתיב שיתווסף בעתיד — נחסמת
+// לסשן ההדגמה. היציאה מותרת, וגם שיוך Google (בקשת GET שמתחילה כתיבה) נחסם.
+const READ = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+async function demoBlocked(request, env) {
+  const url = new URL(request.url);
+  if (!url.pathname.startsWith('/api/') || url.pathname === '/api/logout') return false;
+  const linking = url.pathname === '/api/auth/google/start' && url.searchParams.get('mode') === 'link';
+  if (READ.has(request.method) && !linking) return false;
+  if (!(request.headers.get('cookie') || '').includes('sb_session=')) return false;
+  return isDemo(await readSession(request, env));
+}
+
+export async function onRequest({ request, env, next }) {
   const t0 = Date.now();
+  if (await demoBlocked(request, env)) {
+    return bad('זה לוח הדגמה — אפשר לשחק עם הכל ולראות בתצוגה המקדימה, אבל שום שינוי לא נשמר.', 403, { demo: true });
+  }
   const response = await next();
   let res = new Response(response.body, response);
 
