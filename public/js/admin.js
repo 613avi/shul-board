@@ -254,7 +254,9 @@
       if (!rows.length) act.appendChild(el('li', {}, 'עדיין אין פעילות.'));
       rows.slice(0, sel === '#home-activity' ? 6 : 15).forEach(a => {
         const when = new Date(a.created_at).toLocaleString('he-IL');
-        act.appendChild(el('li', {}, `${when} · ${a.gabbai || '—'} · ${ACTION_LABELS[a.action] || a.action}${a.detail ? ' · ' + (SECTION_LABELS[a.detail] || a.detail) : ''}`));
+        // התוויות בצמתים משלהן, כדי שהתרגום יתפוס אותן בלי התאריך והשם שלפניהן
+        act.appendChild(el('li', {}, `${when} · ${a.gabbai || '—'} · `, el('span', {}, ACTION_LABELS[a.action] || a.action),
+          ...(a.detail ? [' · ', el('span', {}, SECTION_LABELS[a.detail] || a.detail)] : [])));
       });
     }
   }
@@ -1705,9 +1707,10 @@
         markDirty();
       });
       const lbl = el('label', {}, cb, el('span', { class: 'zm-label' }, label));
-      const defStr = defaults[key] ? `ברירת מחדל: ${defaults[key]}` : '';
       row.appendChild(lbl);
-      row.appendChild(el('span', { class: 'zm-default small' }, defStr));
+      // המילה בצומת משלה, כדי שהתרגום יתפוס אותה בלי השעה
+      row.appendChild(el('span', { class: 'zm-default small' },
+        ...(defaults[key] ? [el('span', {}, 'ברירת מחדל:'), ` ${defaults[key]}`] : [])));
       row.appendChild(ov);
       grid.appendChild(row);
     }
@@ -2772,9 +2775,10 @@
         },
       }, 'הצגה תמיד'));
     }
+    // שני משפטים בשני צמתים — כך כל אחד מהם מתורגם לבד
     box.appendChild(el('div', { class: 'sc-when-hint' },
-      'ריק = תמיד. למשל: רק שבת — מסמנים "ש" בלבד; שבוע מסוים — ממלאים מתאריך ועד תאריך. ' +
-      'היום מתחלף בשקיעה, כך ש"שבת" כולל את ליל שבת. אם אף מסך לא מתוזמן לעכשיו, מוצגים המסכים שבלי תזמון.'));
+      el('span', {}, 'ריק = תמיד. למשל: רק שבת — מסמנים "ש" בלבד; שבוע מסוים — ממלאים מתאריך ועד תאריך.'), ' ',
+      el('span', {}, 'היום מתחלף בשקיעה, כך ש"שבת" כולל את ליל שבת. אם אף מסך לא מתוזמן לעכשיו, מוצגים המסכים שבלי תזמון.')));
   }
 
   // תבניות מוכנות — סידור קוביות בלחיצה אחת (js/presets.js)
@@ -2827,7 +2831,7 @@
       pal.appendChild(el('button', {
         disabled: SINGLE_USE.has(type) && used.has(type) ? 'disabled' : null,
         onclick: () => addBlock(type), title: BLOCK_DESC[type] || '',
-      }, `+ ${label}`, el('small', {}, BLOCK_DESC[type] || '')));
+      }, el('span', {}, '+ ', el('span', {}, label)), el('small', {}, BLOCK_DESC[type] || '')));
     }
   }
 
