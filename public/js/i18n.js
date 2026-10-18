@@ -225,7 +225,7 @@ window.SB_I18N = (() => {
 
   // פאנל הניהול בונה DOM מחדש כל הזמן (renderRooms, renderSpecial...). במקום
   // לקרוא לתרגום אחרי כל אחד מהם — ולשכוח באחד — משקיף על העץ ומתרגם מה שנוסף.
-  let _obs = null, _guard = false;
+  let _obs = null, _guard = false, _missed = false;
   function observe(root) {
     const node = root || document.body;
     if (_obs) { _obs.disconnect(); _obs = null; }
@@ -233,9 +233,15 @@ window.SB_I18N = (() => {
     _obs = new MutationObserver(() => {
       // התרגום עצמו מייצר שינויים; הדגל מונע לולאה. הוא נופל בתור המאקרו, אחרי
       // שקריאת המשקיף (מיקרו-תור) על השינויים שלנו כבר התבצעה ונדחתה.
-      if (_guard) return;
+      // שינוי של הדף עצמו שנפל בתוך חלון הדגל לא הולך לאיבוד: עוד מעבר אחרי שהוא יורד
+      if (_guard) { _missed = true; return; }
       _guard = true;
-      try { applySource(node); } finally { setTimeout(() => { _guard = false; }, 0); }
+      try { applySource(node); } finally {
+        setTimeout(() => {
+          _guard = false;
+          if (_missed) { _missed = false; _guard = true; try { applySource(node); } finally { setTimeout(() => { _guard = false; }, 0); } }
+        }, 0);
+      }
     });
     _obs.observe(node, {
       subtree: true, childList: true, characterData: true,
