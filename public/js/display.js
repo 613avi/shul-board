@@ -35,7 +35,17 @@
   const uiLang = () => (window.SB_I18N?.lang === 'en' ? 'en' : 'he');
   const uiLocale = () => (uiLang() === 'en' ? 'en-US' : 'he-IL');
   // באנגלית "כ״ו אֱלוּל תשפ״ו" לא אומר כלום; hebcal יודע להחזיר 26th of Elul, 5786
-  const hebDateText = (hd) => (uiLang() === 'en' ? hd.render('en') : hd.renderGematriya());
+  // שמות החודשים כפי שהגבאי בחר אותם בניהול (בעברית), בהגייה אשכנזית לצג באנגלית
+  const MONTH_EN = {
+    'ניסן': 'Nissan', 'אייר': 'Iyar', 'סיון': 'Sivan', 'תמוז': 'Tammuz', 'אב': 'Av', 'אלול': 'Elul',
+    'תשרי': 'Tishrei', 'חשון': 'Cheshvan', 'כסלו': 'Kislev', 'טבת': 'Teves', 'שבט': 'Shevat',
+    'אדר': 'Adar', 'אדר א׳': 'Adar I', 'אדר ב׳': 'Adar II',
+  };
+  // שם אירוע של hebcal בשפת הצג. בעברית השנה נכתבת באותיות.
+  const evText = (ev) => (uiLang() === 'en'
+    ? ev.render('ashkenazi').trim()
+    : stripNikud(ev.render('he')).replace(/\b5\d{3}\b/, y => hebDay(Number(y) % 1000)).trim());
+  const hebDateText = (hd) => (uiLang() === 'en' ? hd.render('ashkenazi') : hd.renderGematriya());
 
   const state = {
     config: null,
@@ -344,7 +354,7 @@
       const shabbat = hdate.getDay() === 6 ? hdate : hdate.onOrAfter(6);
       const events = HebrewCalendar.calendar({ start: shabbat, end: shabbat, sedrot: true, il: true, locale: 'he' });
       const ev = events.find(e => e.getFlags && (e.getFlags() & FLAG_PARSHA));
-      return ev ? ev.render('he') : '';
+      return ev ? ev.render(uiLang() === 'en' ? 'ashkenazi' : 'he') : '';
     } catch { return ''; }
   }
 
@@ -400,11 +410,11 @@
       if ((f & flags.MODERN_HOLIDAY) && !MODERN_KEEP.test(desc)) continue;
       if (f & flags.SHABBAT_MEVARCHIM) { mevarchim = ev; continue; }
       if (SKIP_DESC.test(desc)) continue;
-      const text = stripNikud(ev.render('he')).replace(/\b5\d{3}\b/, y => hebDay(Number(y) % 1000)).trim();
+      const text = evText(ev);
       if (text) items.push({ text, fast: !!(f & (flags.MINOR_FAST | flags.MAJOR_FAST)), ev });
     }
     if (mevarchim) {
-      items.push({ text: stripNikud(mevarchim.render('he')) });
+      items.push({ text: evText(mevarchim) });
       try {
         // המולד של החודש הבא
         const m = hdate.getMonth(), y = hdate.getFullYear();
@@ -414,7 +424,8 @@
         const molad = new Molad(ny, nm);
         const dow = dowName(molad.getDow());
         const hh = String(molad.getHour()).padStart(2, '0'), mm = String(molad.getMinutes()).padStart(2, '0');
-        items.push({ text: `המולד: יום ${dow}, ${hh}:${mm} ו-${molad.getChalakim()} חלקים` });
+        items.push({ text: T('display.molad', `המולד: יום ${dow}, ${hh}:${mm} ו-${molad.getChalakim()} חלקים`,
+          { dow, time: `${hh}:${mm}`, chalakim: molad.getChalakim() }) });
       } catch {}
     }
     return items;
@@ -432,7 +443,7 @@
       const t = (e) => e && e.eventTime ? fmtTime(e.eventTime) : '';
       const start = t(fast.startEvent), end = t(fast.endEvent);
       if (!start && !end) return null;
-      return { name: stripNikud(fast.render('he')), start, end };
+      return { name: evText(fast), start, end };
     } catch { return null; }
   }
 
@@ -1001,10 +1012,11 @@
   }
 
   function untilText(minutes) {
-    if (minutes <= 0) return 'עכשיו';
-    if (minutes < 60) return `בעוד ${minutes} דק׳`;
+    if (minutes <= 0) return T('display.next.now', 'עכשיו');
+    if (minutes < 60) return T('display.next.in', `בעוד ${minutes} דק׳`, { min: minutes });
     const h = Math.floor(minutes / 60), mm = minutes % 60;
-    return mm ? `בעוד ${h} שע׳ ו-${mm} דק׳` : `בעוד ${h} שע׳`;
+    return mm ? T('display.next.inHours', `בעוד ${h} שע׳ ו-${mm} דק׳`, { h, min: mm })
+      : T('display.next.inHoursExact', `בעוד ${h} שע׳`, { h });
   }
 
   // ---------- memorial ----------
@@ -1045,7 +1057,9 @@
     for (const entry of items.slice(0, 60)) {
       const li = document.createElement('li');
       const dateStr = entry.hebrewDay && entry.hebrewMonth
-        ? `${hebDay(entry.hebrewDay)} ${entry.hebrewMonth}`
+        ? (uiLang() === 'en'
+          ? `${entry.hebrewDay} ${MONTH_EN[entry.hebrewMonth] || entry.hebrewMonth}`
+          : `${hebDay(entry.hebrewDay)} ${entry.hebrewMonth}`)
         : '';
       li.innerHTML = `
         <span class="mem-name${entry._today ? ' mem-today' : ''}">${entry.name || ''}</span>
@@ -1082,7 +1096,7 @@
       const end = new HDate(new Date(now.getTime() + 14 * 86400000));
       const loc = uiLang();
       const events = HebrewCalendar.calendar({
-        start: hdate, end, il: true, locale: loc,
+        start: hdate, end, il: true, locale: loc === 'en' ? 'ashkenazi' : loc,
         candlelighting: false, sedrot: false, omer: false,
       });
       const upcoming = events.find(e => (e.getFlags() & FLAG_CHAG));
@@ -1090,7 +1104,7 @@
       // בעברית hebcal מחזיר למשל "רֹאשׁ הַשָּׁנָה 5787": מורידים ניקוד וכותבים
       // את השנה באותיות. באנגלית השם כבר קריא כמו שהוא.
       const name = loc === 'en'
-        ? upcoming.render('en').trim()
+        ? upcoming.render('ashkenazi').trim()
         : upcoming.render('he')
           .replace(/[\u0591-\u05C7]/g, '')
           .replace(/\b5\d{3}\b/, y => hebDay(Number(y) % 1000))
@@ -1292,7 +1306,7 @@
       const hdate = getEffectiveHDate();
       const now = new Date();
       const par = findParashaText(hdate);
-      body.innerHTML = `<div class="d-heb">${hdate.renderGematriya()}</div>
+      body.innerHTML = `<div class="d-heb">${hebDateText(hdate)}</div>
         <div class="d-greg">${dowName(now.getDay())}, ${now.toLocaleDateString(uiLocale(), { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         ${par ? `<div class="d-parasha">${stripNikud(par)}</div>` : ''}`;
       wrap.appendChild(card);
@@ -1330,13 +1344,13 @@
           }
         };
         const addFixed = (label, d) => rows.push({ label, shown: fmtTime(d), at: d });
-        add('מנחה ערב שבת', room?.shabbat.minchaErevOffsets, 5);
-        addFixed('הדלקת נרות', ctx.candle);
-        add('שחרית', room?.shabbat.shacharit, 6);
-        add('מנחה', room?.shabbat.mincha, 6);
-        addFixed('צאת השבת', ctx.havdalah);
-        if (ctx.havdalahRT) addFixed('צאת השבת (ר״ת)', ctx.havdalahRT);
-        add('ערבית מוצ״ש', room?.shabbat.arvitMotzashOffsets, 6);
+        add(T('display.prayer.minchaErev', 'מנחה ערב שבת'), room?.shabbat.minchaErevOffsets, 5);
+        addFixed(T('display.shabbat.candles', 'הדלקת נרות'), ctx.candle);
+        add(T('display.prayer.shacharit', 'שחרית'), room?.shabbat.shacharit, 6);
+        add(T('display.prayer.mincha', 'מנחה'), room?.shabbat.mincha, 6);
+        addFixed(T('display.shabbat.havdalah', 'צאת השבת'), ctx.havdalah);
+        if (ctx.havdalahRT) addFixed(T('display.shabbat.havdalahRT', 'צאת השבת (ר״ת)'), ctx.havdalahRT);
+        add(T('display.prayer.arvitMotzash', 'ערבית מוצ״ש'), room?.shabbat.arvitMotzashOffsets, 6);
 
         // התפילה הבאה — רק בשישי ובשבת, כשהזמנים הם של היום עצמו
         const now = new Date();
@@ -1367,12 +1381,12 @@
       const hdate = getEffectiveHDate();
       const items = computeTodayItems(hdate).map(i => i.text);
       const fast = fastTimesToday(hdate, true);
-      if (fast) items.push(`${fast.start ? 'תחילת הצום ' + fast.start : ''}${fast.start && fast.end ? ' · ' : ''}${fast.end ? 'סיום הצום ' + fast.end : ''}`);
+      if (fast) items.push(`${fast.start ? T('display.mention.fastStart', 'תחילת הצום') + ' ' + fast.start : ''}${fast.start && fast.end ? ' · ' : ''}${fast.end ? T('display.mention.fastEnd', 'סיום הצום') + ' ' + fast.end : ''}`);
       const omer = findOmerText(hdate);
       if (omer) items.push(omer);
       body.innerHTML = items.length
         ? items.map(t => `<div class="td-item">${t}</div>`).join('')
-        : `<div class="td-item">${stripNikud(hdate.renderGematriya())} · יום רגיל</div>`;
+        : `<div class="td-item">${stripNikud(hebDateText(hdate))} · ${T('display.today.regular', 'יום רגיל')}</div>`;
       wrap.appendChild(card);
     },
     learning(block, wrap) {

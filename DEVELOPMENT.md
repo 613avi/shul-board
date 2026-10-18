@@ -325,7 +325,13 @@ wrangler pages secret put PLATFORM_PASSWORD --project-name shul-board
 - ב-JS: `T('key', 'העברית שכבר כתובה כאן')` — עוזר מקומי ב-`display.js` שנופל
   לאחור לארגומנט השני.
 - `setLang` מחליף גם `dir`/`lang` על `<html>` וגם את הלוקאל של hebcal, כך שפרשה,
-  חגים ותאריך עברי חוזרים באנגלית (`26th of Elul, 5786` במקום `כ״ו אלול תשפ״ו`).
+  חגים ותאריך עברי חוזרים באנגלית, בלוקאל `ashkenazi` של hebcal (`26th of Elul, 5786` במקום `כ״ו אלול תשפ״ו`).
+
+**סגנון האנגלית: ישיבתי.** הקהל הוא בתי כנסת חרדיים בחו״ל, ולכן כותבים כמו שהם מדברים:
+shul ולא synagogue, zmanim ולא halachic times, davening / minyanim ולא prayers,
+shiurim ולא classes, yahrzeits ולא memorials, Yom Tov ולא holiday — ובהגייה אשכנזית:
+Shabbos, Shacharis, Maariv, Motzei Shabbos, Kabbalas Shabbos, Parsha, Sukkos, Shavuos.
+מחרוזת חדשה באנגלית צריכה להישמע כמו השאר.
 
 **ברירת המחדל לפי מדינה**: בדף הבית, בניהול ובשחזור, מי שנכנס מחוץ לישראל
 (`request.cf.country`) ועוד לא בחר שפה מקבל אנגלית. `_middleware.js` כותב

@@ -266,7 +266,7 @@ body { min-height: 100vh; }
 }
 #memorial-list li:last-child { border-bottom: none; }
 #memorial-list .mem-name { font-weight: 600; }
-#memorial-list .mem-date { color: var(--text-dim); direction: ltr; font-size: 0.9em; }
+#memorial-list .mem-date { color: var(--text-dim); direction: ltr; font-size: 0.9em; white-space: nowrap; }
 #memorial-list .mem-today { color: var(--accent); font-weight: 800; }
 
 .announcements-container {

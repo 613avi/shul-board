@@ -5,7 +5,7 @@ const UI_PAGES = /^\/(?:(?:index|admin|reset)(?:\.html)?)?$/;
 
 // מה שזוחל של פורום או וואטסאפ קורא כשמדביקים קישור לדף הבית. בלי JS, ולכן
 // התרגום חייב לקרות כאן ולא ב-i18n.js.
-const EN_TITLE = 'ShulBoard — a smart display board for your synagogue';
+const EN_TITLE = 'ShulBoard — a smart display board for your shul';
 const EN_DESC = 'A free zmanim and minyan board for your shul: register in a minute, manage it remotely, and put it on any screen.';
 
 const setContent = (value) => ({ element(el) { el.setAttribute('content', value); } });
