@@ -246,7 +246,12 @@ window.SB_I18N = (() => {
     html.setAttribute('dir', dirOf(lang));
     // hebcal יודע להחזיר פרשה, חגים ותאריך עברי באנגלית
     try { window.hebcal?.Locale?.setLocale(lang === 'en' ? 'en' : 'he'); } catch {}
-    if (doApply) { apply(); applySource(); }
+    if (doApply) {
+      apply(); applySource();
+      // הכותרת יושבת ב-<head>, מחוץ לעץ שהמשקיף עובר עליו
+      const title = srcText(document.title);
+      if (title != null) document.title = title;
+    }
     return lang;
   }
 
@@ -257,12 +262,18 @@ window.SB_I18N = (() => {
   // השפה נשמרת פר-דפדפן ולא פר-בית-כנסת: מי שקורא אנגלית קורא אנגלית גם
   // בדף הבית וגם בניהול. שפת הצג עצמו היא הגדרה נפרדת לגמרי של בית הכנסת
   // (config.display.lang), כי הצג נצפה על ידי הקהילה ולא על ידי הגבאי.
+  //
+  // מי שעוד לא בחר שפה מקבל את ברירת המחדל לפי המדינה: ה-middleware כותב
+  // data-default-lang="en" על <html> לכל מי שנכנס מחוץ לישראל. זה לא נשמר,
+  // כך שבחירה מפורשת בבורר תמיד גוברת.
   const LS_KEY = 'sb.lang';
 
   function boot({ onChange } = {}) {
     let saved = null;
     try { saved = localStorage.getItem(LS_KEY); } catch {}
-    setLang(Object.hasOwn(LANGS, saved || '') ? saved : DEFAULT);
+    const geo = document.documentElement.getAttribute('data-default-lang');
+    setLang(Object.hasOwn(LANGS, saved || '') ? saved
+      : Object.hasOwn(LANGS, geo || '') ? geo : DEFAULT);
     observe(document.body);
 
     for (const sel of document.querySelectorAll('.ui-lang')) {
