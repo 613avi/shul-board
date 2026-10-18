@@ -94,6 +94,9 @@
 
   function status(msg, kind = '') {
     const bar = qs('#status-bar');
+    // בלוח ההדגמה כל כתיבה נחסמת בשרת. "שגיאה בהעלאה: …" מיותר שם, וגם מונע
+    // מהתרגום לזהות את ההודעה
+    if (String(msg).includes('לוח הדגמה')) msg = String(msg).replace(/^שגיאה[^:]*:\s*/, '');
     bar.textContent = msg;
     bar.className = `status-bar show ${kind}`;
     clearTimeout(status._t);
@@ -206,6 +209,8 @@
     const set = (sel, text) => { const e = qs(sel); if (e) e.textContent = text; };
     set('#hdr-shul', me.shul.name);
     set('#hdr-gabbai', me.gabbai);
+    const demo = qs('#demo-banner');
+    if (demo) demo.hidden = !me.demo;
     fillRecovery();
     renderGoogleLinks();
     const disp = qs('#link-display');
@@ -2433,6 +2438,8 @@
         status(`שגיאה: ${e.message}`, 'error');
       }
       qs('#last-save-status').textContent = `שגיאה: ${e.message}`;
+      // לוח ההדגמה: ההודעה לבד, בלי "שגיאה:" — זה לא תקלה, וכך היא גם מתורגמת
+      if (String(e.message).includes('לוח הדגמה')) qs('#last-save-status').textContent = e.message;
     } finally {
       btn.disabled = false;
       btn.textContent = 'שמירה ופרסום';

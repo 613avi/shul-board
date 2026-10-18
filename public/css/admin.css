@@ -428,3 +428,9 @@
 .admin-body textarea,
 .admin-body .list-item .head strong,
 .admin-body .entry-card .head strong { unicode-bidi: plaintext; }
+
+/* לוח ההדגמה */
+.demo-banner { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; align-items: center;
+  padding: 10px 16px; background: #fff7e0; color: #5a4400; border-bottom: 1px solid #ecd9a0; font-size: 14px; text-align: center; }
+.demo-banner[hidden] { display: none; }
+.demo-banner a { color: inherit; font-weight: 700; }

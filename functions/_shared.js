@@ -155,6 +155,8 @@ const RESERVED = new Set([
   'admin', 'api', 'www', 'app', 'static', 'assets', 'download', 'downloads',
   's', 'm', 'login', 'logout', 'register', 'new', 'help', 'about', 'dashboard',
   'manage', 'root', 'system', 'support', 'billing',
+  // לוח ההדגמה (functions/_demo.js) — ו-demo עצמו כבר תפוס בבית כנסת אמיתי
+  'demo-shul',
 ]);
 
 export const slugAvailable = (slug) =>

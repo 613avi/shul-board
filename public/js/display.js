@@ -1313,6 +1313,12 @@
       fitFont(body.querySelector('.d-heb'), wrap, 0.085, 0.3);
       fitFont(body.querySelector('.d-greg'), wrap, 0.045, 0.16);
       const p = body.querySelector('.d-parasha'); if (p) fitFont(p, wrap, 0.05, 0.18);
+      // היחסים לא יודעים על מרווח השורות ועל המסגרת של הסגנון (פנינה, מעוטר) —
+      // ושורת הפרשה נחתכה בתחתית. מקטינים את שלושתן יחד עד שהכל נכנס.
+      const lines = [...body.children];
+      for (let i = 0; i < 20 && body.scrollHeight > body.clientHeight + 1; i++) {
+        for (const l of lines) l.style.fontSize = `${Math.max(10, parseFloat(l.style.fontSize) * 0.93)}px`;
+      }
     },
     // הגדרות הקובייה: fixedParasha (ברירת מחדל כן) — שם השבת והפרשה נשארים ככותרת
     // מעל הגלילה; next — '' לפי "הדגשת התפילה הבאה" הכללית, 'on' / 'off';
