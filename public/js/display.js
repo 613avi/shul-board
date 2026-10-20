@@ -67,6 +67,14 @@
     );
   };
 
+  // ארץ ישראל או חוץ לארץ: יום טוב שני, הפרשה כשהן נפרדות, ותן טל ומטר וההלל.
+  // הגבאי קובע בניהול; לוח ישן שלא נקבע בו — לפי אזור הזמן.
+  const inIsrael = () => {
+    const loc = state.config?.location || {};
+    if (typeof loc.israel === 'boolean') return loc.israel;
+    return !loc.timezone || loc.timezone === 'Asia/Jerusalem';
+  };
+
   const HEB_DOW = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const dowName = (i) => T(`display.dow.${i}`, HEB_DOW[i]);
   const uiLang = () => (window.SB_I18N?.lang === 'en' ? 'en' : 'he');
@@ -387,7 +395,7 @@
   // ---------- header / omer / parasha ----------
   function findOmerText(hdate) {
     try {
-      const evs = HebrewCalendar.calendar({ start: hdate, end: hdate, omer: true, locale: 'he', il: true });
+      const evs = HebrewCalendar.calendar({ start: hdate, end: hdate, omer: true, locale: 'he', il: inIsrael() });
       const omerEv = evs.find(e => e.constructor && e.constructor.name === 'OmerEvent')
                   || evs.find(e => typeof e.getTodayIs === 'function');
       if (!omerEv) return '';
@@ -407,7 +415,7 @@
   function findParashaText(hdate) {
     try {
       const shabbat = hdate.getDay() === 6 ? hdate : hdate.onOrAfter(6);
-      const events = HebrewCalendar.calendar({ start: shabbat, end: shabbat, sedrot: true, il: true, locale: 'he' });
+      const events = HebrewCalendar.calendar({ start: shabbat, end: shabbat, sedrot: true, il: inIsrael(), locale: 'he' });
       const ev = events.find(e => e.getFlags && (e.getFlags() & FLAG_PARSHA));
       return ev ? ev.render(uiLang() === 'en' ? 'ashkenazi' : 'he') : '';
     } catch { return ''; }
@@ -446,7 +454,7 @@
   function todayEvents(hdate) {
     try {
       return HebrewCalendar.calendar({
-        start: hdate, end: hdate, il: true, locale: 'he',
+        start: hdate, end: hdate, il: inIsrael(), locale: 'he',
         sedrot: false, omer: false, candlelighting: false, molad: false, shabbatMevarchim: true,
         noMinorFast: false, noModern: false, noSpecialShabbat: false,
       });
@@ -491,8 +499,8 @@
     if (!force && !flag('fastTimes')) return null;
     try {
       const { latitude, longitude, timezone } = state.config.location;
-      const loc = new Location(Number(latitude), Number(longitude), true, timezone || 'Asia/Jerusalem');
-      const evs = HebrewCalendar.calendar({ start: hdate, end: hdate, il: true, locale: 'he', location: loc, candlelighting: true });
+      const loc = new Location(Number(latitude), Number(longitude), inIsrael(), timezone || 'Asia/Jerusalem');
+      const evs = HebrewCalendar.calendar({ start: hdate, end: hdate, il: inIsrael(), locale: 'he', location: loc, candlelighting: true });
       const fast = evs.find(e => e.getFlags() & (flags.MINOR_FAST | flags.MAJOR_FAST));
       if (!fast) return null;
       const t = (e) => e && e.eventTime ? showT(fmtTime(shifted(e.eventTime))) : '';
@@ -551,11 +559,20 @@
       (m === 1 && d <= 14);
     out.push(isWinter ? T('display.mention.moridHaGeshem', 'משיב הרוח ומוריד הגשם') : T('display.mention.moridHaTal', 'מוריד הטל'));
 
-    // ותן טל ומטר (Israel): 7 Cheshvan → 14 Nisan; else ותן ברכה
-    const rainRequest =
+    // ותן טל ומטר: בארץ מז׳ בחשוון, בחו״ל מערבית של 4 בדצמבר (5 בדצמבר בשנה שלפני
+    // שנה מעוברת לועזית) — ועד ערב פסח. hdate מתקדם בשקיעה, ולכן היום שמתחיל
+    // באותה ערבית הוא 5 (או 6) בדצמבר בשעות היום.
+    const il = inIsrael();
+    let rainRequest =
       (m === 8 && d >= 7) ||
       (m >= 9 && m <= 13) ||
       (m === 1 && d <= 14);
+    if (rainRequest && !il) {
+      const g = hdate.greg(), gy = g.getFullYear(), gm = g.getMonth();
+      const nextLeap = ((gy + 1) % 4 === 0 && (gy + 1) % 100 !== 0) || (gy + 1) % 400 === 0;
+      if (gm === 9 || gm === 10) rainRequest = false;
+      else if (gm === 11) rainRequest = g.getDate() >= (nextLeap ? 6 : 5);
+    }
     out.push(rainRequest ? T('display.mention.talUmatar', 'ותן טל ומטר לברכה') : T('display.mention.veTenBracha', 'ותן ברכה'));
 
     // יעלה ויבוא (Rosh Chodesh or Chol Hamoed in Israel)
@@ -567,9 +584,10 @@
         if (daysInMonth === 30) yaaleh = true; // the 30th is Rosh Chodesh eve day
       } catch {}
     }
-    // Chol hamoed (Israel): Nisan 16-20, Tishrei 16-21
-    if (m === 1 && d >= 16 && d <= 20) yaaleh = true;
-    if (m === 7 && d >= 16 && d <= 21) yaaleh = true;
+    // חול המועד: בארץ ניסן ט״ז–כ׳ ותשרי ט״ז–כ״א; בחו״ל ט״ז הוא יום טוב שני
+    const cholFrom = il ? 16 : 17;
+    if (m === 1 && d >= cholFrom && d <= 20) yaaleh = true;
+    if (m === 7 && d >= cholFrom && d <= 21) yaaleh = true;
     if (yaaleh) out.push(T('display.mention.yaaleVeyavo', 'יעלה ויבוא'));
 
     // על הניסים — Chanukah (25 Kislev through 2-3 Tevet) and Purim (14-15 Adar last-Adar)
@@ -591,10 +609,12 @@
       const rc = d === 1 || (d === 30);
       // הלל
       let hallel = '';
-      if (m === 1 && d === 15) hallel = T('display.mention.fullHallel', 'הלל שלם');
-      else if (m === 1 && d >= 16 && d <= 21) hallel = T('display.mention.halfHallel', 'חצי הלל');
-      else if (m === 3 && d === 6) hallel = T('display.mention.fullHallel', 'הלל שלם');
-      else if (m === 7 && d >= 15 && d <= 22) hallel = T('display.mention.fullHallel', 'הלל שלם');
+      // בחו״ל: הלל שלם גם ביום טוב שני של פסח ושל שבועות, ובשמחת תורה (כ״ג בתשרי)
+      const full = il ? 15 : 16;
+      if (m === 1 && d >= 15 && d <= full) hallel = T('display.mention.fullHallel', 'הלל שלם');
+      else if (m === 1 && d > full && d <= (il ? 21 : 22)) hallel = T('display.mention.halfHallel', 'חצי הלל');
+      else if (m === 3 && (d === 6 || (!il && d === 7))) hallel = T('display.mention.fullHallel', 'הלל שלם');
+      else if (m === 7 && d >= 15 && d <= (il ? 22 : 23)) hallel = T('display.mention.fullHallel', 'הלל שלם');
       else if (isChanukah) hallel = T('display.mention.fullHallel', 'הלל שלם');
       else if (rc) hallel = T('display.mention.halfHallel', 'חצי הלל');
       if (hallel) out.push(hallel);
@@ -1209,7 +1229,7 @@
       const end = new HDate(new Date(now.getTime() + 14 * 86400000));
       const loc = uiLang();
       const events = HebrewCalendar.calendar({
-        start: hdate, end, il: true, locale: loc === 'en' ? 'ashkenazi' : loc,
+        start: hdate, end, il: inIsrael(), locale: loc === 'en' ? 'ashkenazi' : loc,
         candlelighting: false, sedrot: false, omer: false,
       });
       const upcoming = events.find(e => (e.getFlags() & FLAG_CHAG));
@@ -1601,7 +1621,7 @@
       const hdate = getEffectiveHDate();
       let ev = null;
       try {
-        ev = HebrewCalendar.calendar({ start: hdate, end: hdate, omer: true, locale: 'he', il: true })
+        ev = HebrewCalendar.calendar({ start: hdate, end: hdate, omer: true, locale: 'he', il: inIsrael() })
           .find(e => e.getFlags() & flags.OMER_COUNT);
       } catch {}
       if (!ev) body.innerHTML = '<div class="blk-empty">ספירת העומר — לא בימי הספירה</div>';

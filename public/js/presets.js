@@ -205,19 +205,39 @@ window.SB_PRESETS = (() => {
   ];
 
   // ---------- ערים נפוצות — לאשף ההקמה ----------
+  // tz קובע גם את לוח החגים: Asia/Jerusalem = ארץ ישראל, כל השאר = חוץ לארץ.
+  const IL = 'Asia/Jerusalem';
   const CITIES = [
-    { name: 'ירושלים',    lat: 31.7683, lon: 35.2137, candle: 40 },
-    { name: 'תל אביב',    lat: 32.0853, lon: 34.7818, candle: 18 },
-    { name: 'חיפה',       lat: 32.7940, lon: 34.9896, candle: 30 },
-    { name: 'בני ברק',    lat: 32.0809, lon: 34.8338, candle: 18 },
-    { name: 'באר שבע',    lat: 31.2530, lon: 34.7915, candle: 18 },
-    { name: 'פתח תקווה',  lat: 32.0871, lon: 34.8878, candle: 18 },
-    { name: 'אשדוד',      lat: 31.8014, lon: 34.6435, candle: 18 },
-    { name: 'נתניה',      lat: 32.3215, lon: 34.8532, candle: 18 },
-    { name: 'מודיעין',    lat: 31.8969, lon: 35.0104, candle: 18 },
-    { name: 'בית שמש',    lat: 31.7470, lon: 34.9880, candle: 18 },
-    { name: 'צפת',        lat: 32.9646, lon: 35.4960, candle: 18 },
-    { name: 'אילת',       lat: 29.5577, lon: 34.9519, candle: 18 },
+    { name: 'ירושלים',    lat: 31.7683, lon: 35.2137, candle: 40, tz: IL },
+    { name: 'תל אביב',    lat: 32.0853, lon: 34.7818, candle: 18, tz: IL },
+    { name: 'חיפה',       lat: 32.7940, lon: 34.9896, candle: 30, tz: IL },
+    { name: 'בני ברק',    lat: 32.0809, lon: 34.8338, candle: 18, tz: IL },
+    { name: 'באר שבע',    lat: 31.2530, lon: 34.7915, candle: 18, tz: IL },
+    { name: 'פתח תקווה',  lat: 32.0871, lon: 34.8878, candle: 18, tz: IL },
+    { name: 'אשדוד',      lat: 31.8014, lon: 34.6435, candle: 18, tz: IL },
+    { name: 'נתניה',      lat: 32.3215, lon: 34.8532, candle: 18, tz: IL },
+    { name: 'מודיעין',    lat: 31.8969, lon: 35.0104, candle: 18, tz: IL },
+    { name: 'בית שמש',    lat: 31.7470, lon: 34.9880, candle: 18, tz: IL },
+    { name: 'צפת',        lat: 32.9646, lon: 35.4960, candle: 18, tz: IL },
+    { name: 'אילת',       lat: 29.5577, lon: 34.9519, candle: 18, tz: IL },
+    // חוץ לארץ
+    { name: 'אנטוורפן',   lat: 51.2194, lon: 4.4025,    candle: 18, tz: 'Europe/Brussels' },
+    { name: 'לונדון',     lat: 51.5705, lon: -0.0727,   candle: 18, tz: 'Europe/London' },
+    { name: 'מנצ׳סטר',    lat: 53.5070, lon: -2.2470,   candle: 18, tz: 'Europe/London' },
+    { name: 'גייטסהד',    lat: 54.9527, lon: -1.6036,   candle: 18, tz: 'Europe/London' },
+    { name: 'פריז',       lat: 48.8566, lon: 2.3522,    candle: 18, tz: 'Europe/Paris' },
+    { name: 'ציריך',      lat: 47.3769, lon: 8.5417,    candle: 18, tz: 'Europe/Zurich' },
+    { name: 'ברוקלין',    lat: 40.6250, lon: -73.9600,  candle: 18, tz: 'America/New_York' },
+    { name: 'לייקווד',    lat: 40.0821, lon: -74.2097,  candle: 18, tz: 'America/New_York' },
+    { name: 'מונסי',      lat: 41.1112, lon: -74.0685,  candle: 18, tz: 'America/New_York' },
+    { name: 'מיאמי',      lat: 25.7617, lon: -80.1918,  candle: 18, tz: 'America/New_York' },
+    { name: 'שיקגו',      lat: 41.8781, lon: -87.6298,  candle: 18, tz: 'America/Chicago' },
+    { name: 'לוס אנג׳לס', lat: 34.0522, lon: -118.2437, candle: 18, tz: 'America/Los_Angeles' },
+    { name: 'טורונטו',    lat: 43.6532, lon: -79.3832,  candle: 18, tz: 'America/Toronto' },
+    { name: 'מונטריאול',  lat: 45.5017, lon: -73.5673,  candle: 18, tz: 'America/Toronto' },
+    { name: 'בואנוס איירס', lat: -34.6037, lon: -58.3816, candle: 18, tz: 'America/Argentina/Buenos_Aires' },
+    { name: 'יוהנסבורג',  lat: -26.2041, lon: 28.0473,  candle: 18, tz: 'Africa/Johannesburg' },
+    { name: 'מלבורן',     lat: -37.8136, lon: 144.9631, candle: 18, tz: 'Australia/Melbourne' },
   ];
 
   // ---------- קוביות המסך ----------

@@ -439,7 +439,8 @@
                         </div>
                         <div class="field">
                             <label for="g-tz">אזור זמן</label>
-                            <input type="text" id="g-tz" placeholder="Asia/Jerusalem">
+                            <input type="text" id="g-tz" placeholder="Asia/Jerusalem" list="g-tz-list">
+                            <datalist id="g-tz-list"></datalist>
                         </div>
                     </div>
                 </details>
@@ -447,6 +448,14 @@
                     <label for="g-candle">הדלקת נרות — דקות לפני שקיעה</label>
                     <input type="number" id="g-candle" value="18">
                     <div class="desc">בירושלים נהוג 40 דקות. בדרך כלל 18.</div>
+                </div>
+                <div class="field">
+                    <label for="g-israel">לוח החגים</label>
+                    <select id="g-israel">
+                        <option value="il">ארץ ישראל</option>
+                        <option value="diaspora">חוץ לארץ — יום טוב שני של גלויות</option>
+                    </select>
+                    <div class="desc">קובע את הפרשה, יום טוב שני, ההלל ומתי מתחילים "ותן טל ומטר". נקבע לבד כשבוחרים עיר או מאתרים כתובת.</div>
                 </div>
             </div>
         </div>

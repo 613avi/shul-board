@@ -336,6 +336,7 @@
     qs('#g-lon').value = c.location.longitude ?? '';
     qs('#g-tz').value = c.location.timezone || 'Asia/Jerusalem';
     qs('#g-candle').value = c.location.candleLightingMinutes ?? 18;
+    qs('#g-israel').value = isIsraelLoc(c.location) ? 'il' : 'diaspora';
     renderCityChips('#g-cities', (city) => { applyCity(city); renderGeneral(); });
   }
 
@@ -345,18 +346,28 @@
     if (!row) return;
     row.innerHTML = '';
     const loc = state.data.config.location || {};
+    let abroad = false;
     for (const c of SB_PRESETS.CITIES) {
+      if (!abroad && c.tz !== IL_TZ) {
+        abroad = true;
+        row.appendChild(el('div', { class: 'small', style: 'flex-basis:100%;margin-top:4px;' }, 'חוץ לארץ'));
+      }
       const active = Math.abs(Number(loc.latitude) - c.lat) < 0.01 && Math.abs(Number(loc.longitude) - c.lon) < 0.01;
       row.appendChild(el('button', {
         class: `chip${active ? ' active' : ''}`, type: 'button', onclick: () => onPick(c),
       }, c.name));
     }
   }
+  const IL_TZ = 'Asia/Jerusalem';
+  // כמו בצג: מה שהגבאי בחר, ואם לא בחר — לפי אזור הזמן
+  const isIsraelLoc = (loc) => (typeof loc.israel === 'boolean'
+    ? loc.israel : !loc.timezone || loc.timezone === IL_TZ);
   function applyCity(c) {
     const loc = state.data.config.location;
     loc.latitude = c.lat;
     loc.longitude = c.lon;
-    loc.timezone = 'Asia/Jerusalem';
+    loc.timezone = c.tz || IL_TZ;
+    loc.israel = loc.timezone === IL_TZ;
     loc.candleLightingMinutes = c.candle;
     if (!String(loc.address || '').trim()) loc.address = c.name;
     markDirty();
@@ -369,11 +380,28 @@
       ['#g-lon', (v) => state.data.config.location.longitude = parseFloat(v) || 0],
       ['#g-tz', (v) => state.data.config.location.timezone = v],
       ['#g-candle', (v) => state.data.config.location.candleLightingMinutes = parseInt(v, 10) || 18],
+      ['#g-israel', (v) => state.data.config.location.israel = v === 'il'],
     ];
     for (const [sel, setter] of fields) {
       qs(sel).addEventListener('input', (e) => { setter(e.target.value); markDirty(); });
     }
+    try {
+      const dl = qs('#g-tz-list');
+      for (const tz of Intl.supportedValuesOf('timeZone')) dl.appendChild(el('option', { value: tz }));
+    } catch {}
     qs('#g-geocode').addEventListener('click', () => geocodeAddress('#g-address', '#g-geocode-status').then(ok => { if (ok) renderGeneral(); }));
+  }
+
+  // אזור הזמן לפי קואורדינטות (Open-Meteo, שהצג כבר משתמש בו למזג האוויר).
+  // יהודה ושומרון וגבולות עזה מגיעים כ-Asia/Hebron או Asia/Gaza, אבל הקהילות שם
+  // הולכות לפי שעון ישראל ולוח ארץ ישראל.
+  async function timezoneAt(lat, lon) {
+    try {
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&timezone=auto&forecast_days=1`);
+      const tz = (await res.json()).timezone;
+      if (!tz || tz === 'GMT') return null;
+      return tz === 'Asia/Hebron' || tz === 'Asia/Gaza' ? IL_TZ : tz;
+    } catch { return null; }
   }
 
   // איתור כתובת (OpenStreetMap). מחזיר true אם נמצא ועודכן המיקום.
@@ -392,8 +420,15 @@
       loc.address = address;
       loc.latitude = parseFloat(lat);
       loc.longitude = parseFloat(lon);
-      if (!loc.timezone) loc.timezone = 'Asia/Jerusalem';
+      // אזור הזמן של המקום עצמו — בלעדיו אנטוורפן קיבלה את שעון ישראל
+      const tz = await timezoneAt(loc.latitude, loc.longitude);
+      if (tz) {
+        loc.timezone = tz;
+        loc.israel = tz === IL_TZ;
+        if (!loc.israel && Number(loc.candleLightingMinutes) === 40) loc.candleLightingMinutes = 18;
+      } else if (!loc.timezone) loc.timezone = IL_TZ;
       st.textContent = `נמצא: ${display_name}`;
+      if (!tz) st.textContent += ' — לא זוהה אזור הזמן, בדקו אותו בהגדרות המתקדמות';
       markDirty();
       return true;
     } catch (e) {
