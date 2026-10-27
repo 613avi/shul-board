@@ -223,8 +223,11 @@
 
     // ===== לוחות מוכנים, שפת הצג ושיטת החישוב =====
     'לוחות מוכנים': 'Ready-made boards',
+    'עיצוב הצג': 'Board design',
+    'סידור המסך': 'Screen layout',
+    'לוח מוכן כבר מסדר את המסך. אפשר לבחור כאן סידור אחר: "קלאסי" מציג שלושה לוחות, ושאר התבניות מוסיפות חלון מודעות או לוגו, או מתאימות למסך אנכי. גרירה ושינוי גודל של הקוביות: בניהול המלא, לשונית "מסכים ופריסה".': 'A ready-made board already lays out the screen. You can pick a different layout here: “Classic” shows three boards, and the other templates add a media window or a logo, or suit a vertical screen. Dragging and resizing the blocks: in the full admin, the “Screens & layout” tab.',
+    'הדרך הקצרה: בחרו לוח מוכן. כל כרטיס הוא הצג שלכם, עם השם והזמנים שכבר הזנתם. אפשר גם לבנות מראה וסידור בעצמכם למטה, והכל ניתן לשינוי אחר כך.': 'The quick way: pick a ready-made board. Each card is your own board, with the name and times you already entered. You can also build a look and a layout yourself below, and everything can be changed later.',
     'לוח שלם בלחיצה אחת: מראה וסידור מסך שנראים גמורים כבר עכשיו, עם השם והזמנים שלכם. אחר כך אפשר לכוונן הכל.': 'A complete board in one click: a look and a screen layout that already look finished, with your name and your zmanim. You can fine-tune everything afterwards.',
-    'הדרך הקצרה: בחרו לוח מוכן. כל כרטיס הוא הצג שלכם, עם השם והזמנים שכבר הזנתם. אפשר גם לבנות מראה בעצמכם למטה, והכל ניתן לשינוי אחר כך.': 'The quick way: pick a ready-made board. Each card is your own board, with the name and times you already entered. You can also build a look yourself below, and everything can be changed later.',
     'או בחרו מראה בסיסי': 'Or pick a basic look',
     'טוען…': 'Loading…',
     'לילה מוזהב': 'Golden Night',
@@ -768,6 +771,7 @@
     'wz.step.1': '1',
     'wz.step.2': '2',
     'wz.step.3': '3',
+    'wz.step.4': '4',
 
     // ===== מראות, סגנונות, פריסות, גופנים, תבניות, קוביות, לימוד יומי, ערים ותחנון (presets.js) =====
     'אבן ירושלמית': 'Yerushalayim stone',

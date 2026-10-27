@@ -978,7 +978,7 @@
     if (item.display && typeof item.display === 'object') state.data.config.display = { ...item.display };
     markDirty();
     renderAll();
-    if (qs('#wizard-view').style.display !== 'none') { wzFill3(); wzFill4(); }
+    if (qs('#wizard-view').style.display !== 'none') wzFillLook();
     pushDesignPreview();
     pushScreensPreview();
     Api.useTemplate(item.id).catch(() => {});
@@ -1306,9 +1306,17 @@
   function showWizard(step) {
     qs('#app-view').style.display = 'none';
     qs('#wizard-view').style.display = '';
-    wzStep = Math.min(5, Math.max(1, Number(step ?? state.data.config.setup?.step) || 1));
+    wzStep = Math.min(4, Math.max(1, Number(step ?? savedWizardStep()) || 1));
     qs('#tour-btn').hidden = true;
     wzRender();
+  }
+
+  // האשף היה פעם בחמישה שלבים (מראה ופריסה בנפרד). מי שעצר באמצע אז נשמר עם המספר הישן:
+  // הפריסה (4) היא עכשיו חלק משלב העיצוב, וההפעלה (5) היא שלב 4.
+  function savedWizardStep() {
+    const s = state.data.config.setup || {};
+    const n = Number(s.step) || 1;
+    return s.steps === 4 ? n : n >= 5 ? 4 : n === 4 ? 3 : n;
   }
 
   function wzRender() {
@@ -1319,15 +1327,14 @@
     });
     qsa('.wz-step').forEach(s => s.classList.toggle('active', Number(s.dataset.step) === wzStep));
     const look = qs('#wz-look-wrap');
-    if (look) look.hidden = !(wzStep === 3 || wzStep === 4);
+    if (look) look.hidden = wzStep !== 3;
     qs('#wz-back').style.visibility = wzStep === 1 ? 'hidden' : '';
-    qs('#wz-next').textContent = wzStep === 5 ? 'סיום — לניהול המלא' : 'שמירה והמשך ←';
+    qs('#wz-next').textContent = wzStep === 4 ? 'סיום — לניהול המלא' : 'שמירה והמשך ←';
     qs('#wz-msg').textContent = '';
     if (wzStep === 1) wzFill1();
     if (wzStep === 2) wzFill2();
-    if (wzStep === 3) wzFill3();
-    if (wzStep === 4) wzFill4();
-    if (wzStep === 5) wzFill5();
+    if (wzStep === 3) wzFillLook();
+    if (wzStep === 4) wzFillDone();
     window.scrollTo({ top: 0 });
   }
 
@@ -1397,13 +1404,13 @@
     scalePreview();
   }
 
-  function wzFill3() {
+  function wzFillLook() {
     const d = design();
-    renderStarters('#wz-starters', () => wzFill3());
-    renderPresetGrid('#wz-presets', (p) => { applyPreset(p); wzFill3(); });
+    renderStarters('#wz-starters', () => wzFillLook());
+    renderPresetGrid('#wz-presets', (p) => { applyPreset(p); wzFillLook(); });
     renderCommunity('#wz-community');
-    renderThemeRow('#wz-themes', wzFill3);
-    renderFontRow('#wz-fonts', wzFill3);
+    renderThemeRow('#wz-themes', wzFillLook);
+    renderFontRow('#wz-fonts', wzFillLook);
 
     const themeAccent = (P.byId(P.THEMES, d.theme) || P.THEMES[0]).swatch.accent;
     qs('#wz-accent').value = d.accent || themeAccent;
@@ -1421,7 +1428,7 @@
     qs('#wz-logo-remove').hidden = !url;
 
     // רקע
-    renderBgGrid('#wz-bg-grid', wzFill3);
+    renderBgGrid('#wz-bg-grid', wzFillLook);
     const ov = Math.round((d.backgroundOverlay ?? 0.45) * 100);
     qs('#wz-overlay').value = ov;
     qs('#wz-overlay-val').textContent = ov + '%';
@@ -1429,11 +1436,12 @@
     qs('#wz-blur').value = d.backgroundBlur || 0;
     qs('#wz-blur-val').textContent = String(d.backgroundBlur || 0);
 
+    wzFillLayout();
     ensureWzPreview();
   }
 
-  // שלב 4: פריסה — תבניות מסך, עם "קלאסי" שמכבה את מצב המסכים
-  function wzFill4() {
+  // שלב העיצוב, סידור המסך — תבניות מסך, עם "קלאסי" שמכבה את מצב המסכים
+  function wzFillLayout() {
     const sc = scData();
     qs('#wz-aspect').value = sc.aspect || '16:9';
     qs('#wz-show-upcoming').checked = state.data.config.display?.showUpcoming !== false;
@@ -1444,14 +1452,14 @@
     const active = sc.enabled ? matchBuiltinTemplate() : 'classic';
     const classic = el('button', {
       class: `tpl-card${active === 'classic' ? ' active' : ''}`, type: 'button',
-      onclick: () => { sc.enabled = false; markDirty(); wzFill4(); pushScreensPreview(); },
+      onclick: () => { sc.enabled = false; markDirty(); wzFillLayout(); pushScreensPreview(); },
     }, el('div', { class: 'tpl-thumb classic' }, 'זמנים · תפילות · הנצחות'),
        el('div', { class: 'tpl-name' }, 'קלאסי'), el('div', { class: 'tpl-desc' }, 'שלושת הלוחות לפי הפריסה שבחרתם במראה'));
     grid.appendChild(classic);
     for (const t of P.SCREEN_TEMPLATES) {
       grid.appendChild(templateCard(t, active === t.id, () => {
         applyTemplateSilent(t);
-        wzFill4();
+        wzFillLayout();
       }));
     }
     ensureWzPreview();
@@ -1466,7 +1474,7 @@
     return t ? t.id : '';
   }
 
-  function wzFill5() {
+  function wzFillDone() {
     const pub = qs('#wz-publish');
     if (pub) pub.hidden = !isCustomLook();
   }
@@ -1482,6 +1490,7 @@
     const c = state.data.config;
     try {
       btn.disabled = true;
+      c.setup = { ...(c.setup || {}), steps: 4 };   // מספר השלב לפי האשף בארבעה שלבים (savedWizardStep)
       if (wzStep === 1) {
         const name = qs('#wz-name').value.trim();
         if (name.length < 2) throw new Error('הזינו את שם בית הכנסת');
@@ -1505,9 +1514,6 @@
         await wzSave('config', c);
       } else if (wzStep === 3) {
         c.setup.step = 4;
-        await wzSave('config', c);
-      } else if (wzStep === 4) {
-        c.setup.step = 5;
         await wzSave('screens', state.data.screens);
         await wzSave('config', c);
       } else {
@@ -1529,7 +1535,7 @@
 
   async function wizardFinish() {
     const c = state.data.config;
-    c.setup = { done: true, step: 5 };
+    c.setup = { done: true, step: 4, steps: 4 };
     try {
       // האשף שומר כל שלב בנפרד; כאן נשמר גם מה שאולי השתנה בלי "המשך" (למשל תבנית מהקהילה)
       await wzSave('screens', state.data.screens);
@@ -1559,7 +1565,7 @@
     qs('#wz-accent').addEventListener('input', (e) => {
       design().accent = e.target.value; qs('#wz-accent-reset').disabled = false; markDirty(); pushDesignPreview();
     });
-    qs('#wz-accent-reset').addEventListener('click', () => { design().accent = ''; markDirty(); wzFill3(); pushDesignPreview(); });
+    qs('#wz-accent-reset').addEventListener('click', () => { design().accent = ''; markDirty(); wzFillLook(); pushDesignPreview(); });
     qs('#wz-scale').addEventListener('input', (e) => {
       design().scale = parseInt(e.target.value, 10) / 100; qs('#wz-scale-val').textContent = e.target.value + '%';
       markDirty(); pushDesignPreview();
@@ -1582,13 +1588,13 @@
       uploadAndUse(e.target.files[0], (url) => {
         design().logo = { url };
         state.data.config.display = { ...(state.data.config.display || {}), headerLogo: true };
-        markDirty(); wzFill3(); renderLogoPicker(); renderDesign(); pushDesignPreview();
+        markDirty(); wzFillLook(); renderLogoPicker(); renderDesign(); pushDesignPreview();
       }, 'הלוגו');
       e.target.value = '';
     });
-    qs('#wz-logo-remove').addEventListener('click', () => { design().logo = { url: '' }; markDirty(); wzFill3(); renderLogoPicker(); pushDesignPreview(); });
+    qs('#wz-logo-remove').addEventListener('click', () => { design().logo = { url: '' }; markDirty(); wzFillLook(); renderLogoPicker(); pushDesignPreview(); });
     qs('#wz-bg-file').addEventListener('change', (e) => {
-      uploadAndUse(e.target.files[0], (url) => { design().backgroundImage = url; markDirty(); wzFill3(); renderDesign(); pushDesignPreview(); }, 'הרקע');
+      uploadAndUse(e.target.files[0], (url) => { design().backgroundImage = url; markDirty(); wzFillLook(); renderDesign(); pushDesignPreview(); }, 'הרקע');
       e.target.value = '';
     });
 
@@ -3485,7 +3491,7 @@
     wrap.innerHTML = '';
     renderLogoPicker();
     renderBgGrid();
-    if (qs('#wizard-view').style.display !== 'none' && wzStep === 3) renderBgGrid('#wz-bg-grid', wzFill3);
+    if (qs('#wizard-view').style.display !== 'none' && wzStep === 3) renderBgGrid('#wz-bg-grid', wzFillLook);
     if (!state.media.length) {
       wrap.appendChild(el('p', { class: 'desc' }, 'עדיין לא הועלו קבצים.'));
       return;
