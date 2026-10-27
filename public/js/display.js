@@ -48,8 +48,8 @@
   const now = () => new Date(Date.now() + tzShift());
   const shifted = (d) => (d instanceof Date && !isNaN(d) ? new Date(d.getTime() + tzShift()) : d);
   // Zmanim שכל זמן שהוא מחזיר כבר בשעון בית הכנסת
-  const zmanimFor = (geo, date) => {
-    const z = new Zmanim(geo, date);
+  const zmanimFor = (geo, date, useElevation = false) => {
+    const z = new Zmanim(geo, date, useElevation);
     return new Proxy(z, {
       get: (t, k) => (typeof t[k] === 'function' ? (...a) => shifted(t[k](...a)) : t[k]),
     });
@@ -57,12 +57,12 @@
   const localDateStr = (d = now()) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-  const makeGeo = () => {
+  const makeGeo = (elevation = 0) => {
     const { latitude, longitude, timezone } = state.config.location;
     return new GeoLocation(
       state.config.synagogueName || 'site',
       Number(latitude), Number(longitude),
-      0,
+      elevation,
       timezone || 'Asia/Jerusalem'
     );
   };
@@ -74,6 +74,52 @@
     if (typeof loc.israel === 'boolean') return loc.israel;
     return !loc.timezone || loc.timezone === 'Asia/Jerusalem';
   };
+
+  // ---------- שיטת החישוב: עתים לבינה או hebcal (ZMAN_CALC ב-presets.js) ----------
+  // מעבר לזמני היום, בעתים לבינה גם הדלקת נרות מעוגלת לדקה, וצום מסתיים בארץ ב-4.61°
+  // ובחו״ל לפי מנהג העיר. מיגרציה 6 משאירה כל בית כנסת שנרשם לפני השינוי על
+  // 'classic', כך שהזמנים בצג שלו לא זזים בלי שביקש.
+  const { ALOT72, FAST_END_IL, byDeg } = P.ZMAN_CALC;
+  const itimMethod = () => state.config?.location?.zmanimMethod !== 'classic';
+
+  // הגובה של בית הכנסת, לשקיעה הנראית בארץ. הניהול שומר אותו עם המיקום; לוח שאין
+  // לו (כתובת שהוזנה ידנית) שואל את Open-Meteo פעם אחת ושומר בדפדפן.
+  const _elevFetching = new Set();
+  function elevation() {
+    const loc = state.config?.location || {};
+    if (loc.elevation !== '' && loc.elevation != null && Number.isFinite(Number(loc.elevation))) return Number(loc.elevation);
+    const lat = Number(loc.latitude), lon = Number(loc.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return 0;
+    const key = `sb_elev_${lat.toFixed(3)},${lon.toFixed(3)}`;
+    try { const v = localStorage.getItem(key); if (v != null && Number.isFinite(Number(v))) return Number(v); } catch {}
+    if (!_elevFetching.has(key)) {
+      _elevFetching.add(key);
+      fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`)
+        .then(r => r.json())
+        .then(j => {
+          const m = Number(j?.elevation?.[0]);
+          if (!Number.isFinite(m)) return;
+          try { localStorage.setItem(key, String(Math.round(m))); } catch {}
+          _zmCache = null;
+          lightRefresh();
+        })
+        .catch(() => {});
+    }
+    return 0;
+  }
+
+  // מנהג העיר מלוח עתים לבינה (presets.js): דקות הדלקת נרות ומעלות סוף הצום
+  const cityCustom = () => {
+    const loc = state.config?.location || {};
+    return (P && P.luachCustom) ? P.luachCustom(Number(loc.latitude), Number(loc.longitude), inIsrael()) : { candle: 18, fast: 7.1 };
+  };
+
+  // היום בשיטה שנבחרה (presets.js): z בגובה פני הים (השעות הזמניות והנץ), ו-sunset() —
+  // השקיעה שמוצגת, שבעתים לבינה בארץ היא לפי הגובה
+  const dayZmanim = (date) => P.ZMAN_CALC.day(state.config?.location, inIsrael(),
+    itimMethod() && inIsrael() ? elevation() : 0,
+    (elev, useElev) => zmanimFor(makeGeo(elev), date, useElev));
+  const roundMinute = (d) => new Date(Math.round(d.getTime() / 60000) * 60000);
 
   const HEB_DOW = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const dowName = (i) => T(`display.dow.${i}`, HEB_DOW[i]);
@@ -140,7 +186,7 @@
     let hd = new HDate(now);
     if (state.config && state.config.location) {
       try {
-        const sunset = zmanimFor(makeGeo(), now).sunset();
+        const sunset = dayZmanim(now).sunset();
         if (sunset && now >= sunset) hd = hd.next();
       } catch {}
     }
@@ -504,7 +550,16 @@
       const fast = evs.find(e => e.getFlags() & (flags.MINOR_FAST | flags.MAJOR_FAST));
       if (!fast) return null;
       const t = (e) => e && e.eventTime ? showT(fmtTime(shifted(e.eventTime))) : '';
-      const start = t(fast.startEvent), end = t(fast.endEvent);
+      let start = t(fast.startEvent), end = t(fast.endEvent);
+      // עתים לבינה: צום יום מתחיל בעלות 16.02° (תשעה באב — בשקיעה המוצגת אמש), ומסתיים
+      // בארץ ב-4.61° ובחו״ל לפי מנהג העיר
+      if (itimMethod()) {
+        const day = dayZmanim(hdate.greg());
+        const sameDay = fast.startEvent?.getDate?.().isSameDate?.(hdate);
+        if (start && sameDay) start = showT(fmtTime(byDeg(day.z, ALOT72, true)));
+        else if (start) start = showT(fmtTime(dayZmanim(hdate.prev().greg()).sunset()));
+        if (end) end = showT(fmtTime(day.z.tzeit(day.il ? FAST_END_IL : cityCustom().fast)));
+      }
       if (!start && !end) return null;
       return { name: evText(fast), start, end };
     } catch { return null; }
@@ -657,26 +712,29 @@
   }
 
   // ---------- zmanim ----------
+  // החישוב עצמו ב-presets.js (ZMAN_CALC), משותף עם הניהול
   const ZMANIM_DEFS = [
-    { key: 'alotHaShachar',    label: 'עלות השחר',                   fn: z => z.alotHaShachar() },
-    { key: 'misheyakir',       label: 'משיכיר',                      fn: z => z.misheyakir() },
-    { key: 'sunrise',          label: 'הנץ החמה',                     fn: z => z.sunrise() },
-    { key: 'sofZmanShmaMGA',   label: 'סוף זמן ק״ש (מג״א)',           fn: z => z.sofZmanShmaMGA() },
-    { key: 'sofZmanShma',      label: 'סוף זמן ק״ש (גר״א)',           fn: z => z.sofZmanShma() },
-    { key: 'sofZmanTfillaMGA', label: 'סוף זמן תפילה (מג״א)',         fn: z => z.sofZmanTfillaMGA() },
-    { key: 'sofZmanTfilla',    label: 'סוף זמן תפילה (גר״א)',         fn: z => z.sofZmanTfilla() },
-    { key: 'chatzot',          label: 'חצות היום',                    fn: z => z.chatzot() },
-    { key: 'minchaGedola',     label: 'מנחה גדולה',                   fn: z => z.minchaGedola() },
-    { key: 'minchaKetana',     label: 'מנחה קטנה',                    fn: z => z.minchaKetana() },
-    { key: 'plagHaMincha',     label: 'פלג המנחה',                    fn: z => z.plagHaMincha() },
-    { key: 'sunset',           label: 'שקיעת החמה',                   fn: z => z.sunset() },
-    { key: 'tzeit',            label: 'צאת הכוכבים',                  fn: z => z.tzeit() },
-    { key: 'tzeit72',          label: 'צאת הכוכבים (ר״ת)',            fn: z => z.sunsetOffset(72) },
-    { key: 'chatzotNight',     label: 'חצות הלילה',                   fn: z => z.chatzotNight() },
-  ];
+    { key: 'alotHaShachar',    label: 'עלות השחר' },
+    { key: 'misheyakir',       label: 'משיכיר' },
+    { key: 'sunrise',          label: 'הנץ החמה' },
+    { key: 'sofZmanShmaMGA',   label: 'סוף זמן ק״ש (מג״א)' },
+    { key: 'sofZmanShma',      label: 'סוף זמן ק״ש (גר״א)' },
+    { key: 'sofZmanTfillaMGA', label: 'סוף זמן תפילה (מג״א)' },
+    { key: 'sofZmanTfilla',    label: 'סוף זמן תפילה (גר״א)' },
+    { key: 'chatzot',          label: 'חצות היום' },
+    { key: 'minchaGedola',     label: 'מנחה גדולה' },
+    { key: 'minchaKetana',     label: 'מנחה קטנה' },
+    { key: 'plagHaMincha',     label: 'פלג המנחה' },
+    { key: 'sunset',           label: 'שקיעת החמה' },
+    { key: 'tzeit',            label: 'צאת הכוכבים' },
+    { key: 'tzeit72',          label: 'צאת הכוכבים (ר״ת)' },
+    { key: 'tzeit72deg',       label: 'ר״ת במעלות' },
+    { key: 'chatzotNight',     label: 'חצות הלילה' },
+  ].map(d => ({ ...d, fn: P.ZMAN_CALC.FNS[d.key] }));
 
   function computeZmanim() {
-    const z = zmanimFor(makeGeo(), now());
+    const day = dayZmanim(now());
+    const z = day.z;
     const globalOv = state.config.zmanimOverrides || {};
     const todayStr = localDateStr();
     const perDateOv = (state.zmanimCalendar && state.zmanimCalendar[todayStr]) || {};
@@ -697,7 +755,7 @@
         isOverride = true;
       } else {
         try {
-          const d = def.fn(z);
+          const d = def.fn(z, day);
           time = fmtTime(d instanceof Date ? d : new Date(d));
         } catch {}
       }
@@ -834,7 +892,6 @@
 
   // ---------- tefillot (always all-rooms) ----------
   function computeShabbatContext() {
-    const geo = makeGeo();
     const now = new Date(Date.now() + tzShift());
     const dow = now.getDay();
     let friday = new Date(now);
@@ -846,13 +903,14 @@
     }
     friday.setHours(12, 0, 0, 0);
     const saturday = new Date(friday); saturday.setDate(friday.getDate() + 1);
-    const zFri = zmanimFor(geo, friday);
-    const zSat = zmanimFor(geo, saturday);
+    const fri = dayZmanim(friday), sat = dayZmanim(saturday);
     const candleMinutes = Number(state.config.location.candleLightingMinutes) || 18;
-    const candle = addMinutes(zFri.sunset(), -candleMinutes);
-    const havdalah = zSat.tzeit(8.5);
+    // עתים לבינה: מהשקיעה המוצגת (בארץ לפי הגובה), מעוגל לדקה הקרובה ולא קטוע
+    let candle = addMinutes(fri.sunset(), -candleMinutes);
+    if (fri.itim) candle = roundMinute(candle);
+    const havdalah = sat.z.tzeit(8.5);
     let havdalahRT = null;
-    try { havdalahRT = zSat.sunsetOffset(72); } catch {}
+    try { havdalahRT = sat.itim ? addMinutes(sat.sunset(), 72) : sat.z.sunsetOffset(72); } catch {}
     return { candle, havdalah, havdalahRT, friday, saturday };
   }
 
@@ -2083,6 +2141,7 @@
       console.error('load failed', e);
       if (!state.config) return;
     }
+    applyPreviewOverrides();
     safe('design', applyDesign);
     safe('screens', applyScreens);
     safe('header', renderHeader);
@@ -2141,6 +2200,62 @@
     } catch { /* הצג ממשיך להציג את מה שכבר טעון */ }
   }
 
+  // ---------- תצוגה מקדימה מהניהול ----------
+  // מה שהניהול שלח נשמר ומוחל מחדש אחרי כל טעינת נתונים — הטעינה (בהתחלה ובכל 5 דקות)
+  // מחליפה את state.config, ובלי זה התצוגה המקדימה חזרה למראה השמור. ההאזנה נרשמת
+  // לפני הטעינה הראשונה, כי הניהול שולח ברגע שה-iframe נטען — לפעמים לפני שהנתונים הגיעו.
+  const _preview = { design: null, display: null, location: null, screens: null, mediaPlaylist: null, screenIndex: null };
+  function applyPreviewOverrides() {
+    if (!_previewMode || !state.config) return;
+    if (_preview.design) state.config.design = { ...(state.config.design || {}), ..._preview.design };
+    if (_preview.display) state.config.display = { ...(state.config.display || {}), ..._preview.display };
+    if (_preview.location) { state.config.location = { ...(state.config.location || {}), ..._preview.location }; _zmCache = null; }
+    if (_preview.screens) state.screens = _preview.screens;
+    if (_preview.mediaPlaylist) state.mediaPlaylist = _preview.mediaPlaylist;
+    if (typeof _preview.screenIndex === 'number') _screenIndex = _preview.screenIndex;
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.origin !== location.origin || !event.data) return;
+    if (event.data.type === 'PREVIEW_DESIGN') {
+      _previewMode = true;
+      document.body.setAttribute('data-preview', '1');
+      // הניהול שולח את כל אובייקט העיצוב; שדות בודדים נתמכים לתאימות
+      const incoming = event.data.design && typeof event.data.design === 'object'
+        ? event.data.design
+        : event.data;
+      const design = { ...(_preview.design || {}) };
+      for (const k of ['preset', 'theme', 'style', 'layout', 'font', 'accent', 'backgroundImage', 'backgroundFit']) {
+        if (typeof incoming[k] === 'string') design[k] = incoming[k];
+      }
+      for (const k of ['backgroundOverlay', 'backgroundBlur', 'scale']) {
+        if (typeof incoming[k] === 'number') design[k] = incoming[k];
+      }
+      if (incoming.logo && typeof incoming.logo === 'object') design.logo = incoming.logo;
+      _preview.design = design;
+      if (event.data.display && typeof event.data.display === 'object') _preview.display = { ...event.data.display };
+      // שיטת החישוב והמיקום, כדי שהחלפת השיטה בניהול תיראה מיד
+      if (event.data.location && typeof event.data.location === 'object') _preview.location = { ...event.data.location };
+      if (!state.config) return;   // הטעינה הראשונה תחיל
+      applyPreviewOverrides();
+      applyDesign();
+      safe('upcoming', renderUpcoming);
+      // הלוגו, השפה והזמנים יושבים בתוך קוביות — מציירים מחדש כדי שהשינוי ייראה
+      if (incoming.logo || event.data.display || event.data.location) { applyScreens(); lightRefresh(); }
+    }
+
+    // תצוגה מקדימה חיה של עורך המסכים
+    if (event.data.type === 'PREVIEW_SCREENS') {
+      _previewMode = true;
+      if (event.data.screens) _preview.screens = event.data.screens;
+      if (event.data.mediaPlaylist) _preview.mediaPlaylist = event.data.mediaPlaylist;
+      if (typeof event.data.screenIndex === 'number') _preview.screenIndex = event.data.screenIndex;
+      if (!state.config) return;
+      applyPreviewOverrides();
+      applyScreens();
+    }
+  });
+
   document.addEventListener('DOMContentLoaded', async () => {
     await refreshAll();
     renderClock();
@@ -2156,46 +2271,6 @@
     // הצג של ההדגמה פתוח בלשונית אחרת: שמירה בניהול מתעדכנת מיד, בלי לחכות לסבב
     window.addEventListener('storage', (event) => {
       if (event.key === DEMO_KEY && currentSlug() === DEMO_SLUG && !_previewMode) refreshAll();
-    });
-
-    // Listen for design preview updates from admin page
-    window.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'PREVIEW_DESIGN') {
-        if (event.origin !== location.origin) return;
-        _previewMode = true;
-        document.body.setAttribute('data-preview', '1');
-        if (!state.config) state.config = {};
-        // הניהול שולח את כל אובייקט העיצוב; שדות בודדים נתמכים לתאימות
-        const incoming = event.data.design && typeof event.data.design === 'object'
-          ? event.data.design
-          : event.data;
-        const design = { ...(state.config.design || {}) };
-        for (const k of ['preset', 'theme', 'style', 'layout', 'font', 'accent', 'backgroundImage', 'backgroundFit']) {
-          if (typeof incoming[k] === 'string') design[k] = incoming[k];
-        }
-        for (const k of ['backgroundOverlay', 'backgroundBlur', 'scale']) {
-          if (typeof incoming[k] === 'number') design[k] = incoming[k];
-        }
-        if (incoming.logo && typeof incoming.logo === 'object') design.logo = incoming.logo;
-        state.config.design = design;
-        if (event.data.display && typeof event.data.display === 'object') {
-          state.config.display = { ...(state.config.display || {}), ...event.data.display };
-        }
-        applyDesign();
-        safe('upcoming', renderUpcoming);
-        // הלוגו וקוביית האירוע יושבים בתוך קוביות — מציירים מחדש כדי שהשינוי ייראה
-        if (incoming.logo || event.data.display) applyScreens();
-      }
-
-      // תצוגה מקדימה חיה של עורך המסכים
-      if (event.data && event.data.type === 'PREVIEW_SCREENS') {
-        if (event.origin !== location.origin) return;
-        _previewMode = true;
-        if (event.data.screens) state.screens = event.data.screens;
-        if (event.data.mediaPlaylist) state.mediaPlaylist = event.data.mediaPlaylist;
-        if (typeof event.data.screenIndex === 'number') _screenIndex = event.data.screenIndex;
-        applyScreens();
-      }
     });
   });
 })();

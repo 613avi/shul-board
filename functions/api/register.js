@@ -42,7 +42,12 @@ export async function onRequestPost({ request, env }) {
   const shulId = uuid();
   const t = now();
 
-  const config = { ...DEFAULTS.config, synagogueName: name, schemaVersion: SCHEMA_VERSION };
+  // הגובה של המיקום ההתחלתי (ירושלים) — לשקיעה לפי הגובה בעתים לבינה. כשהגבאי בוחר מיקום,
+  // הניהול מעדכן אותו.
+  const config = {
+    ...DEFAULTS.config, synagogueName: name, schemaVersion: SCHEMA_VERSION,
+    location: { ...DEFAULTS.config.location, elevation: 754 },
+  };
 
   const stmts = [
     env.DB.prepare(

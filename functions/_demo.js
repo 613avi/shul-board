@@ -33,7 +33,8 @@ const DEMO_DATA = {
       "latitude": 40.0821,
       "longitude": -74.2097,
       "timezone": "America/New_York",
-      "candleLightingMinutes": 18
+      "candleLightingMinutes": 18,
+      "zmanimMethod": "itim"
     },
     "displayedZmanim": {
       "alotHaShachar": true,
@@ -127,7 +128,7 @@ const DEMO_DATA = {
       "done": true,
       "step": 5
     },
-    "schemaVersion": 5
+    "schemaVersion": 6
   },
   "dedications": {
     "entries": [

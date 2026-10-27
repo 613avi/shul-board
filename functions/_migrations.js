@@ -16,8 +16,8 @@
 
 import { DEFAULTS, SECTIONS, GRID } from './_shared.js';
 
-export const SCHEMA_VERSION = 5;
-export const APP_VERSION = '4.1.0';
+export const SCHEMA_VERSION = 6;
+export const APP_VERSION = '4.2.0';
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -73,6 +73,16 @@ const MIGRATIONS = {
       const d = data.config.design;
       if (d.style === 'elements') d.style = 'pearl';
       if (d.preset === 'palace') d.preset = 'pearl';
+    }
+    return data;
+  },
+  // 5 → 6: הזמנים כמו לוח עתים לבינה הם ברירת המחדל מעכשיו. בית כנסת קיים נשאר על
+  // החישוב הקודם, כדי שהזמנים והמניינים היחסיים בצג שלו לא יזוזו בלי שביקש; הגבאי
+  // עובר בלחיצה בלשונית "זמני היום".
+  6: (data) => {
+    if (isObj(data.config)) {
+      const loc = isObj(data.config.location) ? data.config.location : {};
+      if (loc.zmanimMethod === undefined) data.config.location = { ...loc, zmanimMethod: 'classic' };
     }
     return data;
   },

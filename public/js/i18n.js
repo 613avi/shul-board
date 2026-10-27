@@ -47,6 +47,7 @@ window.SB_I18N = (() => {
     'display.zmanim.sunset': 'Shkiah',
     'display.zmanim.tzeit': 'Tzeis Hakochavim',
     'display.zmanim.tzeit72': 'Tzeis (Rabbeinu Tam)',
+    'display.zmanim.tzeit72deg': 'Rabbeinu Tam (by degrees)',
     'display.zmanim.chatzotNight': 'Chatzos Halaila',
 
     'display.prayer.shacharit': 'Shacharis',

@@ -98,6 +98,40 @@ window.SB_PRESETS = (() => {
   // כל תבנית מחליפה את הקוביות של המסך הנוכחי בלחיצה אחת.
   const B = (type, x, y, w, h, extra = {}) => ({ type, x, y, w, h, ...extra });
   const SCREEN_TEMPLATES = [
+    // ארבע תבניות שכל הקוביות בהן מתמלאות לבד — זמנים, שבת, תאריך, לימוד והזכרות — כך
+    // שהן נראות גמורות גם בבית כנסת שנרשם עכשיו ועוד לא הזין הנצחות, הודעות או לוגו.
+    // הלוחות המוכנים (STARTER_BOARDS) בנויים עליהן.
+    {
+      id: 'grand', name: 'לוח מלכותי', desc: 'שעון וכותרת למעלה, תפילות וזמנים בגדול — נראה גמור מהרגע הראשון',
+      blocks: [
+        B('clock', 0, 0, 5, 3, { variant: 'digital', face: 'plain', seconds: false, showDate: true }),
+        B('header', 5, 0, 19, 3, { showClock: false }), B('tefillot', 12, 3, 12, 13), B('zmanim', 0, 3, 12, 13),
+        B('mentions', 0, 16, 24, 1), B('upcoming', 0, 17, 24, 1),
+      ],
+    },
+    {
+      id: 'shabbat-center', name: 'שבת במרכז', desc: 'זמנים, לוח שבת ותפילות בשלוש עמודות שוות',
+      blocks: [
+        B('header', 0, 0, 24, 3), B('tefillot', 16, 3, 8, 13), B('shabbat', 8, 3, 8, 13), B('zmanim', 0, 3, 8, 13),
+        B('mentions', 0, 16, 24, 1), B('upcoming', 0, 17, 24, 1),
+      ],
+    },
+    {
+      id: 'dashboard-auto', name: 'שעון ותאריך גדולים', desc: 'שעון אנלוגי גדול, שבת, לימוד יומי, זמנים ותפילות',
+      blocks: [
+        B('clock', 18, 0, 6, 4, { variant: 'analog', face: 'hebrew', seconds: true }), B('header', 0, 0, 18, 4, { showClock: false }),
+        B('zmanim', 16, 4, 8, 12), B('tefillot', 8, 4, 8, 12), B('shabbat', 0, 4, 8, 6), B('learning', 0, 10, 8, 6),
+        B('mentions', 0, 16, 24, 1), B('upcoming', 0, 17, 24, 1),
+      ],
+    },
+    {
+      id: 'vertical-auto', name: 'אנכי מוכן', desc: 'למסך מסובב (9:16): שעון, כותרת, תפילות, זמנים ושבת',
+      aspect: '9:16',
+      blocks: [
+        B('clock', 0, 0, 24, 2, { variant: 'digital', face: 'plain', seconds: false }), B('header', 0, 2, 24, 2, { showClock: false }),
+        B('tefillot', 0, 4, 24, 5), B('zmanim', 0, 9, 24, 5), B('shabbat', 0, 14, 24, 3), B('upcoming', 0, 17, 24, 1),
+      ],
+    },
     {
       id: 'ornate', name: 'לוח מוזהב', desc: 'שעון ולוגו משני צידי הכותרת, שני לוחות גדולים ופס הודעות — הכי יפה בסגנון "פנינה"',
       blocks: [
@@ -204,22 +238,37 @@ window.SB_PRESETS = (() => {
     },
   ];
 
+  // ---------- לוחות מוכנים ----------
+  // מראה + תבנית מסך, שנבחרו כך שהלוח נראה מעוצב וגמור כבר בכניסה הראשונה: רק קוביות
+  // שמתמלאות לבד, וזמני התפילה מהאשף. בגלריה כל כרטיס הוא הצג האמיתי של בית הכנסת
+  // בהקטנה, עם השם והזמנים שלו. בחירה כותבת את המראה (בלי לגעת בלוגו) ומסדרת את המסך הראשון.
+  const STARTER_BOARDS = [
+    { id: 'gilded',    name: 'לילה מוזהב',      desc: 'שחור עמוק וקווי זהב, שעון ותאריך בפינה',     preset: 'gilded',    template: 'grand' },
+    { id: 'pearl',     name: 'פנינה ושבת',      desc: 'קלף בהיר במסגרת זהב, לוח שבת במרכז',        preset: 'pearl',     template: 'shabbat-center' },
+    { id: 'jerusalem', name: 'אבן ירושלמית',    desc: 'מסורתי ומפואר, זמנים ותפילות בגדול',        preset: 'jerusalem', template: 'zmanim-tefillot' },
+    { id: 'midnight',  name: 'חצות',            desc: 'כחול לילה, שעון אנלוגי בעברית ולימוד יומי', preset: 'midnight',  template: 'dashboard-auto' },
+    { id: 'parchment', name: 'קלף עתיק',        desc: 'כמו דף מסידור ישן, שבת במרכז',             preset: 'parchment', template: 'shabbat-center' },
+    { id: 'sky',       name: 'תכלת',            desc: 'בהיר, מודרני ונקי — קריא באולם מואר',       preset: 'sky',       template: 'dashboard-auto' },
+    { id: 'emerald',   name: 'אזמרגד',          desc: 'ירוק עמוק וזהב, חגיגי ורגוע',              preset: 'emerald',   template: 'grand' },
+    { id: 'vertical',  name: 'מסך אנכי',        desc: 'עץ מגולף, למסך מסובב (9:16)',              preset: 'carved',    template: 'vertical-auto' },
+  ];
+
   // ---------- ערים נפוצות — לאשף ההקמה ----------
   // tz קובע גם את לוח החגים: Asia/Jerusalem = ארץ ישראל, כל השאר = חוץ לארץ.
   const IL = 'Asia/Jerusalem';
   const CITIES = [
-    { name: 'ירושלים',    lat: 31.7683, lon: 35.2137, candle: 40, tz: IL },
-    { name: 'תל אביב',    lat: 32.0853, lon: 34.7818, candle: 18, tz: IL },
-    { name: 'חיפה',       lat: 32.7940, lon: 34.9896, candle: 30, tz: IL },
-    { name: 'בני ברק',    lat: 32.0809, lon: 34.8338, candle: 18, tz: IL },
-    { name: 'באר שבע',    lat: 31.2530, lon: 34.7915, candle: 18, tz: IL },
-    { name: 'פתח תקווה',  lat: 32.0871, lon: 34.8878, candle: 18, tz: IL },
-    { name: 'אשדוד',      lat: 31.8014, lon: 34.6435, candle: 18, tz: IL },
-    { name: 'נתניה',      lat: 32.3215, lon: 34.8532, candle: 18, tz: IL },
-    { name: 'מודיעין',    lat: 31.8969, lon: 35.0104, candle: 18, tz: IL },
-    { name: 'בית שמש',    lat: 31.7470, lon: 34.9880, candle: 18, tz: IL },
-    { name: 'צפת',        lat: 32.9646, lon: 35.4960, candle: 18, tz: IL },
-    { name: 'אילת',       lat: 29.5577, lon: 34.9519, candle: 18, tz: IL },
+    { name: 'ירושלים',    lat: 31.7683, lon: 35.2137, candle: 40, elev: 754, tz: IL },
+    { name: 'תל אביב',    lat: 32.0853, lon: 34.7818, candle: 18, elev: 15, tz: IL },
+    { name: 'חיפה',       lat: 32.7940, lon: 34.9896, candle: 30, elev: 101, tz: IL },
+    { name: 'בני ברק',    lat: 32.0809, lon: 34.8338, candle: 18, elev: 51, tz: IL },
+    { name: 'באר שבע',    lat: 31.2530, lon: 34.7915, candle: 18, elev: 285, tz: IL },
+    { name: 'פתח תקווה',  lat: 32.0871, lon: 34.8878, candle: 18, elev: 60, tz: IL },
+    { name: 'אשדוד',      lat: 31.8014, lon: 34.6435, candle: 18, elev: 27, tz: IL },
+    { name: 'נתניה',      lat: 32.3215, lon: 34.8532, candle: 18, elev: 38, tz: IL },
+    { name: 'מודיעין',    lat: 31.8969, lon: 35.0104, candle: 18, elev: 276, tz: IL },
+    { name: 'בית שמש',    lat: 31.7470, lon: 34.9880, candle: 18, elev: 282, tz: IL },
+    { name: 'צפת',        lat: 32.9646, lon: 35.4960, candle: 18, elev: 779, tz: IL },
+    { name: 'אילת',       lat: 29.5577, lon: 34.9519, candle: 18, elev: 63, tz: IL },
     // חוץ לארץ
     { name: 'אנטוורפן',   lat: 51.2194, lon: 4.4025,    candle: 18, tz: 'Europe/Brussels' },
     { name: 'לונדון',     lat: 51.5705, lon: -0.0727,   candle: 18, tz: 'Europe/London' },
@@ -239,6 +288,32 @@ window.SB_PRESETS = (() => {
     { name: 'יוהנסבורג',  lat: -26.2041, lon: 28.0473,  candle: 18, tz: 'Africa/Johannesburg' },
     { name: 'מלבורן',     lat: -37.8136, lon: 144.9631, candle: 18, tz: 'Australia/Melbourne' },
   ];
+
+  // ---------- מנהגי הערים מלוח עתים לבינה ----------
+  // [lat, lon, דקות הדלקת נרות, רדיוס בק״מ, מעלות סוף הצום (בחו״ל)]. העיר הקרובה בתוך
+  // הרדיוס שלה קובעת; בשאר המקומות 20 דקות בארץ ו-18 בחו״ל, וסוף צום בחו״ל ב-7.1°.
+  // כמו ב-MegaYid (js/settings.js שם).
+  const LUACH_CITIES = [
+    [31.769, 35.216, 40, 9], [31.7, 35.117, 40, 3], [31.731, 34.993, 40, 4], [31.861, 35.169, 40, 3], [31.777, 35.299, 40, 4],
+    [32.089, 34.887, 40, 5], [31.532, 35.122, 40, 3], // ירושלים, ביתר עילית, בית שמש, גבעת זאב, מעלה אדומים, פתח תקווה, קריית ארבע
+    [31.314, 34.62, 30, 3], [32.106, 35.184, 30, 3], [32.813, 34.999, 30, 7], [32.794, 35.532, 30, 4], [32.91, 35.298, 30, 4],
+    [31.951, 34.889, 30, 3], [31.932, 35.044, 30, 3], [31.423, 34.589, 30, 3], [32.609, 35.289, 30, 3], [32.965, 35.496, 30, 4],
+    [33.212, 35.57, 30, 3], // אופקים, אריאל, חיפה, טבריה, כרמיאל, לוד, מודיעין עילית, נתיבות, עפולה, צפת, קריית שמונה
+    [31.792, 34.65, 22, 5], [32.081, 34.834, 22, 3], [31.071, 35.033, 22, 4], [32.166, 34.825, 22, 4], [32.333, 34.859, 22, 5],
+    [31.259, 35.213, 22, 4], [31.61, 34.764, 22, 4], [31.729, 34.746, 22, 3], [31.971, 34.789, 22, 5], [31.894, 34.812, 22, 4],
+    [32.184, 34.874, 22, 3], [32.081, 34.781, 22, 6], // אשדוד, בני ברק, דימונה, הרצליה, נתניה, ערד, קריית גת, קריית מלאכי, ראשון לציון, רחובות, רעננה, תל אביב
+    [52.374, 4.89, 30, 15], [51.509, -0.126, 15, 25, 7.1], // אמסטרדם, לונדון
+    [40.082, -74.21, 18, 12, 7], // לייקווד (הצומות לפי האגרות משה)
+  ];
+  /** מנהג המקום לפי הלוח: { candle: דקות לפני השקיעה, fast: מעלות סוף הצום בחו״ל } */
+  function luachCustom(lat, lon, israel) {
+    let best = null, bd = Infinity;
+    for (const [la, lo, mins, r, fast] of LUACH_CITIES) {
+      const d = Math.hypot(la - lat, (lo - lon) * Math.cos(la * Math.PI / 180)) * 111.2;
+      if (d <= r && d < bd) { best = { candle: mins, fast }; bd = d; }
+    }
+    return { candle: best ? best.candle : (israel ? 20 : 18), fast: (best && best.fast) || 7.1 };
+  }
 
   // ---------- קוביות המסך ----------
   // single = עוטפת אלמנט יחיד בדף ולכן פעם אחת למסך; השאר נבנות מחדש בכל ציור.
@@ -312,8 +387,58 @@ window.SB_PRESETS = (() => {
     ['sunset',           'שקיעת החמה'],
     ['tzeit',            'צאת הכוכבים'],
     ['tzeit72',          'צאת הכוכבים (ר״ת)'],
+    ['tzeit72deg',       'ר״ת במעלות'],
     ['chatzotNight',     'חצות הלילה'],
   ];
+
+  // ---------- חישוב הזמנים — משותף לצג ולניהול ----------
+  // שתי שיטות (config.location.zmanimMethod):
+  // 'itim' — כמו לוח עתים לבינה (כמו ביישומון MegaYid, נבדק שם מול טבלאות תשפ״ז לירושלים,
+  //   לונדון ולייקווד): עלות 16.02°, מג״א מ-90 במעלות (19.75°) בארץ ומ-72 במעלות (16.02°)
+  //   בחו״ל, מנחה גדולה המאוחר מבין חצי שעה זמנית לחצי שעה אחרי חצות, בארץ השקיעה לפי
+  //   הגובה ("מן ההר") ובחו״ל בגובה פני הים, ור״ת 72 דקות אחרי השקיעה המוצגת.
+  // 'classic' — ברירות המחדל של hebcal, כפי שהיה לפני כן.
+  // d = { itim, il, sunset() } — השיטה, ארץ/חו״ל והשקיעה שמוצגת; z — Zmanim בגובה פני הים.
+  const ALOT90 = 19.75, ALOT72 = 16.02, FAST_END_IL = 4.61;
+  // זמן במעלות; איפה שהשמש לא יורדת כל כך (קיץ בצפון הרחוק) — בחצות הלילה, כמו בטבלאות
+  // לונדון של הלוח
+  const byDeg = (z, deg, rising) => {
+    const t = z.timeAtAngle(deg, rising);
+    return t instanceof Date && !isNaN(t) ? t : new Date(z.chatzot().getTime() + (rising ? -12 : 12) * 3600000);
+  };
+  // שעות זמניות של המג״א, מעלות עד צאת באותן מעלות
+  const mgaHours = (z, deg, h) => {
+    const s = byDeg(z, deg, true), e = byDeg(z, deg, false);
+    return new Date(s.getTime() + (e - s) / 12 * h);
+  };
+  const plus = (d, mins) => new Date(d.getTime() + mins * 60000);
+  const ZMAN_FNS = {
+    alotHaShachar:    (z, d) => d.itim ? byDeg(z, ALOT72, true) : z.alotHaShachar(),
+    misheyakir:       z => z.misheyakir(),
+    sunrise:          z => z.sunrise(),
+    sofZmanShmaMGA:   (z, d) => d.itim ? mgaHours(z, d.il ? ALOT90 : ALOT72, 3) : z.sofZmanShmaMGA(),
+    sofZmanShma:      z => z.sofZmanShma(),
+    sofZmanTfillaMGA: (z, d) => d.itim ? mgaHours(z, d.il ? ALOT90 : ALOT72, 4) : z.sofZmanTfillaMGA(),
+    sofZmanTfilla:    z => z.sofZmanTfilla(),
+    chatzot:          z => z.chatzot(),
+    // שער הציון רל״ג:ח
+    minchaGedola:     (z, d) => d.itim ? plus(z.chatzot(), Math.max((z.sunset() - z.sunrise()) / 24 / 60000, 30)) : z.minchaGedola(),
+    minchaKetana:     z => z.minchaKetana(),
+    plagHaMincha:     z => z.plagHaMincha(),
+    sunset:           (z, d) => d.sunset(),
+    tzeit:            z => z.tzeit(),
+    tzeit72:          (z, d) => d.itim ? plus(d.sunset(), 72) : z.sunsetOffset(72),
+    tzeit72deg:       z => byDeg(z, ALOT72, false),
+    chatzotNight:     z => z.chatzotNight(),
+  };
+  // היום בשיטה שנבחרה. make(elevation, useElevation) בונה Zmanim לתאריך.
+  function zmanimDay(loc, il, elevation, make) {
+    const z = make(0, false);
+    const itim = (loc && loc.zmanimMethod) !== 'classic';
+    const high = itim && il && elevation > 0 ? make(elevation, true) : null;
+    return { z, itim, il, sunset: () => (high || z).sunset() };
+  }
+  const ZMAN_CALC = { ALOT72, ALOT90, FAST_END_IL, byDeg, mgaHours, FNS: ZMAN_FNS, day: zmanimDay };
 
   const byId = (list, id) => list.find(x => x.id === id) || null;
 
@@ -358,5 +483,5 @@ window.SB_PRESETS = (() => {
     { id: 'shabbat',     name: 'שבת' },
   ];
 
-  return { THEMES, STYLES, LAYOUTS, FONTS, DESIGN_PRESETS, SCREEN_TEMPLATES, CITIES, BLOCKS, LEARNING, DEDICATION_TYPES, ZMANIM, TACHANUN_RULES, byId, resolveDesign };
+  return { THEMES, STYLES, LAYOUTS, FONTS, DESIGN_PRESETS, SCREEN_TEMPLATES, STARTER_BOARDS, CITIES, luachCustom, BLOCKS, LEARNING, DEDICATION_TYPES, ZMANIM, ZMAN_CALC, TACHANUN_RULES, byId, resolveDesign };
 })();

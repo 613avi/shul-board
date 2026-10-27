@@ -84,6 +84,10 @@
                 <h2>ברוכים הבאים! נתחיל מהבסיס</h2>
                 <p class="lead">שם בית הכנסת והמיקום שלו — לפיהם מחושבים זמני היום, הדלקת נרות וצאת השבת.</p>
                 <div class="field">
+                    <label>שפת הצג</label>
+                    <div class="lang-switch" data-lang-switch></div>
+                </div>
+                <div class="field">
                     <label for="wz-name">שם בית הכנסת (כפי שיופיע על הצג)</label>
                     <input type="text" id="wz-name" placeholder="לדוגמה: בית הכנסת המרכזי">
                 </div>
@@ -104,7 +108,7 @@
                     <div class="field">
                         <label for="wz-candle">הדלקת נרות — דקות לפני השקיעה</label>
                         <input type="number" id="wz-candle" min="0" max="90">
-                        <div class="desc">בירושלים 40, ברוב הארץ 18.</div>
+                        <div class="desc">נקבע לבד כשבוחרים עיר, כמנהג העיר בלוח עתים לבינה: ירושלים ופתח תקווה 40, חיפה וצפת 30, תל אביב ובני ברק 22.</div>
                     </div>
                     <div class="field">
                         <label>נקודת המיקום</label>
@@ -146,10 +150,15 @@
                 <section class="wz-step" data-step="3">
                     <div class="panel">
                         <h2>איך הצג ייראה?</h2>
-                        <p class="lead">שלושה צעדים קצרים, וכל שינוי מוצג מיד בתצוגה המקדימה. הכל ניתן לשינוי גם אחר כך.</p>
+                        <p class="lead">הדרך הקצרה: בחרו לוח מוכן. כל כרטיס הוא הצג שלכם, עם השם והזמנים שכבר הזנתם. אפשר גם לבנות מראה בעצמכם למטה, והכל ניתן לשינוי אחר כך.</p>
 
                         <div class="wz-section">
-                            <h3><span class="num" data-i18n="wz.step.1">א</span> בחרו מראה בסיסי</h3>
+                            <h3><span class="num">★</span> לוחות מוכנים</h3>
+                            <div class="starter-grid" id="wz-starters"></div>
+                        </div>
+
+                        <div class="wz-section">
+                            <h3><span class="num" data-i18n="wz.step.1">א</span> או בחרו מראה בסיסי</h3>
                             <div class="preset-grid" id="wz-presets"></div>
                             <div class="community-block" id="wz-community-wrap" hidden>
                                 <h4>מראות שבתי כנסת אחרים פרסמו</h4>
@@ -367,7 +376,11 @@
                         <button class="btn btn-ghost btn-sm" id="home-copy" type="button">העתקה</button>
                         <a class="btn btn-primary btn-sm" id="home-open" href="#" target="_blank">פתיחה</a>
                     </div>
-                    <p class="small" style="margin-bottom:0;">הצג בודק שינויים כל 3 דקות ומתעדכן לבד אחרי "שמירה ופרסום".</p>
+                    <p class="small">הצג בודק שינויים כל 3 דקות ומתעדכן לבד אחרי "שמירה ופרסום".</p>
+                    <div class="field" style="margin:0;">
+                        <label>שפת הצג</label>
+                        <div class="lang-switch compact" data-lang-switch></div>
+                    </div>
                 </div>
                 <div class="panel">
                     <h2>מסכים בלייב</h2>
@@ -472,6 +485,28 @@
 
         <!-- זמני היום -->
         <div class="tab-content" data-tab="zmanim">
+            <div class="panel">
+                <h2>שיטת החישוב</h2>
+                <div class="method-cards" id="zm-method">
+                    <label class="method-card">
+                        <input type="radio" name="zm-method" value="itim">
+                        <span class="mc-title">כמו לוח עתים לבינה <span class="mc-badge">מומלץ</span></span>
+                        <span class="mc-desc">עלות השחר 16.02°, סו״ז ק״ש ותפילה למג״א מ-90 דק׳ במעלות (19.75°) בארץ ומ-72 במעלות בחו״ל, מנחה גדולה לא לפני חצי שעה אחרי חצות. בארץ השקיעה לפי גובה המקום ("מן ההר"), והדלקת הנרות 40/30/22 דק׳ כמנהג העיר. סוף הצום בארץ 4.61°, ובחו״ל לפי מנהג העיר.</span>
+                    </label>
+                    <label class="method-card">
+                        <input type="radio" name="zm-method" value="classic">
+                        <span class="mc-title">החישוב הקודם</span>
+                        <span class="mc-desc">ברירות המחדל של ספריית hebcal: עלות 16.1°, מג״א מ-72 דקות שוות, שקיעה בגובה פני הים.</span>
+                    </label>
+                </div>
+                <div class="inline-controls" id="zm-elev-row" style="margin-top:12px;">
+                    <label for="zm-elev">גובה בית הכנסת (מטר)</label>
+                    <input type="number" id="zm-elev" min="-500" max="3000" style="width:7rem;" dir="ltr">
+                    <span class="desc" style="margin:0;">לשקיעה הנראית בארץ. מתמלא לבד כשבוחרים עיר או כתובת; ריק = לפי המיקום.</span>
+                </div>
+                <p class="small" style="margin-bottom:0;">שינוי השיטה מזיז גם מניינים שמוגדרים לפי זמן (למשל "20 דק׳ לפני השקיעה"). אחרי ההחלפה כדאי לעבור על לוח התפילות.</p>
+            </div>
+
             <div class="panel">
                 <h2>זמני היום (הלכתיים)</h2>
                 <p class="small">
@@ -630,6 +665,23 @@
         <!-- מראה הצג -->
         <div class="tab-content" data-tab="design">
             <div class="panel">
+                <h2>לוחות מוכנים</h2>
+                <p class="small">לוח שלם בלחיצה אחת: מראה וסידור מסך שנראים גמורים כבר עכשיו, עם השם והזמנים שלכם. אחר כך אפשר לכוונן הכל.</p>
+                <div class="starter-grid" id="starter-grid"></div>
+            </div>
+
+            <div class="panel" id="lang-panel">
+                <h2>שפת הצג</h2>
+                <div class="lang-switch" data-lang-switch></div>
+                <p class="small" style="margin:10px 0 0;">
+                    <span>משנה את שפת הכותרות, שמות הזמנים וימי השבוע על הצג, ואת כיוון הפריסה.
+                    התוכן שהזנתם — שמות מניינים, הנצחות, הודעות — נשאר כמו שכתבתם אותו.</span>
+                    <span>שפת הממשק הזה נבחרת בנפרד, בבורר שלמעלה.</span>
+                </p>
+                <label class="check-row" style="margin-top:10px;"><input type="checkbox" id="f-time12"> <span>שעון 12 שעות (AM/PM)<span class="desc">6:24 PM במקום 18:24 — מקובל בבתי כנסת בחו״ל</span></span></label>
+            </div>
+
+            <div class="panel">
                 <h2>מראה הצג</h2>
                 <p class="small">בחרו מראה מוכן — התצוגה המקדימה משתנה מיד. המראה מתפרסם לצג רק אחרי "שמירה ופרסום".</p>
                 <div class="preset-grid" id="preset-grid"></div>
@@ -706,19 +758,7 @@
             <div class="panel" id="features-panel">
                 <h2>מה מוצג על הלוח</h2>
                 <p class="small">תכונות חכמות של הצג. כל אחת משתקפת מיד בתצוגה המקדימה.</p>
-                <label class="sc-prop" style="max-width:360px;margin-bottom:14px;">
-                    שפת הצג
-                    <select id="f-lang">
-                        <option value="he">עברית</option>
-                        <option value="en">English</option>
-                    </select>
-                </label>
-                <p class="small" style="margin:-8px 0 14px;">
-                    משנה את שפת הכותרות, שמות הזמנים וימי השבוע על הצג, ואת כיוון הפריסה.
-                    התוכן שהזנתם — שמות מניינים, הנצחות, הודעות — נשאר כמו שכתבתם אותו.
-                </p>
                 <div class="feature-list">
-                    <label class="check-row"><input type="checkbox" id="f-time12"> <span>שעון 12 שעות (AM/PM)<span class="desc">6:24 PM במקום 18:24 — מקובל בבתי כנסת בחו״ל</span></span></label>
                     <label class="check-row"><input type="checkbox" id="f-todayLine"> <span>שורת "היום" בכותרת<span class="desc">חגים, ראש חודש, חנוכה, שבת מברכים והמולד, צומות</span></span></label>
                     <label class="check-row"><input type="checkbox" id="f-fastTimes"> <span>תחילת וסיום הצום<span class="desc">בימי תענית, בלוח התפילות</span></span></label>
                     <label class="check-row"><input type="checkbox" id="f-nextHighlight"> <span>הדגשת התפילה הבאה<span class="desc">המניין הקרוב מודגש עם "בעוד X דק׳", תפילות שעברו מעומעמות</span></span></label>

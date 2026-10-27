@@ -435,3 +435,82 @@
   padding: 10px 16px; background: #fff7e0; color: #5a4400; border-bottom: 1px solid #ecd9a0; font-size: 14px; text-align: center; }
 .demo-banner[hidden] { display: none; }
 .demo-banner a { color: inherit; font-weight: 700; }
+
+/* ---------- לוחות מוכנים ----------
+   כל כרטיס מחזיק את הצג האמיתי ב-iframe מוקטן (admin.js, fitStarter). ה-iframe לא מקבל
+   לחיצות, כך שהלחיצה נופלת על הכרטיס עצמו. */
+.starter-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px;
+}
+.starter-card {
+  border: 2px solid var(--ad-line); border-radius: 12px; overflow: hidden; background: #fff;
+  cursor: pointer; text-align: start; padding: 0; font: inherit; transition: .15s; position: relative;
+}
+.starter-card:hover { border-color: #b9c1d1; transform: translateY(-2px); box-shadow: 0 6px 18px rgba(14,19,32,.12); }
+.starter-card.active { border-color: var(--ad-gold); box-shadow: 0 0 0 3px rgba(212,175,55,.25); }
+.starter-card.active::after {
+  content: '✓'; position: absolute; top: 8px; inset-inline-start: 8px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--ad-gold); color: #0e1320; font-weight: 800; display: grid; place-items: center; font-size: 14px; z-index: 2;
+}
+.starter-thumb {
+  position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: var(--ad-navy);
+}
+.starter-thumb iframe {
+  position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; pointer-events: none; background: transparent;
+}
+.starter-loading {
+  position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,.55); font-size: 13px;
+}
+.starter-thumb iframe { z-index: 1; }
+
+/* ---------- שפת הצג ---------- */
+.lang-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 560px; }
+.lang-opt {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start; text-align: start;
+  border: 2px solid var(--ad-line); border-radius: 12px; background: #fff; padding: 12px 14px;
+  cursor: pointer; font: inherit; transition: .15s; color: var(--ad-ink);
+}
+.lang-opt:hover { border-color: #b9c1d1; }
+.lang-opt b { font-size: 17px; }
+.lang-opt .lo-sub { font-size: 12.5px; color: var(--ad-dim); }
+.lang-opt .lo-sample { font-size: 12px; color: var(--ad-gold); font-weight: 600; margin-top: 2px; }
+.lang-opt.active { border-color: var(--ad-gold); background: #fffbeb; box-shadow: 0 0 0 3px rgba(212,175,55,.2); }
+.lang-switch.compact .lang-opt { padding: 8px 12px; }
+.lang-switch.compact .lo-sample { display: none; }
+
+/* ---------- שיטת החישוב ---------- */
+.method-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.method-card {
+  display: flex; flex-direction: column; gap: 4px; border: 2px solid var(--ad-line); border-radius: 12px;
+  padding: 12px 14px; cursor: pointer; background: #fff; transition: .15s;
+}
+.method-card input { position: absolute; opacity: 0; pointer-events: none; }
+.method-card:hover { border-color: #b9c1d1; }
+.method-card.active { border-color: var(--ad-gold); background: #fffbeb; box-shadow: 0 0 0 3px rgba(212,175,55,.2); }
+.method-card:focus-within { outline: 2px solid var(--ad-gold); outline-offset: 2px; }
+.mc-title { font-weight: 700; font-size: 15px; }
+.mc-badge {
+  display: inline-block; font-size: 11px; font-weight: 700; background: var(--ad-gold); color: #0e1320;
+  border-radius: 999px; padding: 1px 8px; margin-inline-start: 6px; vertical-align: middle;
+}
+.mc-desc { font-size: 12.5px; color: var(--ad-dim); line-height: 1.5; }
+
+/* ---------- חלון בחירה (מסך חדש) ---------- */
+.sb-modal {
+  position: fixed; inset: 0; z-index: 1000; background: rgba(14,19,32,.55);
+  display: grid; place-items: center; padding: 16px;
+}
+.sb-modal-box {
+  background: #fff; border-radius: 14px; padding: 18px 20px; width: min(920px, 100%);
+  max-height: calc(100vh - 32px); overflow: auto; box-shadow: 0 20px 50px rgba(0,0,0,.3);
+}
+.sb-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sb-modal-head h2 { margin: 0; }
+.sb-modal .tpl-thumb { background: var(--p-bg, #0e1320); }
+.tpl-thumb.tpl-empty {
+  display: grid; place-items: center; font-size: 34px; color: rgba(255,255,255,.6);
+  border: 2px dashed rgba(255,255,255,.3);
+}
+@media (max-width: 520px) {
+  .lang-switch { grid-template-columns: 1fr; }
+}
