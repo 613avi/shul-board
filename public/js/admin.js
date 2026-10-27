@@ -362,13 +362,28 @@
   // כמו בצג: מה שהגבאי בחר, ואם לא בחר — לפי אזור הזמן
   const isIsraelLoc = (loc) => (typeof loc.israel === 'boolean'
     ? loc.israel : !loc.timezone || loc.timezone === IL_TZ);
+  // עתים לבינה (ברירת המחדל) או החישוב הקודם — ב-presets.js, ZMAN_CALC
+  const itimMethod = () => state.data.config.location?.zmanimMethod !== 'classic';
+  // הדלקת נרות כמנהג המקום: בעתים לבינה לפי טבלת הערים של הלוח
+  const luachCandle = (loc, fallback) => (itimMethod()
+    ? SB_PRESETS.luachCustom(Number(loc.latitude), Number(loc.longitude), isIsraelLoc(loc)).candle
+    : fallback);
+  // הגובה של מקום (Open-Meteo), לשקיעה לפי הגובה בארץ
+  async function elevationAt(lat, lon) {
+    try {
+      const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`);
+      const m = Number((await res.json())?.elevation?.[0]);
+      return Number.isFinite(m) ? Math.round(m) : null;
+    } catch { return null; }
+  }
   function applyCity(c) {
     const loc = state.data.config.location;
     loc.latitude = c.lat;
     loc.longitude = c.lon;
     loc.timezone = c.tz || IL_TZ;
     loc.israel = loc.timezone === IL_TZ;
-    loc.candleLightingMinutes = c.candle;
+    loc.candleLightingMinutes = luachCandle(loc, c.candle);
+    if (typeof c.elev === 'number') loc.elevation = c.elev; else delete loc.elevation;
     if (!String(loc.address || '').trim()) loc.address = c.name;
     markDirty();
   }
@@ -376,8 +391,9 @@
     const fields = [
       ['#g-name', (v) => state.data.config.synagogueName = v],
       ['#g-address', (v) => state.data.config.location.address = v],
-      ['#g-lat', (v) => state.data.config.location.latitude = parseFloat(v) || 0],
-      ['#g-lon', (v) => state.data.config.location.longitude = parseFloat(v) || 0],
+      // נקודה חדשה — הגובה הישן כבר לא שלה; הצג ישאל לבד
+      ['#g-lat', (v) => { state.data.config.location.latitude = parseFloat(v) || 0; delete state.data.config.location.elevation; }],
+      ['#g-lon', (v) => { state.data.config.location.longitude = parseFloat(v) || 0; delete state.data.config.location.elevation; }],
       ['#g-tz', (v) => state.data.config.location.timezone = v],
       ['#g-candle', (v) => state.data.config.location.candleLightingMinutes = parseInt(v, 10) || 18],
       ['#g-israel', (v) => state.data.config.location.israel = v === 'il'],
@@ -421,12 +437,14 @@
       loc.latitude = parseFloat(lat);
       loc.longitude = parseFloat(lon);
       // אזור הזמן של המקום עצמו — בלעדיו אנטוורפן קיבלה את שעון ישראל
-      const tz = await timezoneAt(loc.latitude, loc.longitude);
+      const [tz, elev] = await Promise.all([timezoneAt(loc.latitude, loc.longitude), elevationAt(loc.latitude, loc.longitude)]);
+      if (elev != null) loc.elevation = elev; else delete loc.elevation;
       if (tz) {
         loc.timezone = tz;
         loc.israel = tz === IL_TZ;
         if (!loc.israel && Number(loc.candleLightingMinutes) === 40) loc.candleLightingMinutes = 18;
       } else if (!loc.timezone) loc.timezone = IL_TZ;
+      if (itimMethod()) loc.candleLightingMinutes = luachCandle(loc, loc.candleLightingMinutes);
       st.textContent = `נמצא: ${display_name}`;
       if (!tz) st.textContent += ' — לא זוהה אזור הזמן, בדקו אותו בהגדרות המתקדמות';
       markDirty();
@@ -601,6 +619,112 @@
     pushDesignPreview();
   }
 
+  // ================= לוחות מוכנים =================
+  // מראה + תבנית מסך (P.STARTER_BOARDS). כל כרטיס הוא הצג של בית הכנסת עצמו בהקטנה,
+  // עם השם והזמנים שלו, כך שרואים לפני הבחירה איך זה ייראה על הקיר. ה-iframe נטען רק
+  // כשהכרטיס נגלל לתצוגה, ומקבל את הלוח המוכן בהודעות כמו התצוגה המקדימה הרגילה.
+  const starterTemplate = (st) => P.byId(P.SCREEN_TEMPLATES, st.template);
+  const starterBlocks = (t) => t.blocks.map(b => ({ ...b, id: `b-${b.type}-${Math.random().toString(36).slice(2, 7)}` }));
+  const blocksSig = (bs) => (bs || []).map(b => `${b.type}:${b.x},${b.y},${b.w},${b.h}`).sort().join('|');
+  function starterActive(st) {
+    const sc = scData(), t = starterTemplate(st);
+    return design().preset === st.preset && !!sc?.enabled
+      && blocksSig(sc.screens?.[0]?.blocks) === blocksSig(t?.blocks);
+  }
+  // המראה של הלוח המוכן על גבי מה שכבר נבחר: הלוגו, הרקע והגודל נשארים
+  function starterDesign(st) {
+    const p = P.byId(P.DESIGN_PRESETS, st.preset);
+    return { ...design(), preset: p.id, theme: p.theme, style: p.style, layout: p.layout, font: p.font, accent: '' };
+  }
+  function feedStarter(frame, st) {
+    const w = frame.contentWindow, t = starterTemplate(st);
+    if (!w || !t) return;
+    w.postMessage({
+      type: 'PREVIEW_DESIGN', design: starterDesign(st), display: { ...(state.data.config.display || {}) },
+      location: { ...(state.data.config.location || {}) },
+    }, location.origin);
+    w.postMessage({
+      type: 'PREVIEW_SCREENS', screenIndex: 0,
+      screens: { enabled: true, aspect: t.aspect || '16:9', screens: [{ id: 'starter', name: st.name, seconds: 600, blocks: starterBlocks(t) }] },
+    }, location.origin);
+  }
+  // ה-iframe מרונדר בגודל מסך אמיתי ומוקטן לכרטיס; מסך אנכי — לפי הגובה, במרכז
+  function fitStarter(box) {
+    const frame = box.querySelector('iframe');
+    if (!frame) return;
+    const vertical = box.dataset.aspect === '9:16';
+    const vw = vertical ? 1080 : 1920, vh = vertical ? 1920 : 1080;
+    const W = box.clientWidth, H = box.clientHeight;
+    if (!W || !H) return;
+    const k = Math.min(W / vw, H / vh);
+    frame.style.width = vw + 'px';
+    frame.style.height = vh + 'px';
+    frame.style.left = `${(W - vw * k) / 2}px`;
+    frame.style.transform = `scale(${k})`;
+  }
+  const _starterResize = 'ResizeObserver' in window ? new ResizeObserver(es => es.forEach(e => fitStarter(e.target))) : null;
+  const _starterSeen = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    _starterSeen.unobserve(e.target);
+    e.target._load?.();
+  }), { rootMargin: '200px' }) : null;
+  // הכרטיסים הישנים בגריד: ה-iframe שלהם נטען כבר, אז מעדכנים במקום לבנות מחדש
+  function renderStarters(sel, onPicked) {
+    const grid = qs(sel);
+    if (!grid || !state.me?.urls?.display) return;
+    if (grid.dataset.built === state.me.shul.slug) {
+      for (const card of grid.children) {
+        const st = P.byId(P.STARTER_BOARDS, card.dataset.id);
+        card.classList.toggle('active', !!st && starterActive(st));
+      }
+      return;
+    }
+    grid.dataset.built = state.me.shul.slug;
+    grid.innerHTML = '';
+    for (const st of P.STARTER_BOARDS) {
+      const t = starterTemplate(st);
+      if (!t) continue;
+      const frame = el('iframe', { title: st.name, tabindex: '-1', 'aria-hidden': 'true' });
+      frame.addEventListener('load', () => feedStarter(frame, st));
+      const box = el('div', { class: 'starter-thumb', 'data-aspect': t.aspect || '16:9' }, frame,
+        el('span', { class: 'starter-loading' }, 'טוען…'));
+      box._load = () => { frame.src = state.me.urls.display; fitStarter(box); };
+      const card = el('button', {
+        class: `starter-card${starterActive(st) ? ' active' : ''}`, type: 'button', 'data-id': st.id,
+        onclick: () => { applyStarter(st); onPicked?.(st); },
+      }, box, el('div', { class: 'preset-name' }, st.name), el('div', { class: 'preset-desc' }, st.desc));
+      grid.appendChild(card);
+      if (_starterSeen) _starterSeen.observe(box); else box._load();
+      _starterResize?.observe(box);
+    }
+  }
+  // הלוח המוכן: המראה, ומסך ראשון בתבנית שלו (שאר המסכים נשארים). מצב המסכים נדלק.
+  function applyStarter(st) {
+    const t = starterTemplate(st);
+    const sc = scData();
+    const first = sc.screens[0];
+    if (sc.enabled && first && first.blocks.length > 1 && blocksSig(first.blocks) !== blocksSig(t.blocks)
+      && !P.SCREEN_TEMPLATES.some(x => blocksSig(x.blocks) === blocksSig(first.blocks))
+      && !confirm(`הסידור של "${first.name}" ישתנה לסידור של "${st.name}". להמשיך?`)) return;
+    Object.assign(design(), starterDesign(st));
+    first.blocks = starterBlocks(t);
+    sc.aspect = t.aspect || (sc.aspect === '9:16' || sc.aspect === '3:4' ? '16:9' : sc.aspect || '16:9');
+    sc.enabled = true;
+    scActive = 0;
+    scSelected = null;
+    markDirty();
+    renderDesign();
+    if (qs('#sc-editor')) renderScreens();
+    pushDesignPreview();
+    pushScreensPreview();
+    scalePreview();
+    for (const g of qsa('.starter-grid')) for (const card of g.children) {
+      const s2 = P.byId(P.STARTER_BOARDS, card.dataset.id);
+      card.classList.toggle('active', !!s2 && starterActive(s2));
+    }
+    status(`הלוח "${st.name}" נבחר — אפשר לכוונן צבעים, גופן ולוגו, ולשמור`, 'success');
+  }
+
   // כוונון ידני מנתק את המראה מהכרטיס — הכרטיס יסומן שוב רק אם הערכים חוזרים להתאים
   function tune(fn) {
     fn(design());
@@ -621,6 +745,7 @@
   function renderDesign() {
     const d = design();
     if (!qs('#preset-grid')) return;
+    renderStarters('#starter-grid');
     renderPresetGrid('#preset-grid', applyPreset);
 
     renderThemeRow('#d-theme-row');
@@ -689,7 +814,35 @@
     if (qs('#f-sleep-from')) qs('#f-sleep-from').value = sl.from || '23:30';
     if (qs('#f-sleep-to')) qs('#f-sleep-to').value = sl.to || '05:00';
     if (qs('#f-textsSeconds')) qs('#f-textsSeconds').value = d.textsSeconds || 15;
-    if (qs('#f-lang')) qs('#f-lang').value = d.lang === 'en' ? 'en' : 'he';
+    renderLangSwitches();
+  }
+
+  // שפת הצג — שני כפתורים גדולים במקום רשימה נפתחת, באותו רכיב בלוח הבית, באשף
+  // ובלשונית "מראה הצג". זו הגדרה של בית הכנסת (config.display.lang), לא של הדפדפן.
+  const DISPLAY_LANGS = [
+    { id: 'he', name: 'עברית', sub: 'לוח בעברית, מימין לשמאל', sample: 'שחרית · מנחה · ערבית' },
+    { id: 'en', name: 'English', sub: 'Yeshivish English, left to right', sample: 'Shacharis · Mincha · Maariv' },
+  ];
+  function renderLangSwitches() {
+    const cur = disp().lang === 'en' ? 'en' : 'he';
+    for (const box of qsa('[data-lang-switch]')) {
+      box.innerHTML = '';
+      for (const l of DISPLAY_LANGS) {
+        box.appendChild(el('button', {
+          class: `lang-opt${l.id === cur ? ' active' : ''}`, type: 'button', 'data-i18n-skip': '',
+          lang: l.id, dir: l.id === 'en' ? 'ltr' : 'rtl', 'aria-pressed': String(l.id === cur),
+          onclick: () => setDisplayLang(l.id),
+        }, el('b', {}, l.name), el('span', { class: 'lo-sub' }, l.sub), el('span', { class: 'lo-sample' }, l.sample)));
+      }
+    }
+  }
+  function setDisplayLang(lang) {
+    if ((disp().lang === 'en' ? 'en' : 'he') === lang) return;
+    disp().lang = lang;
+    markDirty();
+    renderLangSwitches();
+    pushDesignPreview();
+    status(lang === 'en' ? 'הצג יהיה באנגלית אחרי השמירה' : 'הצג יהיה בעברית אחרי השמירה', 'success');
   }
 
   function bindFeatures() {
@@ -706,8 +859,6 @@
     };
     for (const id of ['#f-sleep', '#f-sleep-from', '#f-sleep-to']) qs(id).addEventListener('change', sleepChanged);
     qs('#f-textsSeconds').addEventListener('input', (e) => { disp().textsSeconds = Math.max(4, parseInt(e.target.value, 10) || 15); markDirty(); pushDesignPreview(); });
-    const lang = qs('#f-lang');
-    if (lang) lang.addEventListener('change', () => { disp().lang = lang.value === 'en' ? 'en' : 'he'; markDirty(); pushDesignPreview(); });
   }
 
   // תמונות הרקע — מהקבצים שהועלו
@@ -998,12 +1149,22 @@
   }
 
   // דוחף את העיצוב לתצוגות המקדימות (בניהול ובאשף) בלי לשמור
+  let _starterFeed = 0;
   function pushDesignPreview() {
+    // הלוחות המוכנים מציגים את הלוגו, השפה והשעון שבחרתם — מעדכנים אותם, בהשהיה קלה
+    clearTimeout(_starterFeed);
+    _starterFeed = setTimeout(() => {
+      for (const card of qsa('.starter-card')) {
+        const st = P.byId(P.STARTER_BOARDS, card.dataset.id), f = card.querySelector('iframe');
+        if (st && f?.src) feedStarter(f, st);
+      }
+    }, 400);
     for (const sel of ['#design-preview', '#wz-preview']) {
       const f = qs(sel);
       if (!f || !f.contentWindow || !f.dataset.loadedFor) continue;
       f.contentWindow.postMessage({
         type: 'PREVIEW_DESIGN', design: { ...design() }, display: { ...(state.data.config.display || {}) },
+        location: { ...(state.data.config.location || {}) },
       }, location.origin);
     }
   }
@@ -1177,6 +1338,7 @@
     qs('#wz-candle').value = c.location.candleLightingMinutes ?? 18;
     qs('#wz-latlon').textContent = `${Number(c.location.latitude).toFixed(4)}, ${Number(c.location.longitude).toFixed(4)}`;
     renderCityChips('#wz-cities', (city) => { applyCity(city); wzFill1(); });
+    renderLangSwitches();
   }
 
   // זמנים פשוטים: שדה טקסט אחד לכל תפילה, מופרד בפסיקים
@@ -1237,6 +1399,7 @@
 
   function wzFill3() {
     const d = design();
+    renderStarters('#wz-starters', () => wzFill3());
     renderPresetGrid('#wz-presets', (p) => { applyPreset(p); wzFill3(); });
     renderCommunity('#wz-community');
     renderThemeRow('#wz-themes', wzFill3);
@@ -1684,39 +1847,22 @@
 
   // ---------- Zmanim ----------
   const ZMANIM_KEYS = window.SB_PRESETS.ZMANIM;
-  // hebcal method map (matches display.js ZMANIM_DEFS)
-  const ZMANIM_FN = {
-    alotHaShachar:    z => z.alotHaShachar(),
-    misheyakir:       z => z.misheyakir(),
-    sunrise:          z => z.sunrise(),
-    sofZmanShmaMGA:   z => z.sofZmanShmaMGA(),
-    sofZmanShma:      z => z.sofZmanShma(),
-    sofZmanTfillaMGA: z => z.sofZmanTfillaMGA(),
-    sofZmanTfilla:    z => z.sofZmanTfilla(),
-    chatzot:          z => z.chatzot(),
-    minchaGedola:     z => z.minchaGedola(),
-    minchaKetana:     z => z.minchaKetana(),
-    plagHaMincha:     z => z.plagHaMincha(),
-    sunset:           z => z.sunset(),
-    tzeit:            z => z.tzeit(),
-    tzeit72:          z => z.sunsetOffset(72),
-    chatzotNight:     z => z.chatzotNight(),
-  };
-
   function computeDefaultZmanim() {
     const out = {};
     try {
       const h = window.hebcal;
       if (!h || !h.GeoLocation || !h.Zmanim) return out;
       const loc = state.data.config.location || {};
-      const geo = new h.GeoLocation(
+      const elev = Number(loc.elevation);
+      const geo = (e) => new h.GeoLocation(
         state.data.config.synagogueName || 'site',
         Number(loc.latitude) || 0,
         Number(loc.longitude) || 0,
-        0,
+        e,
         loc.timezone || 'Asia/Jerusalem'
       );
-      const z = new h.Zmanim(geo, new Date());
+      const day = SB_PRESETS.ZMAN_CALC.day(loc, isIsraelLoc(loc), Number.isFinite(elev) ? elev : 0,
+        (e, useElev) => new h.Zmanim(geo(e), new Date(), useElev));
       // בשעון בית הכנסת, לא של הדפדפן: גבאי בחו״ל, או לוח ההדגמה שבניו ג׳רזי
       let hm;
       try {
@@ -1725,9 +1871,9 @@
       } catch {
         hm = (d) => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
       }
-      for (const key of Object.keys(ZMANIM_FN)) {
+      for (const [key, fn] of Object.entries(SB_PRESETS.ZMAN_CALC.FNS)) {
         try {
-          const d = ZMANIM_FN[key](z);
+          const d = fn(day.z, day);
           if (d instanceof Date && !isNaN(d)) out[key] = hm(d);
         } catch {}
       }
@@ -1735,7 +1881,51 @@
     return out;
   }
 
+  // שיטת החישוב והגובה (לשקיעה הנראית, בארץ בלבד)
+  function renderZmanimMethod() {
+    const loc = state.data.config.location;
+    for (const r of qsa('input[name="zm-method"]')) {
+      r.checked = r.value === (itimMethod() ? 'itim' : 'classic');
+      r.closest('.method-card').classList.toggle('active', r.checked);
+    }
+    const row = qs('#zm-elev-row');
+    if (row) row.hidden = !(itimMethod() && isIsraelLoc(loc));
+    const elev = qs('#zm-elev');
+    if (elev && document.activeElement !== elev) elev.value = loc.elevation ?? '';
+  }
+  function bindZmanimMethod() {
+    for (const r of qsa('input[name="zm-method"]')) {
+      r.addEventListener('change', async () => {
+        const loc = state.data.config.location;
+        loc.zmanimMethod = r.value === 'classic' ? 'classic' : 'itim';
+        // מעבר לעתים לבינה: הגובה והדלקת הנרות כמנהג העיר, אם עוד אין
+        if (loc.zmanimMethod === 'itim') {
+          loc.candleLightingMinutes = luachCandle(loc, loc.candleLightingMinutes);
+          if (isIsraelLoc(loc) && loc.elevation == null) {
+            const e = await elevationAt(loc.latitude, loc.longitude);
+            if (e != null) loc.elevation = e;
+          }
+        }
+        markDirty();
+        renderZmanim();
+        renderGeneral();
+        status(loc.zmanimMethod === 'itim'
+          ? `הזמנים לפי לוח עתים לבינה · הדלקת נרות ${loc.candleLightingMinutes} דק׳ — לשמור כדי שיופיע בצג`
+          : 'חזרה לחישוב הקודם — לשמור כדי שיופיע בצג', 'success');
+      });
+    }
+    const elev = qs('#zm-elev');
+    if (elev) elev.addEventListener('input', () => {
+      const v = elev.value.trim();
+      if (v === '' || !Number.isFinite(Number(v))) delete state.data.config.location.elevation;
+      else state.data.config.location.elevation = Math.round(Number(v));
+      markDirty();
+      renderZmanim();
+    });
+  }
+
   function renderZmanim() {
+    renderZmanimMethod();
     const grid = qs('#zmanim-grid');
     grid.innerHTML = '';
     const displayed = state.data.config.displayedZmanim || {};
@@ -3180,29 +3370,69 @@
     markDirty(); renderScreens();
   }
 
+  // מסך חדש מתחיל מתבנית שנבחרה, ולא ריק — מסך עם כותרת בלבד נראה שבור עד שמסדרים
+  // אותו. "מסך ריק" נשאר למי שרוצה לבנות מאפס.
   function addScreen() {
-    const data = scData();
-    data.screens.push({
-      id: `s-${Math.random().toString(36).slice(2, 7)}`,
-      name: `מסך ${data.screens.length + 1}`,
-      seconds: 20,
-      blocks: [{ id: `b-h-${Math.random().toString(36).slice(2,6)}`, type: 'header', x: 0, y: 0, w: 24, h: 3 }],
+    openScreenPicker((t) => {
+      const data = scData();
+      data.screens.push({
+        id: `s-${Math.random().toString(36).slice(2, 7)}`,
+        name: t ? t.name : `מסך ${data.screens.length + 1}`,
+        seconds: 20,
+        blocks: t ? starterBlocks(t)
+          : [{ id: `b-h-${Math.random().toString(36).slice(2, 6)}`, type: 'header', x: 0, y: 0, w: 24, h: 3 }],
+      });
+      if (t?.aspect && data.screens.length === 1) data.aspect = t.aspect;
+      scActive = data.screens.length - 1;
+      scSelected = null;
+      markDirty(); renderScreens();
+      status(t ? `נוסף מסך "${t.name}" — אפשר לגרור ולשנות` : 'נוסף מסך ריק — הוסיפו קוביות מהרשימה', 'success');
     });
-    scActive = data.screens.length - 1;
-    scSelected = null;
-    markDirty(); renderScreens();
+  }
+
+  // חלון בחירה: תבניות המסך בצבעי המראה הנוכחי, מסודרות כך שאלה שמתאימות ליחס המסך קודם
+  function openScreenPicker(onPick) {
+    const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    const sw = (P.byId(P.THEMES, design().theme) || P.THEMES[0]).swatch;
+    const vertical = ['9:16', '3:4'].includes(scData().aspect);
+    const fits = (t) => (t.aspect === '9:16') === vertical;
+    const grid = el('div', { class: 'tpl-grid' });
+    const empty = el('button', { class: 'tpl-card', type: 'button', onclick: () => { close(); onPick(null); } },
+      el('div', { class: 'tpl-thumb tpl-empty' }, '+'),
+      el('div', { class: 'tpl-name' }, 'מסך ריק'), el('div', { class: 'tpl-desc' }, 'כותרת בלבד, ואת השאר מוסיפים מהרשימה'));
+    for (const t of [...P.SCREEN_TEMPLATES.filter(fits), ...P.SCREEN_TEMPLATES.filter(t => !fits(t))]) {
+      grid.appendChild(templateCard(t, false, () => { close(); onPick(t); }));
+    }
+    grid.appendChild(empty);
+    const overlay = el('div', { class: 'sb-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'מסך חדש',
+      onclick: (e) => { if (e.target === overlay) close(); } },
+      el('div', { class: 'sb-modal-box' },
+        el('div', { class: 'sb-modal-head' },
+          el('h2', {}, 'מסך חדש — במה מתחילים?'),
+          el('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: close, 'aria-label': 'סגירה' }, '✕')),
+        el('p', { class: 'small' }, 'בחרו סידור מוכן. המסך מקבל את המראה שכבר בחרתם, ואחר כך אפשר לגרור ולשנות.'),
+        grid));
+    overlay.style.setProperty('--p-bg', sw.bg);
+    overlay.style.setProperty('--p-accent', sw.accent);
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', onKey);
+    overlay.querySelector('.tpl-card')?.focus();
   }
 
   // דוחף את מצב העריכה לתצוגה המקדימה בלי לשמור
   function pushScreensPreview() {
-    const iframe = qs('#design-preview');
-    if (!iframe || !iframe.contentWindow) return;
-    iframe.contentWindow.postMessage({
-      type: 'PREVIEW_SCREENS',
-      screens: state.data.screens,
-      mediaPlaylist: state.data.mediaPlaylist,
-      screenIndex: scActive,
-    }, location.origin);
+    // גם לתצוגה המקדימה של האשף — בלי זה התבנית שנבחרה בשלב 4 לא נראתה שם
+    for (const sel of ['#design-preview', '#wz-preview']) {
+      const iframe = qs(sel);
+      if (!iframe || !iframe.contentWindow) continue;
+      iframe.contentWindow.postMessage({
+        type: 'PREVIEW_SCREENS',
+        screens: state.data.screens,
+        mediaPlaylist: state.data.mediaPlaylist,
+        screenIndex: scActive,
+      }, location.origin);
+    }
   }
 
   function setupScreens() {
@@ -3495,6 +3725,7 @@
     });
 
     bindGeneral();
+    bindZmanimMethod();
     bindDesign();
     bindFeatures();
     setupWizard();

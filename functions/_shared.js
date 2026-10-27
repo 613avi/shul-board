@@ -202,13 +202,16 @@ export const DEFAULTS = {
     location: {
       address: '', latitude: 31.7683, longitude: 35.2137,
       timezone: 'Asia/Jerusalem', candleLightingMinutes: 40,
+      // שיטת חישוב הזמנים: 'itim' — כמו לוח עתים לבינה; 'classic' — ברירות המחדל של
+      // hebcal. בתי כנסת מלפני השינוי נשארים על classic (מיגרציה 6).
+      zmanimMethod: 'itim',
     },
     displayedZmanim: {
       alotHaShachar: true, misheyakir: true, sunrise: true, sofZmanShma: true,
       sofZmanTfilla: true, chatzot: true, minchaGedola: true, minchaKetana: true,
       plagHaMincha: true, sunset: true, tzeit: true,
       sofZmanShmaMGA: true, sofZmanTfillaMGA: true,
-      tzeit72: false, chatzotNight: false,
+      tzeit72: false, tzeit72deg: false, chatzotNight: false,
     },
     theme: { accent: '#d4af37', background: '#0e1320' },
     rotation: { enabled: false, intervalSeconds: 20 },
