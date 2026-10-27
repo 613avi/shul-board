@@ -73,9 +73,8 @@
         <div class="wz-steps" id="wz-steps">
             <div class="st" data-step="1"><span class="n">1</span><span class="lbl">פרטים ומיקום</span></div>
             <div class="st" data-step="2"><span class="n">2</span><span class="lbl">זמני תפילה</span></div>
-            <div class="st" data-step="3"><span class="n">3</span><span class="lbl">מראה ולוגו</span></div>
-            <div class="st" data-step="4"><span class="n">4</span><span class="lbl">פריסת המסך</span></div>
-            <div class="st" data-step="5"><span class="n">5</span><span class="lbl">הפעלה על המסך</span></div>
+            <div class="st" data-step="3"><span class="n">3</span><span class="lbl">עיצוב הצג</span></div>
+            <div class="st" data-step="4"><span class="n">4</span><span class="lbl">הפעלה על המסך</span></div>
         </div>
 
         <!-- שלב 1 -->
@@ -144,13 +143,13 @@
             </div>
         </section>
 
-        <!-- שלבים 3-4: מראה ופריסה, עם תצוגה מקדימה צמודה -->
+        <!-- שלב 3: עיצוב הצג — לוח מוכן, מראה, לוגו וסידור המסך, עם תצוגה מקדימה צמודה -->
         <div class="wz-design-grid" id="wz-look-wrap">
             <div>
                 <section class="wz-step" data-step="3">
                     <div class="panel">
                         <h2>איך הצג ייראה?</h2>
-                        <p class="lead">הדרך הקצרה: בחרו לוח מוכן. כל כרטיס הוא הצג שלכם, עם השם והזמנים שכבר הזנתם. אפשר גם לבנות מראה בעצמכם למטה, והכל ניתן לשינוי אחר כך.</p>
+                        <p class="lead">הדרך הקצרה: בחרו לוח מוכן. כל כרטיס הוא הצג שלכם, עם השם והזמנים שכבר הזנתם. אפשר גם לבנות מראה וסידור בעצמכם למטה, והכל ניתן לשינוי אחר כך.</p>
 
                         <div class="wz-section">
                             <h3><span class="num">★</span> לוחות מוכנים</h3>
@@ -228,29 +227,24 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </section>
 
-                <section class="wz-step" data-step="4">
-                    <div class="panel">
-                        <h2>איך לסדר את המסך?</h2>
-                        <p class="lead">בחרו פריסה. "קלאסי" מציג את שלושת הלוחות; שאר התבניות מוסיפות חלון מודעות, לוגו, או מתאימות למסך אנכי. גרירה ושינוי גודל של הקוביות: בניהול המלא, לשונית "מסכים ופריסה".</p>
-                        <div class="sc-bar" style="margin-bottom:12px;">
-                            <label>יחס המסך בבית הכנסת
-                                <select id="wz-aspect">
-                                    <option value="16:9">16:9 — מסך רחב (הנפוץ)</option>
-                                    <option value="16:10">16:10</option>
-                                    <option value="4:3">4:3 — מסך מרובע</option>
-                                    <option value="21:9">21:9 — אולטרה־רחב</option>
-                                    <option value="9:16">9:16 — מסך אנכי</option>
-                                    <option value="3:4">3:4 — אנכי מרובע</option>
-                                </select>
-                            </label>
-                        </div>
-                        <div class="tpl-grid" id="wz-templates"></div>
-                        <div class="wz-section" style="margin-top:18px;">
-                            <h3><span class="num">✓</span> מה מוצג</h3>
-                            <label class="check-row"><input type="checkbox" id="wz-show-upcoming"> <span>אירוע קרוב בתחתית המסך</span></label>
+                        <div class="wz-section">
+                            <h3><span class="num" data-i18n="wz.step.4">ד</span> סידור המסך</h3>
+                            <p class="desc">לוח מוכן כבר מסדר את המסך. אפשר לבחור כאן סידור אחר: "קלאסי" מציג שלושה לוחות, ושאר התבניות מוסיפות חלון מודעות או לוגו, או מתאימות למסך אנכי. גרירה ושינוי גודל של הקוביות: בניהול המלא, לשונית "מסכים ופריסה".</p>
+                            <div class="sc-bar" style="margin-bottom:12px;">
+                                <label>יחס המסך בבית הכנסת
+                                    <select id="wz-aspect">
+                                        <option value="16:9">16:9 — מסך רחב (הנפוץ)</option>
+                                        <option value="16:10">16:10</option>
+                                        <option value="4:3">4:3 — מסך מרובע</option>
+                                        <option value="21:9">21:9 — אולטרה־רחב</option>
+                                        <option value="9:16">9:16 — מסך אנכי</option>
+                                        <option value="3:4">3:4 — אנכי מרובע</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="tpl-grid" id="wz-templates"></div>
+                            <label class="check-row" style="margin-top:14px;"><input type="checkbox" id="wz-show-upcoming"> <span>אירוע קרוב בתחתית המסך</span></label>
                             <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="wz-header-logo"> <span>הלוגו ליד שם בית הכנסת בכותרת</span></label>
                         </div>
                     </div>
@@ -264,8 +258,8 @@
             </div>
         </div>
 
-        <!-- שלב 5 -->
-        <section class="wz-step" data-step="5">
+        <!-- שלב 4 -->
+        <section class="wz-step" data-step="4">
             <div class="panel wz-done">
                 <div style="font-size:44px;">🎉</div>
                 <div class="big">הצג מוכן!</div>
